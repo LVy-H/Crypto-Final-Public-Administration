@@ -4,7 +4,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.4"
 }
 
-group = "com.public.admin"
+group = "com.gov.crypto"
 version = "0.0.1-SNAPSHOT"
 
 java {
@@ -15,12 +15,21 @@ repositories {
     mavenCentral()
 }
 
+// Root project does not have a main class, disable bootJar
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    enabled = false
+}
+
+tasks.named<Jar>("jar") {
+    enabled = false
+}
+
 subprojects {
     apply(plugin = "java")
     apply(plugin = "org.springframework.boot")
     apply(plugin = "io.spring.dependency-management")
 
-    group = "com.public.admin"
+    group = "com.gov.crypto"
     version = "0.0.1-SNAPSHOT"
 
     repositories {

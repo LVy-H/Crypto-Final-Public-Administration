@@ -4,5 +4,6 @@ plugins {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
-    // implementation("org.bouncycastle:bcpkix-jdk18on:1.78") // Keep BouncyCastle as backup or for non-PQC ops
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    runtimeOnly("org.postgresql:postgresql")
 }
