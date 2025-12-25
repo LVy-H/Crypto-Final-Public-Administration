@@ -2,12 +2,15 @@ package com.gov.crypto.identityservice.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,8 +19,32 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // 256-bit key for HMAC-SHA256 (Mock key for dev)
-    public static final String SECRET = "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437";
+    // JWT secret key - MUST be set via environment variable in production
+    // If not set, a random key will be generated (only suitable for development)
+    @Value("${jwt.secret:}")
+    private String secret;
+
+    private SecretKey signingKey;
+
+    @PostConstruct
+    public void init() {
+        if (secret == null || secret.isBlank()) {
+            // Generate random 256-bit key for development only
+            System.err.println(
+                    "WARNING: jwt.secret not set! Generating random key. This is NOT suitable for production!");
+            System.err.println("Set JWT_SECRET environment variable or jwt.secret property for production use.");
+            byte[] randomKey = new byte[32]; // 256 bits
+            new SecureRandom().nextBytes(randomKey);
+            secret = Base64.getEncoder().encodeToString(randomKey);
+        }
+
+        byte[] keyBytes = Decoders.BASE64.decode(secret);
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("JWT secret must be at least 256 bits (32 bytes) for HS256. " +
+                    "Current key is " + (keyBytes.length * 8) + " bits. Set jwt.secret property.");
+        }
+        signingKey = Keys.hmacShaKeyFor(keyBytes);
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -36,11 +63,11 @@ public class JwtService {
 
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours
-                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .claims(claims)
+                .subject(subject)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -58,15 +85,10 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignKey())
+        return Jwts.parser()
+                .verifyWith(signingKey)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    private Key getSignKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET);
-        return Keys.hmacShaKeyFor(keyBytes);
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }
