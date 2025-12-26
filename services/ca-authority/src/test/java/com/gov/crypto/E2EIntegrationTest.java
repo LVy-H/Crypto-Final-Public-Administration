@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 
  * Requires: Docker containers running (docker-compose up)
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(classes = CaAuthorityApplication.class, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ActiveProfiles("test")
 class E2EIntegrationTest {
 

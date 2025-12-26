@@ -71,7 +71,7 @@ test.describe('Admin Portal - CA Stats', () => {
         await page.waitForTimeout(3000);
 
         // Check for ML-DSA-87 label
-        await expect(page.locator('text=ML-DSA-87')).toBeVisible();
+        await expect(page.locator('text=ML-DSA-87').first()).toBeVisible();
     });
 
     test('should display mTLS Enabled label', async ({ page }) => {

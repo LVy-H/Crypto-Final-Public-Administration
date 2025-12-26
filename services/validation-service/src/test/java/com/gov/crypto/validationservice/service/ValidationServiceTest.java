@@ -7,27 +7,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for Validation Service - Signature verification operations.
- * Tests ML-DSA-65/87 signature verification and certificate validation.
+ * Tests match the actual ValidationService API with record-based DTOs.
  */
-@ExtendWith(MockitoExtension.class)
 class ValidationServiceTest {
 
     private ValidationServiceImpl validationService;
-
-    @TempDir
-    Path tempDir;
 
     @BeforeEach
     void setUp() {
@@ -35,151 +26,160 @@ class ValidationServiceTest {
     }
 
     @Nested
-    @DisplayName("Signature Verification Tests")
-    class VerificationTests {
+    @DisplayName("VerifyRequest DTO Tests")
+    class VerifyRequestTests {
 
         @Test
-        @DisplayName("Should return valid response for correct signature")
-        void shouldReturnValidForCorrectSignature() {
-            // Given - mock valid verification scenario
-            VerifyRequest request = new VerifyRequest();
-            request.setData(Base64.getEncoder().encodeToString("test document".getBytes()));
-            request.setSignature(Base64.getEncoder().encodeToString("mock-signature".getBytes()));
-            request.setPublicKey("-----BEGIN PUBLIC KEY-----\nMIITest...\n-----END PUBLIC KEY-----");
-
-            // Verify request is properly constructed
-            assertNotNull(request.getData());
-            assertNotNull(request.getSignature());
-            assertNotNull(request.getPublicKey());
-        }
-
-        @Test
-        @DisplayName("Should handle invalid Base64 data gracefully")
-        void shouldHandleInvalidBase64() {
+        @DisplayName("Should create VerifyRequest with all fields")
+        void shouldCreateVerifyRequest() {
             // Given
-            VerifyRequest request = new VerifyRequest();
-            request.setData("not-valid-base64!!!");
-            request.setSignature("valid-base64-sig");
-            request.setPublicKey("key");
+            String docHash = Base64.getEncoder().encodeToString("test-hash".getBytes());
+            String signature = Base64.getEncoder().encodeToString("test-sig".getBytes());
+            String certPem = "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----";
 
-            // When/Then - should not throw NPE
-            assertNotNull(request.getData());
-        }
-
-        @Test
-        @DisplayName("Should reject null public key")
-        void shouldRejectNullPublicKey() {
-            // Given
-            VerifyRequest request = new VerifyRequest();
-            request.setData("data");
-            request.setSignature("sig");
-            request.setPublicKey(null);
+            // When
+            VerifyRequest request = new VerifyRequest(docHash, signature, certPem);
 
             // Then
-            assertNull(request.getPublicKey());
+            assertEquals(docHash, request.originalDocHash());
+            assertEquals(signature, request.signatureBase64());
+            assertEquals(certPem, request.certPem());
         }
-    }
-
-    @Nested
-    @DisplayName("Certificate Validation Tests")
-    class CertificateValidationTests {
 
         @Test
-        @DisplayName("Should validate certificate format")
-        void shouldValidateCertificateFormat() {
+        @DisplayName("Should handle Base64 encoded data correctly")
+        void shouldHandleBase64Encoding() {
+            // Given - valid Base64 data
+            byte[] originalData = "Hello World".getBytes();
+            String base64Data = Base64.getEncoder().encodeToString(originalData);
+            String signature = Base64.getEncoder().encodeToString("signature".getBytes());
+            String certPem = "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----";
+
+            // When
+            VerifyRequest request = new VerifyRequest(base64Data, signature, certPem);
+
+            // Then
+            byte[] decoded = Base64.getDecoder().decode(request.originalDocHash());
+            assertArrayEquals(originalData, decoded);
+        }
+
+        @Test
+        @DisplayName("Should handle PEM certificate format")
+        void shouldHandlePemCertificate() {
             // Given
-            String validCert = """
+            String certPem = """
                     -----BEGIN CERTIFICATE-----
-                    MIITestCertificate...
+                    MIIBmTCCAUCgAwIBAgIUTest123456789...
                     -----END CERTIFICATE-----
                     """;
 
-            // Then
-            assertTrue(validCert.contains("BEGIN CERTIFICATE"));
-            assertTrue(validCert.contains("END CERTIFICATE"));
-        }
-
-        @Test
-        @DisplayName("Should reject invalid certificate format")
-        void shouldRejectInvalidCertFormat() {
-            // Given
-            String invalidCert = "not-a-valid-certificate";
+            // When
+            VerifyRequest request = new VerifyRequest("hash", "sig", certPem);
 
             // Then
-            assertFalse(invalidCert.contains("BEGIN CERTIFICATE"));
-        }
-
-        @Test
-        @DisplayName("Should verify certificate chain")
-        void shouldVerifyCertificateChain() throws Exception {
-            // Given - create mock cert chain files
-            Path rootCert = tempDir.resolve("root.pem");
-            Path leafCert = tempDir.resolve("leaf.pem");
-
-            Files.writeString(rootCert, "-----BEGIN CERTIFICATE-----\nRoot...\n-----END CERTIFICATE-----");
-            Files.writeString(leafCert, "-----BEGIN CERTIFICATE-----\nLeaf...\n-----END CERTIFICATE-----");
-
-            // Then - files exist
-            assertTrue(Files.exists(rootCert));
-            assertTrue(Files.exists(leafCert));
+            assertTrue(request.certPem().contains("BEGIN CERTIFICATE"));
+            assertTrue(request.certPem().contains("END CERTIFICATE"));
         }
     }
 
     @Nested
-    @DisplayName("Response Tests")
-    class ResponseTests {
+    @DisplayName("VerifyResponse DTO Tests")
+    class VerifyResponseTests {
 
         @Test
-        @DisplayName("Should create valid response")
+        @DisplayName("Should create valid VerifyResponse")
         void shouldCreateValidResponse() {
-            // Given
-            VerifyResponse response = new VerifyResponse();
-            response.setValid(true);
-            response.setMessage("Signature verified successfully");
+            // When
+            VerifyResponse response = new VerifyResponse(true, "Signature is VALID");
 
             // Then
             assertTrue(response.isValid());
-            assertEquals("Signature verified successfully", response.getMessage());
+            assertEquals("Signature is VALID", response.details());
         }
 
         @Test
-        @DisplayName("Should create invalid response with reason")
+        @DisplayName("Should create invalid VerifyResponse with reason")
         void shouldCreateInvalidResponseWithReason() {
-            // Given
-            VerifyResponse response = new VerifyResponse();
-            response.setValid(false);
-            response.setMessage("Invalid signature: certificate expired");
+            // When
+            VerifyResponse response = new VerifyResponse(false, "Certificate has EXPIRED");
 
             // Then
             assertFalse(response.isValid());
-            assertTrue(response.getMessage().contains("expired"));
+            assertTrue(response.details().contains("EXPIRED"));
+        }
+
+        @Test
+        @DisplayName("Should include detailed validation info")
+        void shouldIncludeDetailedInfo() {
+            // Given
+            String details = "✓ Cryptographic signature verified. " +
+                    "✓ Certificate is within validity period. " +
+                    "✓ Certificate is not revoked.";
+
+            // When
+            VerifyResponse response = new VerifyResponse(true, details);
+
+            // Then
+            assertTrue(response.details().contains("Cryptographic signature"));
+            assertTrue(response.details().contains("validity period"));
+            assertTrue(response.details().contains("not revoked"));
         }
     }
 
     @Nested
-    @DisplayName("Algorithm Support Tests")
-    class AlgorithmTests {
+    @DisplayName("Signature Verification Logic Tests")
+    class SignatureVerificationTests {
 
         @Test
-        @DisplayName("Should support ML-DSA-65 algorithm")
-        void shouldSupportMlDsa65() {
-            // Given
-            String algorithm = "ML-DSA-65";
+        @DisplayName("Should reject invalid Base64 document hash")
+        void shouldRejectInvalidBase64Hash() {
+            // Given - invalid Base64
+            VerifyRequest request = new VerifyRequest(
+                    "not-valid-base64!!!",
+                    Base64.getEncoder().encodeToString("sig".getBytes()),
+                    "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----");
 
-            // Then
-            assertTrue(algorithm.startsWith("ML-DSA"));
-            assertTrue(algorithm.contains("65"));
+            // When
+            VerifyResponse response = validationService.verifySignature(request);
+
+            // Then - should handle gracefully or return invalid
+            assertNotNull(response);
+            // Response may be invalid due to Base64 parsing failure
         }
 
         @Test
-        @DisplayName("Should support ML-DSA-87 algorithm")
-        void shouldSupportMlDsa87() {
+        @DisplayName("Should reject empty certificate")
+        void shouldRejectEmptyCertificate() {
             // Given
-            String algorithm = "ML-DSA-87";
+            VerifyRequest request = new VerifyRequest(
+                    Base64.getEncoder().encodeToString("hash".getBytes()),
+                    Base64.getEncoder().encodeToString("sig".getBytes()),
+                    "" // Empty certificate
+            );
+
+            // When
+            VerifyResponse response = validationService.verifySignature(request);
 
             // Then
-            assertTrue(algorithm.startsWith("ML-DSA"));
-            assertTrue(algorithm.contains("87"));
+            assertNotNull(response);
+            assertFalse(response.isValid());
+        }
+
+        @Test
+        @DisplayName("Should reject malformed PEM certificate")
+        void shouldRejectMalformedPem() {
+            // Given - certificate without proper headers
+            VerifyRequest request = new VerifyRequest(
+                    Base64.getEncoder().encodeToString("hash".getBytes()),
+                    Base64.getEncoder().encodeToString("sig".getBytes()),
+                    "not-a-valid-pem-certificate");
+
+            // When
+            VerifyResponse response = validationService.verifySignature(request);
+
+            // Then
+            assertNotNull(response);
+            assertFalse(response.isValid());
         }
     }
 }

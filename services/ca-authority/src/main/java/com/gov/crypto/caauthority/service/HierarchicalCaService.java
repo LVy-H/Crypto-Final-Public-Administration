@@ -7,6 +7,7 @@ import com.gov.crypto.caauthority.model.IssuedCertificate;
 import com.gov.crypto.caauthority.model.IssuedCertificate.CertStatus;
 import com.gov.crypto.caauthority.repository.CertificateAuthorityRepository;
 import com.gov.crypto.caauthority.repository.IssuedCertificateRepository;
+import com.gov.crypto.common.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,9 @@ public class HierarchicalCaService {
      */
     @Transactional
     public CertificateAuthority initializeRootCa(String name) throws Exception {
+        // SECURITY: Validate and sanitize input to prevent command injection
+        String sanitizedName = SecurityUtils.sanitizeDnComponent(name, "CA name");
+
         // Check if root CA already exists
         var existing = caRepository.findByLevelAndStatus(CaLevel.ROOT, CaStatus.ACTIVE);
         if (existing.isPresent()) {
@@ -54,7 +58,7 @@ public class HierarchicalCaService {
         String algorithm = "mldsa87"; // ML-DSA-87 for Root CA
         String keyPath = CA_STORAGE_PATH + "/root-key.pem";
         String certPath = CA_STORAGE_PATH + "/root-cert.pem";
-        String subjectDn = "/CN=" + name + "/O=PQC Digital Signature System/C=VN";
+        String subjectDn = "/CN=" + sanitizedName + "/O=PQC Digital Signature System/C=VN";
 
         // Generate ML-DSA-87 key pair
         runProcess(new ProcessBuilder(
@@ -207,16 +211,22 @@ public class HierarchicalCaService {
     private CertificateAuthority createSubordinateCa(CertificateAuthority parentCa, String name,
             CaLevel level, String algorithm, int validDays) throws Exception {
 
-        String keyPath = CA_STORAGE_PATH + "/" + name.toLowerCase().replace(" ", "-") + "-key.pem";
-        String csrPath = CA_STORAGE_PATH + "/" + name.toLowerCase().replace(" ", "-") + ".csr";
-        String certPath = CA_STORAGE_PATH + "/" + name.toLowerCase().replace(" ", "-") + "-cert.pem";
-        String subjectDn = "/CN=" + name + " " + level.name() + " CA/O=PQC Digital Signature System/C=VN";
+        // SECURITY: Validate and sanitize all inputs
+        String sanitizedName = SecurityUtils.sanitizeDnComponent(name, "CA name");
+        String validatedAlgorithm = SecurityUtils.validateAlgorithm(algorithm);
 
-        // Generate key pair
+        // Generate safe file paths using sanitized name
+        String safeFileName = sanitizedName.toLowerCase().replaceAll("[^a-z0-9-]", "-");
+        String keyPath = CA_STORAGE_PATH + "/" + safeFileName + "-key.pem";
+        String csrPath = CA_STORAGE_PATH + "/" + safeFileName + ".csr";
+        String certPath = CA_STORAGE_PATH + "/" + safeFileName + "-cert.pem";
+        String subjectDn = "/CN=" + sanitizedName + " " + level.name() + " CA/O=PQC Digital Signature System/C=VN";
+
+        // Generate key pair with validated algorithm
         runProcess(new ProcessBuilder(
                 "openssl", "genpkey",
-                "-algorithm", algorithm,
-                "-out", keyPath), name + " Key Generation");
+                "-algorithm", validatedAlgorithm,
+                "-out", keyPath), sanitizedName + " Key Generation");
 
         // Generate CSR
         runProcess(new ProcessBuilder(
@@ -299,7 +309,9 @@ public class HierarchicalCaService {
             Files.deleteIfExists(issuingCertPath);
 
             String certificate = Files.readString(certPath);
-            String serialNumber = UUID.randomUUID().toString();
+            // SECURITY: Generate cryptographically secure serial number (RFC 5280
+            // compliant)
+            String serialNumber = SecurityUtils.generateSecureSerialNumber();
 
             IssuedCertificate userCert = new IssuedCertificate();
             userCert.setIssuingCa(issuingRa);

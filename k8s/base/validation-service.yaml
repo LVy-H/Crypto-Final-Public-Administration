@@ -1,0 +1,68 @@
+# Validation Service - Signature verification
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: validation-service
+  namespace: crypto-pqc
+  labels:
+    app: validation-service
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: validation-service
+  template:
+    metadata:
+      labels:
+        app: validation-service
+        tier: backend
+    spec:
+      containers:
+        - name: validation-service
+          image: crypto-pqc/validation-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: crypto-config
+                  key: SPRING_PROFILES_ACTIVE
+          envFrom:
+            - configMapRef:
+                name: crypto-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: validation-service
+  namespace: crypto-pqc
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8085
+      targetPort: 8080
+  selector:
+    app: validation-service

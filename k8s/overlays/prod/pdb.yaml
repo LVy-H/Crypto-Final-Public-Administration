@@ -1,0 +1,59 @@
+# Pod Disruption Budgets for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: crypto-pqc-prod
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: identity-service-pdb
+  namespace: crypto-pqc-prod
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: identity-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ca-authority-pdb
+  namespace: crypto-pqc-prod
+spec:
+  minAvailable: 1 # CA is critical, always need at least 1
+  selector:
+    matchLabels:
+      app: ca-authority
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cloud-sign-pdb
+  namespace: crypto-pqc-prod
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: cloud-sign
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: validation-service-pdb
+  namespace: crypto-pqc-prod
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: validation-service

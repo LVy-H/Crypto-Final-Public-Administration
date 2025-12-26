@@ -1,0 +1,30 @@
+# Kustomization file for base resources
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: crypto-pqc
+
+resources:
+  - namespace-config.yaml
+  - secrets.yaml
+  - postgres.yaml
+  - api-gateway.yaml
+  - identity-service.yaml
+  - ca-authority.yaml # Includes RA functionality
+  - cloud-sign.yaml
+  - signature-core.yaml
+  - validation-service.yaml
+  - public-portal.yaml
+  - admin-portal.yaml
+  - ingress.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: pqc-digital-signature
+      app.kubernetes.io/managed-by: kustomize
+
+configMapGenerator:
+  - name: crypto-config
+    behavior: merge
+    literals:
+      - SPRING_PROFILES_ACTIVE=kubernetes

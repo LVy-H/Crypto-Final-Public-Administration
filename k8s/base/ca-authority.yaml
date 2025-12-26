@@ -1,0 +1,129 @@
+# CA Authority (with RA) - Unified PKI service
+# Combines Certificate Authority and Registration Authority functionality
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ca-authority
+  namespace: crypto-pqc
+  labels:
+    app: ca-authority
+    tier: backend
+    security: critical
+spec:
+  replicas: 2 # HA for PKI operations
+  selector:
+    matchLabels:
+      app: ca-authority
+  template:
+    metadata:
+      labels:
+        app: ca-authority
+        tier: backend
+        security: critical
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: ca-authority
+          image: crypto-pqc/ca-authority:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8082
+              name: http
+            - containerPort: 8083
+              name: ra-http # RA endpoints on separate port
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: crypto-config
+                  key: SPRING_PROFILES_ACTIVE
+            # Service URLs for orchestration
+            - name: SERVICE_CLOUD_SIGN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: crypto-config
+                  key: SERVICE_CLOUD_SIGN_URL
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: crypto-secrets
+                  key: postgres-username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: crypto-secrets
+                  key: postgres-password
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/crypto_db"
+          envFrom:
+            - configMapRef:
+                name: crypto-config
+          volumeMounts:
+            - name: ca-storage
+              mountPath: /secure/ca
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "50m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 45
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 90
+            periodSeconds: 30
+      volumes:
+        - name: ca-storage
+          persistentVolumeClaim:
+            claimName: ca-storage-pvc
+
+---
+# CA Authority Service (includes RA endpoints)
+apiVersion: v1
+kind: Service
+metadata:
+  name: ca-authority
+  namespace: crypto-pqc
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: 8082
+      name: ca
+    - port: 8083
+      targetPort: 8083
+      name: ra
+  selector:
+    app: ca-authority
+
+---
+# Persistent storage for CA keys and certificates
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ca-storage-pvc
+  namespace: crypto-pqc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard # Adjust for your cluster

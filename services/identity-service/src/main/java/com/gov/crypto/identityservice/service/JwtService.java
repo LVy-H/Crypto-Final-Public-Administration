@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
@@ -71,9 +73,17 @@ public class JwtService {
                 .compact();
     }
 
+    /**
+     * Validates a JWT token using constant-time comparison to prevent timing
+     * attacks.
+     */
     public Boolean validateToken(String token, String username) {
         final String extractedUsername = extractUsername(token);
-        return (extractedUsername.equals(username) && !isTokenExpired(token));
+        // SECURITY: Use constant-time comparison to prevent timing attacks
+        boolean usernameMatches = MessageDigest.isEqual(
+                extractedUsername.getBytes(StandardCharsets.UTF_8),
+                username.getBytes(StandardCharsets.UTF_8));
+        return usernameMatches && !isTokenExpired(token);
     }
 
     private Boolean isTokenExpired(String token) {

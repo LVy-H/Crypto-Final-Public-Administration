@@ -47,7 +47,7 @@ test.describe('Public Portal - Features Section', () => {
         await page.goto('/');
 
         // Check for features
-        await expect(page.locator('text=Quantum-Resistant')).toBeVisible();
+        await expect(page.locator('text=Quantum-Resistant').first()).toBeVisible();
     });
 
     test('should display legally valid feature', async ({ page }) => {

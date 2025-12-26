@@ -1,0 +1,62 @@
+# Public Portal - Frontend Application
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: public-portal
+  namespace: crypto-pqc
+  labels:
+    app: public-portal
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: public-portal
+  template:
+    metadata:
+      labels:
+        app: public-portal
+        tier: frontend
+    spec:
+      containers:
+        - name: public-portal
+          image: crypto-pqc/public-portal:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NUXT_PUBLIC_API_BASE
+              value: "http://localhost:8080/api/v1"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: public-portal
+  namespace: crypto-pqc
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+  selector:
+    app: public-portal

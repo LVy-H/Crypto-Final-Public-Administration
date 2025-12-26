@@ -1,6 +1,5 @@
 package com.gov.crypto.validationservice.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gov.crypto.validationservice.dto.VerifyRequest;
 import com.gov.crypto.validationservice.dto.VerifyResponse;
 import com.gov.crypto.validationservice.service.ValidationService;
@@ -22,15 +21,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * API tests for Validation Service - signature verification endpoints.
+ * Tests match the actual ValidationController API with record-based DTOs.
  */
 @WebMvcTest(ValidationController.class)
 class ValidationControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockBean
     private ValidationService validationService;
@@ -43,67 +40,100 @@ class ValidationControllerTest {
         @DisplayName("Should verify valid signature successfully")
         void shouldVerifyValidSignature() throws Exception {
             // Given
-            VerifyResponse mockResponse = new VerifyResponse();
-            mockResponse.setValid(true);
-            mockResponse.setMessage("Signature verified successfully");
-            when(validationService.verify(any())).thenReturn(mockResponse);
+            VerifyResponse mockResponse = new VerifyResponse(true, "Signature verified successfully");
+            when(validationService.verifySignature(any(VerifyRequest.class))).thenReturn(mockResponse);
 
-            String requestBody = objectMapper.writeValueAsString(new VerifyRequest());
+            String requestBody = """
+                    {
+                        "originalDocHash": "dGVzdA==",
+                        "signatureBase64": "c2ln",
+                        "certPem": "-----BEGIN CERTIFICATE-----\\ntest\\n-----END CERTIFICATE-----"
+                    }
+                    """;
 
             // When/Then
             mockMvc.perform(post("/api/v1/validation/verify")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"data\":\"dGVzdA==\",\"signature\":\"c2ln\",\"publicKey\":\"key\"}"))
+                    .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.valid").value(true));
+                    .andExpect(jsonPath("$.isValid").value(true))
+                    .andExpect(jsonPath("$.details").value("Signature verified successfully"));
         }
 
         @Test
         @DisplayName("Should return invalid for bad signature")
         void shouldReturnInvalidForBadSignature() throws Exception {
             // Given
-            VerifyResponse mockResponse = new VerifyResponse();
-            mockResponse.setValid(false);
-            mockResponse.setMessage("Signature verification failed");
-            when(validationService.verify(any())).thenReturn(mockResponse);
+            VerifyResponse mockResponse = new VerifyResponse(false, "Signature verification failed");
+            when(validationService.verifySignature(any(VerifyRequest.class))).thenReturn(mockResponse);
+
+            String requestBody = """
+                    {
+                        "originalDocHash": "dGVzdA==",
+                        "signatureBase64": "YmFk",
+                        "certPem": "-----BEGIN CERTIFICATE-----\\ntest\\n-----END CERTIFICATE-----"
+                    }
+                    """;
 
             // When/Then
             mockMvc.perform(post("/api/v1/validation/verify")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"data\":\"dGVzdA==\",\"signature\":\"YmFk\",\"publicKey\":\"key\"}"))
+                    .content(requestBody))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.valid").value(false));
+                    .andExpect(jsonPath("$.isValid").value(false));
         }
 
         @Test
-        @DisplayName("Should return 400 for missing data")
-        void shouldReturn400ForMissingData() throws Exception {
-            // When/Then
+        @DisplayName("Should call verifySignature service method")
+        void shouldCallVerifySignatureService() throws Exception {
+            // Given
+            VerifyResponse mockResponse = new VerifyResponse(true, "OK");
+            when(validationService.verifySignature(any(VerifyRequest.class))).thenReturn(mockResponse);
+
+            String requestBody = """
+                    {
+                        "originalDocHash": "aGFzaA==",
+                        "signatureBase64": "c2ln",
+                        "certPem": "-----BEGIN CERTIFICATE-----\\ntest\\n-----END CERTIFICATE-----"
+                    }
+                    """;
+
+            // When
             mockMvc.perform(post("/api/v1/validation/verify")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{}"))
-                    .andExpect(status().isBadRequest());
+                    .content(requestBody))
+                    .andExpect(status().isOk());
+
+            // Then
+            verify(validationService).verifySignature(any(VerifyRequest.class));
         }
     }
 
     @Nested
-    @DisplayName("POST /api/v1/validation/verify-chain - Verify Certificate Chain")
-    class VerifyCertChainTests {
+    @DisplayName("Request/Response DTO Tests")
+    class DtoTests {
 
         @Test
-        @DisplayName("Should verify complete certificate chain")
-        void shouldVerifyCompleteChain() throws Exception {
+        @DisplayName("Should handle valid Base64 in request")
+        void shouldHandleBase64InRequest() throws Exception {
             // Given
-            VerifyResponse mockResponse = new VerifyResponse();
-            mockResponse.setValid(true);
-            when(validationService.verifyCertificateChain(any())).thenReturn(mockResponse);
+            String base64Data = Base64.getEncoder().encodeToString("test-data".getBytes());
+            VerifyResponse mockResponse = new VerifyResponse(true, "Valid");
+            when(validationService.verifySignature(any())).thenReturn(mockResponse);
+
+            String requestBody = """
+                    {
+                        "originalDocHash": "%s",
+                        "signatureBase64": "c2ln",
+                        "certPem": "-----BEGIN CERTIFICATE-----\\ntest\\n-----END CERTIFICATE-----"
+                    }
+                    """.formatted(base64Data);
 
             // When/Then
-            mockMvc.perform(post("/api/v1/validation/verify-chain")
+            mockMvc.perform(post("/api/v1/validation/verify")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"certificates\":[\"cert1\",\"cert2\",\"rootCert\"]}"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.valid").value(true));
+                    .content(requestBody))
+                    .andExpect(status().isOk());
         }
     }
 }

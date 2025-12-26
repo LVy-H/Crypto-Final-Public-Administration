@@ -2,8 +2,6 @@ package com.gov.crypto.identityservice.service;
 
 import com.gov.crypto.model.User;
 import com.gov.crypto.repository.UserRepository;
-import com.gov.crypto.service.AuthService;
-import com.gov.crypto.dto.AuthResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,14 +12,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for Identity Service - Authentication operations.
+ * Tests match the actual AuthService API.
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -31,6 +29,9 @@ class AuthServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtService jwtService;
 
     @InjectMocks
     private AuthService authService;
@@ -42,111 +43,75 @@ class AuthServiceTest {
         testUser = new User();
         testUser.setUsername("citizen01");
         testUser.setEmail("citizen01@gov.vn");
-        testUser.setPassword("$2a$10$encodedPassword");
+        testUser.setPasswordHash("rawPassword");
         testUser.setRole("CITIZEN");
     }
 
     @Nested
-    @DisplayName("User Registration Tests")
-    class RegistrationTests {
+    @DisplayName("User Save Tests")
+    class SaveUserTests {
 
         @Test
-        @DisplayName("Should successfully register new user")
-        void shouldRegisterNewUser() {
+        @DisplayName("Should successfully save user with encoded password")
+        void shouldSaveUserWithEncodedPassword() {
             // Given
-            when(userRepository.existsByUsername("newuser")).thenReturn(false);
-            when(userRepository.existsByEmail("new@gov.vn")).thenReturn(false);
-            when(passwordEncoder.encode(any())).thenReturn("$2a$10$encodedPassword");
-            when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(passwordEncoder.encode("rawPassword")).thenReturn("$2a$10$encodedPassword");
+            when(userRepository.save(any(User.class))).thenReturn(testUser);
 
             // When
-            User result = authService.register("newuser", "new@gov.vn", "password123");
+            String result = authService.saveUser(testUser);
 
             // Then
-            assertNotNull(result);
-            assertEquals("newuser", result.getUsername());
-            verify(userRepository).save(any(User.class));
+            assertEquals("User added to system", result);
+            verify(passwordEncoder).encode("rawPassword");
+            verify(userRepository).save(testUser);
         }
 
         @Test
-        @DisplayName("Should throw when username already exists")
-        void shouldThrowWhenUsernameExists() {
+        @DisplayName("Should encode password before saving")
+        void shouldEncodePasswordBeforeSaving() {
             // Given
-            when(userRepository.existsByUsername("existing")).thenReturn(true);
+            when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$encoded");
+            when(userRepository.save(any())).thenReturn(testUser);
 
-            // When/Then
-            assertThrows(RuntimeException.class, () -> authService.register("existing", "test@gov.vn", "password"));
-        }
+            // When
+            authService.saveUser(testUser);
 
-        @Test
-        @DisplayName("Should throw when email already exists")
-        void shouldThrowWhenEmailExists() {
-            // Given
-            when(userRepository.existsByUsername("newuser")).thenReturn(false);
-            when(userRepository.existsByEmail("existing@gov.vn")).thenReturn(true);
-
-            // When/Then
-            assertThrows(RuntimeException.class, () -> authService.register("newuser", "existing@gov.vn", "password"));
+            // Then
+            verify(passwordEncoder).encode("rawPassword");
         }
     }
 
     @Nested
-    @DisplayName("User Login Tests")
-    class LoginTests {
+    @DisplayName("Token Generation Tests")
+    class TokenGenerationTests {
 
         @Test
-        @DisplayName("Should successfully login with correct credentials")
-        void shouldLoginWithCorrectCredentials() {
+        @DisplayName("Should generate token for username")
+        void shouldGenerateTokenForUsername() {
             // Given
-            when(userRepository.findByUsername("citizen01")).thenReturn(Optional.of(testUser));
-            when(passwordEncoder.matches("correctPassword", testUser.getPassword())).thenReturn(true);
+            String expectedToken = "eyJhbGciOiJIUzI1NiJ9.test.signature";
+            when(jwtService.generateToken("citizen01", "USER")).thenReturn(expectedToken);
 
             // When
-            AuthResponse response = authService.login("citizen01", "correctPassword");
+            String token = authService.generateToken("citizen01");
 
             // Then
-            assertNotNull(response);
-            assertNotNull(response.getToken());
-            assertEquals("citizen01", response.getUsername());
+            assertEquals(expectedToken, token);
+            verify(jwtService).generateToken("citizen01", "USER");
         }
 
         @Test
-        @DisplayName("Should throw when user not found")
-        void shouldThrowWhenUserNotFound() {
+        @DisplayName("Should use default USER role for token generation")
+        void shouldUseDefaultUserRole() {
             // Given
-            when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
-
-            // When/Then
-            assertThrows(RuntimeException.class, () -> authService.login("unknown", "password"));
-        }
-
-        @Test
-        @DisplayName("Should throw when password incorrect")
-        void shouldThrowWhenPasswordIncorrect() {
-            // Given
-            when(userRepository.findByUsername("citizen01")).thenReturn(Optional.of(testUser));
-            when(passwordEncoder.matches("wrongPassword", testUser.getPassword())).thenReturn(false);
-
-            // When/Then
-            assertThrows(RuntimeException.class, () -> authService.login("citizen01", "wrongPassword"));
-        }
-    }
-
-    @Nested
-    @DisplayName("JWT Token Tests")
-    class TokenTests {
-
-        @Test
-        @DisplayName("Should validate correct JWT token")
-        void shouldValidateCorrectToken() {
-            // Given - valid token format
-            String validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaXRpemVuMDEifQ.signature";
+            when(jwtService.generateToken(anyString(), eq("USER"))).thenReturn("token");
 
             // When
-            boolean isValid = authService.validateToken(validToken);
+            authService.generateToken("anyuser");
 
-            // Then - implementation specific, just verify no exception
-            // Note: Actual validation depends on implementation
+            // Then
+            verify(jwtService).generateToken("anyuser", "USER");
         }
     }
 }
