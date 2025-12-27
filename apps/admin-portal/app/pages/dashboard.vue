@@ -19,7 +19,7 @@
           <li><NuxtLink to="/dashboard" class="nav-link active">Tổng quan</NuxtLink></li>
           <li><NuxtLink to="/users" class="nav-link">Quản lý người dùng</NuxtLink></li>
           <li><NuxtLink to="/certificates" class="nav-link">Quản lý chứng chỉ</NuxtLink></li>
-          <li><NuxtLink to="/requests" class="nav-link">Yêu cầu chờ duyệt</NuxtLink></li>
+          <li><NuxtLink to="/identity" class="nav-link">Yêu cầu xác thực</NuxtLink></li>
           <li><NuxtLink to="/audit" class="nav-link">Nhật ký hệ thống</NuxtLink></li>
         </ul>
       </nav>
