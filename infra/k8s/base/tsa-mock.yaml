@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tsa-mock
+  namespace: rssp
+  labels:
+    app: tsa-mock
+    tier: security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tsa-mock
+  template:
+    metadata:
+      labels:
+        app: tsa-mock
+    spec:
+      containers:
+        - name: tsa-mock
+          image: gov-crypto/tsa-mock:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8318
+              name: tsa
+          volumeMounts:
+            - name: tsa-data
+              mountPath: /tsa/data
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          readinessProbe:
+            exec:
+              command:
+                - test
+                - -f
+                - /tsa/certs/tsa.crt
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: tsa-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tsa-mock
+  namespace: rssp
+spec:
+  selector:
+    app: tsa-mock
+  ports:
+    - port: 8318
+      targetPort: 8318
+      name: tsa
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tsa-config
+  namespace: rssp
+data:
+  tsa-url: "http://tsa-mock:8318/tsa"

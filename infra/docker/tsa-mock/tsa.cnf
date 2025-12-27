@@ -1,0 +1,54 @@
+# TSA OpenSSL Configuration
+# RFC 3161 compliant timestamp configuration
+
+[ ca ]
+default_ca = tsa_ca
+
+[ tsa_ca ]
+dir               = /tsa
+database          = $dir/data/index.txt
+new_certs_dir     = $dir/certs
+serial            = $dir/data/serial
+certificate       = $dir/certs/tsa.crt
+private_key       = $dir/certs/tsa.key
+default_days      = 365
+default_md        = sha384
+policy            = tsa_policy
+
+[ tsa_policy ]
+countryName       = optional
+stateOrProvinceName = optional
+localityName      = optional
+organizationName  = optional
+commonName        = supplied
+
+[ tsa_config ]
+default_tsa = tsa_section
+
+[ tsa_section ]
+# TSA configuration per RFC 3161
+dir               = /tsa
+serial            = $dir/data/tsa_serial
+crypto_device     = builtin
+signer_cert       = $dir/certs/tsa.crt
+certs             = $dir/certs/tsa.crt
+signer_key        = $dir/certs/tsa.key
+default_policy    = 1.2.3.4.1  # OID for this TSA
+digests           = sha256, sha384, sha512
+accuracy          = secs:1, millisecs:500, microsecs:100
+clock_precision_digits = 0
+ordering          = yes
+tsa_name          = yes
+ess_cert_id_chain = no
+
+[ req ]
+default_bits       = 4096
+default_md         = sha384
+distinguished_name = tsa_dn
+prompt             = no
+
+[ tsa_dn ]
+C  = VN
+O  = PQC Digital Signature System
+OU = Timestamp Authority
+CN = Development TSA
