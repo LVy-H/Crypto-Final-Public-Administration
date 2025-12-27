@@ -7,15 +7,18 @@ namespace: crypto-pqc
 resources:
   - namespace-config.yaml
   - secrets.yaml
+  - network-policies.yaml # Security zone enforcement
   - postgres.yaml
   - api-gateway.yaml
   - identity-service.yaml
-  - ca-authority.yaml # Includes RA functionality
+  - ca-authority.yaml
   - org-service.yaml
   - doc-service.yaml
-  # - cloud-sign.yaml # Moved to rssp/
+  - cloud-sign.yaml # Re-enabled with Phase 7 changes
   - signature-core.yaml
   - validation-service.yaml
+  - softhsm.yaml # HSM mock (secure zone)
+  - tsa-mock.yaml # TSA mock (internal zone)
   - public-portal.yaml
   - admin-portal.yaml
   - ingress.yaml

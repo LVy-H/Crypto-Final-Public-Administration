@@ -1,127 +1,380 @@
-services:
-  # Database (internal only)
-  postgres-db:
-    image: postgres:16-alpine
-    container_name: crypto_postgres
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: crypto_main
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    # No port exposure - internal only
+# ============================================================================
+# GovTech PQC Digital Signature System - Infrastructure Composition
+# ============================================================================
+# 
+# SECURITY ZONES (reflecting architecture diagrams):
+#   - public-net:   DMZ - Internet-facing services (portals, VNeID mock)
+#   - internal-net: Trust Zone - API Gateway, core microservices  
+#   - secure-net:   Secure Zone - HSM, CA Authority, Key Storage (air-gapped)
+#
+# This composition integrates:
+#   1. All core microservices (identity, ca-authority, cloud-sign, etc.)
+#   2. Mock external systems (VNeID, NEAC, TSA, HSM)
+#   3. Persistence for audit trails and crypto material
+# ============================================================================
 
-    # API Gateway - Single entry point for backend (TLS termination)
-  api-gateway:
-    build: services/api-gateway
-    container_name: api_gateway
+services:
+  # ==========================================================================
+  # ZONE A: PUBLIC (DMZ) - Internet-facing services
+  # ==========================================================================
+  
+  # Public Portal - Citizen-facing web application
+  public-portal:
+    build: 
+      context: ../../apps/public-portal
+    container_name: gov_public_portal
     ports:
-      - "8080:8080" # Only exposed backend port
+      - "3000:3000"
+    environment:
+      - NUXT_PUBLIC_API_BASE=http://api-gateway:8080/api/v1
+    networks:
+      - public-net
+    depends_on:
+      - api-gateway
+
+  # Admin Portal - Government staff portal
+  admin-portal:
+    build:
+      context: ../../apps/admin-portal
+    container_name: gov_admin_portal
+    ports:
+      - "3001:3000"
+    environment:
+      - NUXT_PUBLIC_API_BASE=http://api-gateway:8080/api/v1
+    networks:
+      - public-net
+    depends_on:
+      - api-gateway
+
+  # Mock VNeID - National Identity Provider (simulates VNeID OAuth/OIDC)
+  mock-vneid:
+    build:
+      context: ./mock-vneid
+    container_name: mock_vneid
+    ports:
+      - "8880:8080"  # Exposed for testing OAuth flows
+    environment:
+      - MOCK_DELAY_MS=100
+      - LOG_LEVEL=INFO
+    volumes:
+      - vneid-logs:/var/log/vneid
+    networks:
+      - public-net
+      - internal-net  # Needs to talk to identity-service
+
+  # ==========================================================================
+  # ZONE B: INTERNAL (Trust Zone) - Core microservices
+  # ==========================================================================
+
+  # API Gateway - Single entry point, TLS termination, routing
+  api-gateway:
+    build:
+      context: ../../gateway/api-gateway
+    container_name: gov_api_gateway
+    ports:
+      - "8080:8080"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      # mTLS configuration (optional - can enable later)
       - SSL_ENABLED=false
+      - IDENTITY_SERVICE_URL=http://identity-service:8081
+      - CA_AUTHORITY_URL=http://ca-authority:8082
+      - CLOUD_SIGN_URL=http://cloud-sign:8084
+      - VALIDATION_SERVICE_URL=http://validation-service:8085
     volumes:
       - mtls-certs:/app/certs:ro
+    networks:
+      - public-net   # Receives requests from portals
+      - internal-net # Routes to internal services
     depends_on:
-      - postgres-db
       - identity-service
       - ca-authority
       - cloud-sign
       - validation-service
 
-  # Internal Backend Services (no port exposure, mTLS enabled)
+  # Identity Service - Authentication, JWT, User Management
   identity-service:
-    build: services/identity-service
-    container_name: identity_service
+    build:
+      context: ../../core/identity-service
+    container_name: gov_identity_service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/crypto_main
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/identity_db
       - SPRING_DATASOURCE_USERNAME=admin
-      - SPRING_DATASOURCE_PASSWORD=password
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-securepassword}
+      - JWT_SECRET=${JWT_SECRET:-changeme_in_production}
+      - VNEID_URL=http://mock-vneid:8080
     volumes:
       - mtls-certs:/app/certs:ro
+    networks:
+      - internal-net
     depends_on:
       - postgres-db
 
-  ca-authority:
-    build: services/ca-authority
-    container_name: ca_authority
+  # Validation Service - Signature verification, CRL checking
+  validation-service:
+    build:
+      context: ../../core/validation-service
+    container_name: gov_validation_service
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - CA_AUTHORITY_URL=http://ca-authority:8082
+      - TSA_URL=http://mock-tsa:8318
+    volumes:
+      - mtls-certs:/app/certs:ro
+    networks:
+      - internal-net
+    depends_on:
+      - ca-authority
+      - mock-tsa
+
+  # Document Service - PDF signing, timestamping integration
+  doc-service:
+    build:
+      context: ../../core/doc-service
+    container_name: gov_doc_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CLOUD_SIGN_URL=http://cloud-sign:8084
+      - TSA_URL=http://mock-tsa:8318
+      - CA_AUTHORITY_URL=http://ca-authority:8082
+    volumes:
+      - doc-storage:/data/documents
+      - mtls-certs:/app/certs:ro
+    networks:
+      - internal-net
+    depends_on:
+      - cloud-sign
+      - mock-tsa
+
+  # Organization Service - Org management, hierarchy
+  org-service:
+    build:
+      context: ../../core/org-service
+    container_name: gov_org_service
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/org_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-securepassword}
+    networks:
+      - internal-net
+    depends_on:
+      - postgres-db
+
+  # Signature Core - Signature business logic
+  signature-core:
+    build:
+      context: ../../core/signature-core
+    container_name: gov_signature_core
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/signature_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-securepassword}
+      - CA_AUTHORITY_URL=http://ca-authority:8082
+    networks:
+      - internal-net
+    depends_on:
+      - postgres-db
+      - ca-authority
+
+  # PostgreSQL Database - Shared database cluster
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: gov_postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-securepassword}
+      POSTGRES_MULTIPLE_DATABASES: identity_db,ca_db,org_db,signature_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-scripts/init-multi-db.sh:/docker-entrypoint-initdb.d/init-multi-db.sh:ro
+    networks:
+      - internal-net
+    # No port exposure - internal only
+
+  # Mock NEAC - Government Gateway compliance check
+  mock-neac:
+    build:
+      context: ./mock-neac
+    container_name: mock_neac
+    environment:
+      - COMPLIANCE_MODE=strict
+      - LOG_LEVEL=INFO
+    volumes:
+      - neac-logs:/var/log/neac
+      - neac-data:/data/compliance
+    networks:
+      - internal-net
+
+  # Mock TSA - RFC 3161 Timestamp Authority
+  mock-tsa:
+    build:
+      context: ./tsa-mock
+    container_name: mock_tsa
+    environment:
+      - TSA_POLICY_OID=1.2.3.4.1
+    volumes:
+      - tsa-certs:/tsa/certs
+      - tsa-data:/tsa/data
+      - tsa-logs:/var/log/tsa
+    networks:
+      - internal-net
+      - secure-net  # Needs HSM for signing timestamps
+
+  # ==========================================================================
+  # ZONE C: SECURE (Air-Gapped Zone) - Cryptographic operations only
+  # ==========================================================================
+
+  # CA Authority - Certificate Issuance, CRL generation
+  ca-authority:
+    build:
+      context: ../../core/ca-authority
+    container_name: gov_ca_authority
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/ca_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-securepassword}
+      - HSM_ENABLED=true
+      - HSM_URL=pkcs11://mock-hsm:5656
+      - APP_CA_STORAGE_PATH=/secure/ca
     volumes:
       - ca-keys:/secure/ca
       - mtls-certs:/secure/mtls
+    networks:
+      - internal-net  # Receives requests from other services
+      - secure-net    # Talks to HSM
     depends_on:
       - postgres-db
+      - mock-hsm
 
-  ra-service:
-    build: services/ra-service
-    container_name: ra_service
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    volumes:
-      - mtls-certs:/app/certs:ro
-    depends_on:
-      - postgres-db
-
+  # Cloud Sign (RSSP) - Remote Signature Service Provider
   cloud-sign:
-    build: services/cloud-sign
-    container_name: cloud_sign
+    build:
+      context: ../../rssp/cloud-sign
+    container_name: gov_cloud_sign
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/signature_db
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-securepassword}
+      - HSM_ENABLED=true
+      - HSM_LIBRARY=/usr/lib/softhsm/libsofthsm2.so
+      - HSM_TOKEN_LABEL=gov-signing-token
+      - HSM_USER_PIN=${HSM_USER_PIN:-87654321}
+      - IDENTITY_SERVICE_URL=http://identity-service:8081
     volumes:
       - cloud-sign-keys:/secure/keys
       - mtls-certs:/app/certs:ro
+    networks:
+      - internal-net  # Receives signing requests
+      - secure-net    # Talks to HSM
     depends_on:
       - postgres-db
+      - mock-hsm
 
-  validation-service:
-    build: services/validation-service
-    container_name: validation_service
+  # RSSP Gateway - CSC API compliant gateway
+  rssp-gateway:
+    build:
+      context: ../../rssp/rssp-gateway
+    container_name: gov_rssp_gateway
+    ports:
+      - "8090:8090"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+      - CLOUD_SIGN_URL=http://cloud-sign:8084
+      - IDENTITY_SERVICE_URL=http://identity-service:8081
+    networks:
+      - public-net    # Receives external CSC API calls
+      - internal-net  # Routes to cloud-sign
+    depends_on:
+      - cloud-sign
+
+  # Mock HSM - SoftHSM2 based PKCS#11 simulation
+  mock-hsm:
+    build:
+      context: ./softhsm
+    container_name: mock_hsm
+    environment:
+      - HSM_TOKEN_LABEL=gov-signing-token
+      - HSM_SO_PIN=${HSM_SO_PIN:-12345678}
+      - HSM_USER_PIN=${HSM_USER_PIN:-87654321}
     volumes:
-      - mtls-certs:/app/certs:ro
-    depends_on:
-      - postgres-db
+      - hsm-tokens:/var/lib/softhsm/tokens
+      - hsm-logs:/var/log/hsm
+    networks:
+      - secure-net  # ONLY accessible from secure zone
+    # No ports exposed - air-gapped!
 
-  signature-core:
-    build: services/signature-core
-    container_name: signature_core
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/crypto_main
-      - SPRING_DATASOURCE_USERNAME=admin
-      - SPRING_DATASOURCE_PASSWORD=password
-    volumes:
-      - mtls-certs:/app/certs:ro
-    depends_on:
-      - postgres-db
+# ============================================================================
+# NETWORK DEFINITIONS - Enforcing Security Zones
+# ============================================================================
+networks:
+  # DMZ - Internet-facing
+  public-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+    driver_opts:
+      com.docker.network.bridge.name: gov-public
 
-  # Frontend Applications (publicly exposed)
-  public-portal:
-    build: apps/public-portal
-    container_name: public_portal
-    ports:
-      - "3000:3000"
-    environment:
-      - NUXT_PUBLIC_API_BASE=http://localhost:8080/api/v1
-    depends_on:
-      - api-gateway
+  # Trust Zone - Internal services
+  internal-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.1.0/24
+    driver_opts:
+      com.docker.network.bridge.name: gov-internal
 
-  admin-portal:
-    build: apps/admin-portal
-    container_name: admin_portal
-    ports:
-      - "3001:3000"
-    environment:
-      - NUXT_PUBLIC_API_BASE=http://localhost:8080/api/v1
-    depends_on:
-      - api-gateway
+  # Secure Zone - Cryptographic operations (air-gapped simulation)
+  secure-net:
+    driver: bridge
+    internal: true  # No external connectivity!
+    ipam:
+      config:
+        - subnet: 172.28.2.0/24
+    driver_opts:
+      com.docker.network.bridge.name: gov-secure
 
+# ============================================================================
+# VOLUMES - Persistent storage for audit trails and crypto material
+# ============================================================================
 volumes:
-  postgres_data:
+  # Database persistence
+  postgres-data:
+    driver: local
+    
+  # Cryptographic material (SENSITIVE)
   ca-keys:
+    driver: local
   cloud-sign-keys:
+    driver: local
+  hsm-tokens:
+    driver: local
+    
+  # Certificates
   mtls-certs:
+    driver: local
+  tsa-certs:
+    driver: local
+    
+  # Mock service data
+  tsa-data:
+    driver: local
+  neac-data:
+    driver: local
+  doc-storage:
+    driver: local
+    
+  # Audit logs (CRITICAL for compliance)
+  hsm-logs:
+    driver: local
+  tsa-logs:
+    driver: local
+  neac-logs:
+    driver: local
+  vneid-logs:
+    driver: local
