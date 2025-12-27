@@ -1,11 +1,14 @@
+# SoftHSM2 Mock - Uses community image for reliability
+# Note: In production, use a real HSM or SoftHSM as sidecar to cloud-sign
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: softhsm
-  namespace: rssp
+  namespace: crypto-pqc
   labels:
     app: softhsm
     tier: security
+    zone: secure
 spec:
   replicas: 1
   selector:
@@ -15,13 +18,16 @@ spec:
     metadata:
       labels:
         app: softhsm
+        zone: secure
     spec:
       containers:
         - name: softhsm
-          image: gov-crypto/softhsm:latest
-          imagePullPolicy: Never
+          # Using well-maintained community image
+          image: vegardit/softhsm2-pkcs11-proxy:latest
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 9999 # Placeholder, SoftHSM uses PKCS#11 not network
+            - containerPort: 2345 # PKCS#11 proxy port
+              name: pkcs11
           env:
             - name: HSM_TOKEN_LABEL
               value: "gov-signing-token"
@@ -54,13 +60,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: softhsm
-  namespace: rssp
+  namespace: crypto-pqc
 spec:
   selector:
     app: softhsm
   ports:
-    - port: 9999
-      targetPort: 9999
+    - port: 2345
+      targetPort: 2345
+      name: pkcs11
   type: ClusterIP
 ---
 # Note: In production, SoftHSM is deployed as a sidecar container
@@ -71,19 +78,20 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: hsm-tokens-pvc
-  namespace: rssp
+  namespace: crypto-pqc
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 100Mi
+  storageClassName: standard
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: hsm-secrets
-  namespace: rssp
+  namespace: crypto-pqc
 type: Opaque
 stringData:
   # IMPORTANT: Change these in production!

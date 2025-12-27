@@ -1,18 +1,18 @@
-FROM openjdk:21-slim
+FROM alpine:3.19
 
 LABEL maintainer="gov-crypto-team"
 LABEL description="SoftHSM2 for development/testing key storage"
 
-# Install SoftHSM2
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    softhsm2 \
+# Install SoftHSM2 and tools
+RUN apk add --no-cache \
+    softhsm \
     opensc \
-    libengine-pkcs11-openssl \
-    && rm -rf /var/lib/apt/lists/*
+    bash
 
 # Create directories
 RUN mkdir -p /var/lib/softhsm/tokens \
-    && mkdir -p /etc/softhsm
+    && mkdir -p /etc/softhsm \
+    && mkdir -p /var/log/hsm
 
 # Copy configuration
 COPY softhsm2.conf /etc/softhsm/softhsm2.conf
@@ -28,4 +28,3 @@ VOLUME ["/var/lib/softhsm/tokens"]
 
 # Initialize HSM on startup
 ENTRYPOINT ["/init-hsm.sh"]
-CMD ["tail", "-f", "/dev/null"]
