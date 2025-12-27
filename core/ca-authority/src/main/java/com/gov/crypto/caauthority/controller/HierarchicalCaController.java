@@ -20,9 +20,85 @@ public class HierarchicalCaController {
         this.caService = caService;
     }
 
+    // ============ CSR-Based CA Initialization (Recommended) ============
+
+    /**
+     * Generate CSR for Subordinate CA initialization.
+     * 
+     * This is the CORRECT workflow per Decree 23/2025:
+     * 1. Call this endpoint to generate CSR
+     * 2. Submit CSR to National Root CA for signing
+     * 3. Receive signed certificate from National Root
+     * 4. Call /ca/upload-cert to activate this CA
+     * 
+     * @param request Contains: name, algorithm (mldsa87, mldsa65, ecdsa384)
+     * @return CSR in PEM format for submission to National Root
+     */
+    @PostMapping("/init-csr")
+    public ResponseEntity<Map<String, Object>> generateCaCsr(@RequestBody Map<String, String> request) {
+        try {
+            String name = request.getOrDefault("name", "Ministry Subordinate CA");
+            String algorithm = request.getOrDefault("algorithm", "mldsa87");
+
+            var result = caService.generateCaCsr(name, algorithm);
+
+            return ResponseEntity.ok(Map.of(
+                    "pendingCaId", result.pendingCaId(),
+                    "csrPem", result.csrPem(),
+                    "algorithm", algorithm,
+                    "instructions", "Submit this CSR to National Root CA for signing, then call POST /ca/upload-cert"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Upload signed certificate from National Root CA.
+     * 
+     * After receiving the signed certificate from National Root,
+     * upload it here to activate this as a Subordinate CA.
+     * 
+     * @param request Contains: pendingCaId, certificatePem (from National Root)
+     * @return Activated CA details
+     */
+    @PostMapping("/upload-cert")
+    public ResponseEntity<Map<String, Object>> uploadSignedCertificate(@RequestBody Map<String, String> request) {
+        try {
+            String pendingCaId = request.get("pendingCaId");
+            String certificatePem = request.get("certificatePem");
+            String nationalRootCertPem = request.get("nationalRootCertPem"); // Optional: for chain validation
+
+            if (pendingCaId == null || certificatePem == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Missing pendingCaId or certificatePem"));
+            }
+
+            CertificateAuthority activatedCa = caService.activateCaWithSignedCert(
+                    pendingCaId, certificatePem, nationalRootCertPem);
+
+            return ResponseEntity.ok(Map.of(
+                    "id", activatedCa.getId(),
+                    "name", activatedCa.getName(),
+                    "algorithm", activatedCa.getAlgorithm(),
+                    "status", activatedCa.getStatus().name(),
+                    "validUntil", activatedCa.getValidUntil().toString(),
+                    "message", "CA activated successfully as Subordinate CA"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ============ Self-Signed Root (DEPRECATED - Development Only) ============
+
     /**
      * Initialize Root CA (ML-DSA-87)
+     * 
+     * @deprecated Use /init-csr and /upload-cert for proper subordinate CA setup.
+     *             This endpoint creates a SELF-SIGNED root which is NOT compliant
+     *             with Government PKI requirements (Decree 23/2025).
+     *             Retained only for development/testing environments.
      */
+    @Deprecated
     @PostMapping("/root/init")
     public ResponseEntity<Map<String, Object>> initializeRootCa(@RequestBody Map<String, String> request) {
         try {
@@ -33,11 +109,14 @@ public class HierarchicalCaController {
                     "name", rootCa.getName(),
                     "algorithm", rootCa.getAlgorithm(),
                     "validUntil", rootCa.getValidUntil().toString(),
-                    "status", rootCa.getStatus().name()));
+                    "status", rootCa.getStatus().name(),
+                    "warning", "DEPRECATED: This is a self-signed root. Use /init-csr for production."));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
+
+    // ============ Subordinate CA Creation ============
 
     /**
      * Initialize Internal Services CA signed by Root CA (ML-DSA-65)

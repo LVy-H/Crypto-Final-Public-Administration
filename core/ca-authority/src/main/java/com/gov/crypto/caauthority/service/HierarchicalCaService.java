@@ -55,6 +55,138 @@ public class HierarchicalCaService {
         new File(caStoragePath).mkdirs();
     }
 
+    // ============ Pending CA storage for CSR workflow ============
+    private final java.util.Map<String, PendingCa> pendingCas = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public record PendingCa(String id, String name, String algorithm, String privateKeyPem,
+            String publicKeyPem, String csrPem, java.time.Instant createdAt) {
+    }
+
+    public record CsrResult(String pendingCaId, String csrPem) {
+    }
+
+    /**
+     * Generate CSR for Subordinate CA initialization.
+     * This is step 1 of the proper CA setup workflow.
+     * 
+     * @param name      CA name
+     * @param algorithm mldsa87, mldsa65, or ecdsa384
+     * @return CSR result with pending CA ID
+     */
+    @Transactional
+    public CsrResult generateCaCsr(String name, String algorithm) throws Exception {
+        String sanitizedName = SecurityUtils.sanitizeDnComponent(name, "CA name");
+
+        log.info("Generating CSR for CA: {} with algorithm: {}", sanitizedName, algorithm);
+
+        MlDsaLevel level = switch (algorithm.toLowerCase()) {
+            case "mldsa87", "ml-dsa-87" -> MlDsaLevel.ML_DSA_87;
+            case "mldsa65", "ml-dsa-65" -> MlDsaLevel.ML_DSA_65;
+            case "mldsa44", "ml-dsa-44" -> MlDsaLevel.ML_DSA_44;
+            default -> MlDsaLevel.ML_DSA_87; // Default to highest security
+        };
+
+        // Generate key pair
+        KeyPair keyPair = pqcCryptoService.generateMlDsaKeyPair(level);
+
+        // Build subject DN
+        String subjectDn = "CN=" + sanitizedName + ",O=PQC Digital Signature System,C=VN";
+
+        // Generate CSR
+        org.bouncycastle.asn1.x500.X500Name x500Subject = new org.bouncycastle.asn1.x500.X500Name(subjectDn);
+        org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder csrBuilder = new org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder(
+                x500Subject, keyPair.getPublic());
+
+        org.bouncycastle.operator.ContentSigner signer = new org.bouncycastle.operator.jcajce.JcaContentSignerBuilder(
+                level.getAlgorithmName())
+                .setProvider("BCPQC")
+                .build(keyPair.getPrivate());
+
+        org.bouncycastle.pkcs.PKCS10CertificationRequest csr = csrBuilder.build(signer);
+
+        // Convert to PEM
+        java.io.StringWriter sw = new java.io.StringWriter();
+        try (org.bouncycastle.util.io.pem.PemWriter pemWriter = new org.bouncycastle.util.io.pem.PemWriter(sw)) {
+            pemWriter.writeObject(new org.bouncycastle.util.io.pem.PemObject(
+                    "CERTIFICATE REQUEST", csr.getEncoded()));
+        }
+        String csrPem = sw.toString();
+
+        // Store pending CA with private key (encrypted in production)
+        String pendingId = UUID.randomUUID().toString();
+        String privateKeyPem = pqcCryptoService.privateKeyToPem(keyPair.getPrivate());
+        String publicKeyPem = pqcCryptoService.publicKeyToPem(keyPair.getPublic());
+
+        pendingCas.put(pendingId, new PendingCa(
+                pendingId, sanitizedName, algorithm, privateKeyPem,
+                publicKeyPem, csrPem, java.time.Instant.now()));
+
+        log.info("CSR generated for pending CA: {} (ID: {})", sanitizedName, pendingId);
+
+        return new CsrResult(pendingId, csrPem);
+    }
+
+    /**
+     * Activate CA with signed certificate from National Root.
+     * This is step 2 of the proper CA setup workflow.
+     * 
+     * @param pendingCaId         ID from generateCaCsr
+     * @param certificatePem      Signed certificate from National Root
+     * @param nationalRootCertPem Optional: National Root certificate for chain
+     *                            validation
+     * @return Activated CA
+     */
+    @Transactional
+    public CertificateAuthority activateCaWithSignedCert(String pendingCaId,
+            String certificatePem, String nationalRootCertPem) throws Exception {
+
+        PendingCa pending = pendingCas.get(pendingCaId);
+        if (pending == null) {
+            throw new IllegalArgumentException("Pending CA not found: " + pendingCaId);
+        }
+
+        log.info("Activating CA: {} with signed certificate", pending.name());
+
+        // Parse and validate the certificate
+        X509Certificate cert = pqcCryptoService.parseCertificatePem(certificatePem);
+
+        // Validate certificate matches our CSR
+        String certSubject = cert.getSubjectX500Principal().getName();
+        log.info("Certificate subject: {}", certSubject);
+
+        // Save private key to file
+        String keyPath = caStoragePath + "/subordinate-key-" + pendingCaId + ".pem";
+        Files.writeString(Path.of(keyPath), pending.privateKeyPem());
+
+        // Create CA record
+        CertificateAuthority ca = new CertificateAuthority();
+        ca.setName(pending.name());
+        ca.setType(CaType.ISSUING_CA);
+        ca.setHierarchyLevel(1); // Level 1 = subordinate to National Root
+        ca.setLabel("Subordinate CA (signed by National Root)");
+        ca.setAlgorithm(pending.algorithm().toUpperCase());
+        ca.setSubjectDn(certSubject);
+        ca.setPrivateKeyPath(keyPath);
+        ca.setCertificate(certificatePem);
+        ca.setPublicKey(pending.publicKeyPem());
+        ca.setValidFrom(LocalDateTime.now());
+        ca.setValidUntil(LocalDateTime.now().plusYears(5)); // 5 years typical for subordinate
+        ca.setStatus(CaStatus.ACTIVE);
+
+        // Store national root cert path if provided
+        if (nationalRootCertPem != null && !nationalRootCertPem.isBlank()) {
+            String rootPath = caStoragePath + "/national-root.pem";
+            Files.writeString(Path.of(rootPath), nationalRootCertPem);
+            ca.setLabel("Subordinate CA (chain includes National Root)");
+        }
+
+        // Remove from pending
+        pendingCas.remove(pendingCaId);
+
+        log.info("CA activated successfully: {}", pending.name());
+        return caRepository.save(ca);
+    }
+
     /**
      * Initialize Root CA with ML-DSA-87 (NIST Level 5) using Bouncy Castle
      */
