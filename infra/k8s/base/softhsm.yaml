@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: softhsm
+  namespace: rssp
+  labels:
+    app: softhsm
+    tier: security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: softhsm
+  template:
+    metadata:
+      labels:
+        app: softhsm
+    spec:
+      containers:
+        - name: softhsm
+          image: gov-crypto/softhsm:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 9999 # Placeholder, SoftHSM uses PKCS#11 not network
+          env:
+            - name: HSM_TOKEN_LABEL
+              value: "gov-signing-token"
+            - name: HSM_SO_PIN
+              valueFrom:
+                secretKeyRef:
+                  name: hsm-secrets
+                  key: so-pin
+            - name: HSM_USER_PIN
+              valueFrom:
+                secretKeyRef:
+                  name: hsm-secrets
+                  key: user-pin
+          volumeMounts:
+            - name: hsm-tokens
+              mountPath: /var/lib/softhsm/tokens
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: hsm-tokens
+          persistentVolumeClaim:
+            claimName: hsm-tokens-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: softhsm
+  namespace: rssp
+spec:
+  selector:
+    app: softhsm
+  ports:
+    - port: 9999
+      targetPort: 9999
+  type: ClusterIP
+---
+# Note: In production, SoftHSM is deployed as a sidecar container
+# to cloud-sign pod, not as a separate service.
+# This standalone deployment is for development/testing only.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hsm-tokens-pvc
+  namespace: rssp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hsm-secrets
+  namespace: rssp
+type: Opaque
+stringData:
+  # IMPORTANT: Change these in production!
+  so-pin: "12345678"
+  user-pin: "87654321"
