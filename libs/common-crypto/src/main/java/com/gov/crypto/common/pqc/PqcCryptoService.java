@@ -202,6 +202,110 @@ public class PqcCryptoService {
     }
 
     /**
+     * Generate subordinate certificate from PEM-encoded issuer materials
+     */
+    public X509Certificate generateSubordinateCertificate(
+            PublicKey subordinatePublicKey,
+            String subordinateDn,
+            String issuerPrivateKeyPem,
+            String issuerCertPem,
+            int validDays,
+            MlDsaLevel signingLevel,
+            boolean isCA) throws Exception {
+
+        log.info("Generating subordinate certificate (PEM) for: {}", subordinateDn);
+
+        // Parse issuer certificate
+        X509Certificate issuerCert = parseCertificatePem(issuerCertPem);
+
+        // Parse issuer private key
+        PrivateKey issuerPrivateKey = parsePrivateKeyPem(issuerPrivateKeyPem);
+
+        Date notBefore = new Date();
+        Date notAfter = new Date(System.currentTimeMillis() + (long) validDays * 24 * 60 * 60 * 1000);
+
+        X500Name issuer = new X500Name(issuerCert.getSubjectX500Principal().getName());
+        X500Name subject = new X500Name(subordinateDn);
+        BigInteger serial = new BigInteger(128, new SecureRandom());
+
+        X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
+                issuer,
+                serial,
+                notBefore,
+                notAfter,
+                subject,
+                subordinatePublicKey);
+
+        // Add extensions
+        if (isCA) {
+            certBuilder.addExtension(
+                    org.bouncycastle.asn1.x509.Extension.basicConstraints, true,
+                    new org.bouncycastle.asn1.x509.BasicConstraints(0));
+            certBuilder.addExtension(
+                    org.bouncycastle.asn1.x509.Extension.keyUsage, true,
+                    new org.bouncycastle.asn1.x509.KeyUsage(
+                            org.bouncycastle.asn1.x509.KeyUsage.keyCertSign |
+                                    org.bouncycastle.asn1.x509.KeyUsage.cRLSign));
+        } else {
+            certBuilder.addExtension(
+                    org.bouncycastle.asn1.x509.Extension.basicConstraints, true,
+                    new org.bouncycastle.asn1.x509.BasicConstraints(false));
+            certBuilder.addExtension(
+                    org.bouncycastle.asn1.x509.Extension.keyUsage, true,
+                    new org.bouncycastle.asn1.x509.KeyUsage(
+                            org.bouncycastle.asn1.x509.KeyUsage.digitalSignature |
+                                    org.bouncycastle.asn1.x509.KeyUsage.nonRepudiation));
+        }
+
+        ContentSigner signer = new JcaContentSignerBuilder(signingLevel.getAlgorithmName())
+                .setProvider("BCPQC")
+                .build(issuerPrivateKey);
+
+        X509CertificateHolder certHolder = certBuilder.build(signer);
+
+        return new JcaX509CertificateConverter()
+                .setProvider("BC")
+                .getCertificate(certHolder);
+    }
+
+    /**
+     * Parse PEM-encoded certificate
+     */
+    public X509Certificate parseCertificatePem(String pem) throws Exception {
+        java.io.StringReader sr = new java.io.StringReader(pem);
+        org.bouncycastle.openssl.PEMParser parser = new org.bouncycastle.openssl.PEMParser(sr);
+        Object obj = parser.readObject();
+        parser.close();
+
+        if (obj instanceof X509CertificateHolder holder) {
+            return new JcaX509CertificateConverter().setProvider("BC").getCertificate(holder);
+        }
+        throw new IllegalArgumentException("Not a valid certificate PEM");
+    }
+
+    /**
+     * Parse PEM-encoded private key
+     */
+    public PrivateKey parsePrivateKeyPem(String pem) throws Exception {
+        java.io.StringReader sr = new java.io.StringReader(pem);
+        org.bouncycastle.openssl.PEMParser parser = new org.bouncycastle.openssl.PEMParser(sr);
+        Object obj = parser.readObject();
+        parser.close();
+
+        if (obj instanceof org.bouncycastle.openssl.PEMKeyPair keyPair) {
+            return new org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter()
+                    .setProvider("BCPQC")
+                    .getKeyPair(keyPair)
+                    .getPrivate();
+        } else if (obj instanceof org.bouncycastle.asn1.pkcs.PrivateKeyInfo keyInfo) {
+            return new org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter()
+                    .setProvider("BCPQC")
+                    .getPrivateKey(keyInfo);
+        }
+        throw new IllegalArgumentException("Not a valid private key PEM");
+    }
+
+    /**
      * Sign data using ML-DSA private key
      */
     public byte[] sign(byte[] data, PrivateKey privateKey, MlDsaLevel level) throws Exception {

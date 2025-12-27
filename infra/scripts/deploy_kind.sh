@@ -5,31 +5,34 @@ set -e
 KUBECTL="nix run nixpkgs#kubectl --"
 KIND="nix run nixpkgs#kind --"
 
-echo "Building Docker Images..."
-# Assuming you have docker-compose available or build manually
-# docker-compose build 
+PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$0")")")"
+cd "$PROJECT_ROOT"
 
-# Services to load
-SERVICES=("postgres:16-alpine" "api-gateway" "identity-service" "ca-authority" "cloud-sign" "validation-service" "public-portal" "admin-portal")
+echo "=== Building Core Services ==="
+./gradlew :core:ca-authority:bootJar :core:identity-service:bootJar :core:api-gateway:bootJar :core:org-service:bootJar :core:doc-service:bootJar -x test
 
-echo "Loading images into Kind..."
-for img in "${SERVICES[@]}"; do
-    # If image is local custom image (not postgres), tag might be latest
-    if [[ "$img" != "postgres:16-alpine" ]]; then
-       img="$img:latest"
-    fi
+echo "=== Building Docker Images ==="
+docker build -t crypto-pqc/ca-authority:latest core/ca-authority/
+docker build -t crypto-pqc/identity-service:latest core/identity-service/
+docker build -t crypto-pqc/api-gateway:latest core/api-gateway/
+docker build -t crypto-pqc/org-service:latest core/org-service/
+docker build -t crypto-pqc/doc-service:latest core/doc-service/
+
+echo "=== Loading Images into Kind ==="
+IMAGES=("crypto-pqc/ca-authority:latest" "crypto-pqc/identity-service:latest" "crypto-pqc/api-gateway:latest" "crypto-pqc/org-service:latest" "crypto-pqc/doc-service:latest")
+
+for img in "${IMAGES[@]}"; do
+    echo "Loading $img..."
     $KIND load docker-image "$img" --name crypto-pqc
 done
 
-echo "Applying Manifests..."
-$KUBECTL apply -f k8s/base.yaml
-$KUBECTL apply -f k8s/postgres.yaml
-$KUBECTL apply -f k8s/services.yaml
-$KUBECTL apply -f k8s/frontend.yaml
-$KUBECTL apply -f k8s/ingress.yaml
+echo "=== Applying Kubernetes Manifests ==="
+$KUBECTL apply -k infra/k8s/base/
 
-echo "Waiting for pods..."
-$KUBECTL wait --namespace crypto-system --for=condition=ready pod --selector=app=postgres --timeout=90s
+echo "=== Waiting for Pods ==="
+$KUBECTL -n crypto-pqc rollout status deployment/postgres --timeout=120s || true
+$KUBECTL -n crypto-pqc rollout status deployment/ca-authority --timeout=120s || true
+$KUBECTL -n crypto-pqc rollout status deployment/identity-service --timeout=120s || true
 
-echo "Deployment Complete!"
-$KUBECTL get all -n crypto-system
+echo "=== Deployment Complete ==="
+$KUBECTL get all -n crypto-pqc

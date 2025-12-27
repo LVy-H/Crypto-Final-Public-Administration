@@ -1,7 +1,6 @@
 package com.gov.crypto.caauthority.repository;
 
 import com.gov.crypto.caauthority.model.CertificateAuthority;
-import com.gov.crypto.caauthority.model.CertificateAuthority;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -20,6 +19,9 @@ public interface CertificateAuthorityRepository extends JpaRepository<Certificat
     List<CertificateAuthority> findByHierarchyLevel(int hierarchyLevel);
 
     Optional<CertificateAuthority> findByName(String name);
+
+    // Find Internal CA by label
+    List<CertificateAuthority> findByLabel(String label);
 
     // Find CA linked to a specific organization
     Optional<CertificateAuthority> findByOrganizationId(UUID organizationId);

@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mtls-init
+  namespace: crypto-pqc
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        tier: backend
+        app: mtls-init
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mtls-init
+          image: crypto-pqc/mtls-init:latest
+          imagePullPolicy: Never
+          env:
+            - name: CA_URL
+              value: "http://ca-authority:8082/api/v1/ca"
+            - name: CERT_DIR
+              value: "/certs"
+          volumeMounts:
+            - name: cert-storage
+              mountPath: /certs
+      volumes:
+        - name: cert-storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mtls-init-sa
+  namespace: crypto-pqc

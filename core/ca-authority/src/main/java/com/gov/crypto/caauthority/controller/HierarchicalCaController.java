@@ -40,22 +40,41 @@ public class HierarchicalCaController {
     }
 
     /**
-     * Create Internal Services CA signed by Root CA (ML-DSA-65)
-     * Automatically generates mTLS certificates for all microservices.
+     * Initialize Internal Services CA signed by Root CA (ML-DSA-65)
+     * Uses Bouncy Castle for pure Java PQC - no OpenSSL required.
      */
     @PostMapping("/internal/init")
-    public ResponseEntity<Map<String, Object>> createInternalServicesCa(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, Object>> initializeInternalCa() {
         try {
-            UUID rootCaId = UUID.fromString(request.get("rootCaId"));
-            CertificateAuthority internalCa = caService.createInternalServicesCa(rootCaId);
+            CertificateAuthority internalCa = caService.initializeInternalCa();
             return ResponseEntity.ok(Map.of(
                     "id", internalCa.getId(),
                     "name", internalCa.getName(),
                     "algorithm", internalCa.getAlgorithm(),
                     "parentCaId", internalCa.getParentCa().getId(),
                     "validUntil", internalCa.getValidUntil().toString(),
-                    "status", internalCa.getStatus().name(),
-                    "message", "mTLS certificates generated for all services"));
+                    "status", internalCa.getStatus().name()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Issue service certificate for mTLS (ML-DSA-65)
+     */
+    @PostMapping("/internal/issue")
+    public ResponseEntity<Map<String, Object>> issueServiceCertificate(@RequestBody Map<String, Object> request) {
+        try {
+            String serviceName = (String) request.get("serviceName");
+            @SuppressWarnings("unchecked")
+            List<String> dnsNames = (List<String>) request.getOrDefault("dnsNames", List.of());
+            int validDays = (Integer) request.getOrDefault("validDays", 365);
+
+            var result = caService.issueServiceCertificate(serviceName, dnsNames, validDays);
+            return ResponseEntity.ok(Map.of(
+                    "certificate", result.certificate(),
+                    "privateKey", result.privateKey(),
+                    "caCertificate", result.caCertificate()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }

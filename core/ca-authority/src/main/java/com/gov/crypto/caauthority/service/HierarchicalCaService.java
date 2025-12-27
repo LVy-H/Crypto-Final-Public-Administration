@@ -227,84 +227,158 @@ public class HierarchicalCaService {
     }
 
     /**
+     * Initialize Internal Services CA signed by Root CA (ML-DSA-65, 5 years)
+     * Uses Bouncy Castle for pure Java PQC
+     */
+    @Transactional
+    public CertificateAuthority initializeInternalCa() throws Exception {
+        // Check if internal CA already exists
+        var existing = caRepository.findByLabel("Internal CA");
+        if (!existing.isEmpty()) {
+            return existing.get(0);
+        }
+
+        // Get Root CA
+        var rootCa = caRepository.findByHierarchyLevelAndStatus(0, CaStatus.ACTIVE)
+                .orElseThrow(() -> new RuntimeException("Root CA not initialized"));
+
+        log.info("Initializing Internal CA with ML-DSA-65 (NIST Level 3)");
+
+        // Generate ML-DSA-65 key pair using Bouncy Castle
+        KeyPair keyPair = pqcCryptoService.generateMlDsaKeyPair(MlDsaLevel.ML_DSA_65);
+
+        // Build subject DN
+        String subjectDn = "CN=Internal Services CA,O=PQC Digital Signature System,C=VN";
+
+        // Load Root CA certificate and key for signing
+        String rootCertPem = rootCa.getCertificate();
+        if (rootCertPem == null || rootCertPem.isEmpty()) {
+            throw new RuntimeException("Root CA certificate is not set in database. Re-initialize Root CA.");
+        }
+        String rootKeyPath = rootCa.getPrivateKeyPath();
+        if (rootKeyPath == null || rootKeyPath.isEmpty()) {
+            throw new RuntimeException("Root CA private key path is not set. Re-initialize Root CA.");
+        }
+        if (!new File(rootKeyPath).exists()) {
+            throw new RuntimeException("Root CA private key file not found at: " + rootKeyPath);
+        }
+        String rootKeyPem = Files.readString(Path.of(rootKeyPath));
+
+        // Generate subordinate certificate (5 years)
+        X509Certificate cert = pqcCryptoService.generateSubordinateCertificate(
+                keyPair.getPublic(), subjectDn,
+                rootKeyPem, rootCertPem,
+                1825, MlDsaLevel.ML_DSA_87, true);
+
+        // Convert to PEM format
+        String certPem = pqcCryptoService.certificateToPem(cert);
+        String publicKeyPem = pqcCryptoService.publicKeyToPem(keyPair.getPublic());
+        String privateKeyPem = pqcCryptoService.privateKeyToPem(keyPair.getPrivate());
+
+        // Save private key to file
+        new File(mtlsStoragePath).mkdirs();
+        String keyPath = mtlsStoragePath + "/internal-ca-key.pem";
+        Files.writeString(Path.of(keyPath), privateKeyPem);
+        Files.writeString(Path.of(mtlsStoragePath + "/internal-ca.pem"), certPem);
+
+        // Save to database
+        CertificateAuthority internalCa = new CertificateAuthority();
+        internalCa.setName("Internal Services CA");
+        internalCa.setType(CaType.ISSUING_CA);
+        internalCa.setHierarchyLevel(1);
+        internalCa.setLabel("Internal CA");
+        internalCa.setParentCa(rootCa);
+        internalCa.setAlgorithm("ML-DSA-65");
+        internalCa.setSubjectDn(subjectDn);
+        internalCa.setPrivateKeyPath(keyPath);
+        internalCa.setCertificate(certPem);
+        internalCa.setPublicKey(publicKeyPem);
+        internalCa.setValidFrom(LocalDateTime.now());
+        internalCa.setValidUntil(LocalDateTime.now().plusYears(5));
+        internalCa.setStatus(CaStatus.ACTIVE);
+
+        log.info("Internal CA initialized successfully");
+        return caRepository.save(internalCa);
+    }
+
+    /**
+     * Issue service certificate for mTLS (ML-DSA-65, 1 year)
+     */
+    @Transactional
+    public ServiceCertificateResult issueServiceCertificate(String serviceName, List<String> dnsNames, int validDays)
+            throws Exception {
+        // Get Internal CA
+        var internalCa = caRepository.findByLabel("Internal CA");
+        if (internalCa.isEmpty()) {
+            throw new RuntimeException("Internal CA not initialized. Call /api/v1/ca/internal/init first.");
+        }
+        CertificateAuthority ca = internalCa.get(0);
+
+        log.info("Issuing service certificate for: {}", serviceName);
+
+        // Generate ML-DSA-65 key pair for service
+        KeyPair keyPair = pqcCryptoService.generateMlDsaKeyPair(MlDsaLevel.ML_DSA_65);
+
+        // Build subject DN with service name
+        String subjectDn = "CN=" + serviceName + ".internal,O=PQC Digital Signature System,C=VN";
+
+        // Load Internal CA key and cert
+        String caCertPem = ca.getCertificate();
+        String caKeyPem = Files.readString(Path.of(ca.getPrivateKeyPath()));
+
+        // Generate service certificate (not a CA)
+        X509Certificate cert = pqcCryptoService.generateSubordinateCertificate(
+                keyPair.getPublic(), subjectDn,
+                caKeyPem, caCertPem,
+                validDays, MlDsaLevel.ML_DSA_65, false);
+
+        // Convert to PEM
+        String certPem = pqcCryptoService.certificateToPem(cert);
+        String privateKeyPem = pqcCryptoService.privateKeyToPem(keyPair.getPrivate());
+
+        // Save to mTLS storage
+        String keyPath = mtlsStoragePath + "/" + serviceName + "-key.pem";
+        String certPath = mtlsStoragePath + "/" + serviceName + ".pem";
+        Files.writeString(Path.of(keyPath), privateKeyPem);
+        Files.writeString(Path.of(certPath), certPem);
+
+        log.info("Service certificate issued for: {}", serviceName);
+
+        return new ServiceCertificateResult(certPem, privateKeyPem, caCertPem);
+    }
+
+    /**
+     * Result class for service certificate issuance
+     */
+    public record ServiceCertificateResult(String certificate, String privateKey, String caCertificate) {
+    }
+
+    /**
      * Create Internal Services CA signed by Root CA (ML-DSA-65, 5 years)
+     * 
+     * @deprecated Use initializeInternalCa() instead
      */
     @Transactional
     public CertificateAuthority createInternalServicesCa(UUID rootCaId) throws Exception {
-        // Create Internal Services CA (Level 1, ISSUING_CA)
-        CertificateAuthority internalCa = createSubordinate(rootCaId, "Internal Services CA",
-                CaType.ISSUING_CA, "mldsa65", "Internal CA", 1825);
-
-        // Generate mTLS certificates for all services
-        generateServiceCertificates(internalCa);
-
-        return internalCa;
+        return initializeInternalCa();
     }
 
     /**
      * Generate mTLS certificates for all internal services signed by Internal CA
+     * 
+     * @deprecated Use issueServiceCertificate() for individual services
      */
     private void generateServiceCertificates(CertificateAuthority internalCa) throws Exception {
         String[] services = { "api-gateway", "identity-service", "ca-authority", "cloud-sign",
                 "validation-service", "ra-service", "signature-core" };
 
-        String mtlsPath = "/secure/mtls";
-        new File(mtlsStoragePath).mkdirs();
-
-        // Copy Internal CA cert to mTLS directory
-        runProcess(new ProcessBuilder("cp", internalCa.getPrivateKeyPath(),
-                mtlsStoragePath + "/internal-ca-key.pem"), "Copy Internal CA Key");
-
-        Path internalCaCertPath = Files.createTempFile("internal_ca", ".pem");
-        Files.writeString(internalCaCertPath, internalCa.getCertificate());
-        runProcess(new ProcessBuilder("cp", internalCaCertPath.toString(),
-                mtlsStoragePath + "/internal-ca.pem"), "Copy Internal CA Cert");
-
         for (String svc : services) {
-            System.out.println("[mTLS] Generating certificate for: " + svc);
-
-            String keyPath = mtlsStoragePath + "/" + svc + "-key.pem";
-            String csrPath = mtlsStoragePath + "/" + svc + ".csr";
-            String certPath = mtlsStoragePath + "/" + svc + ".pem";
-
-            // Generate ML-DSA-65 key for service
-            runProcess(new ProcessBuilder(
-                    "openssl", "genpkey", "-algorithm", "mldsa65", "-out", keyPath),
-                    svc + " Key Gen");
-
-            // Generate CSR
-            runProcess(new ProcessBuilder(
-                    "openssl", "req", "-new", "-key", keyPath, "-out", csrPath,
-                    "-subj", "/CN=" + svc + ".internal/O=PQC System/C=VN"),
-                    svc + " CSR Gen");
-
-            // Create config with Service extensions
-            Path configPath = createExtensionConfig("""
-                    basicConstraints=critical,CA:FALSE
-                    keyUsage=critical,digitalSignature,keyEncipherment
-                    extendedKeyUsage=serverAuth,clientAuth
-                    subjectKeyIdentifier=hash
-                    authorityKeyIdentifier=keyid,issuer
-                    """);
-
-            // Sign with Internal CA
-            runProcess(new ProcessBuilder(
-                    "openssl", "x509", "-req", "-in", csrPath,
-                    "-CA", internalCaCertPath.toString(),
-                    "-CAkey", internalCa.getPrivateKeyPath(),
-                    "-out", certPath, "-days", "365", "-CAcreateserial",
-                    "-extfile", configPath.toString(),
-                    "-extensions", "v3_ext"),
-                    svc + " Signing");
-
-            Files.deleteIfExists(configPath);
-
-            // Clean up CSR
-            Files.deleteIfExists(Path.of(csrPath));
+            try {
+                issueServiceCertificate(svc, List.of(svc + ".crypto-pqc.svc.cluster.local"), 365);
+            } catch (Exception e) {
+                log.warn("Failed to generate cert for {}: {}", svc, e.getMessage());
+            }
         }
-
-        Files.deleteIfExists(internalCaCertPath);
-        System.out.println("[mTLS] All service certificates generated in " + mtlsStoragePath);
     }
 
     private CertificateAuthority createSubordinateCa(CertificateAuthority parentCa, String name,
