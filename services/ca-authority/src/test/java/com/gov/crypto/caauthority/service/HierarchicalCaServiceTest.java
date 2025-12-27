@@ -1,7 +1,7 @@
 package com.gov.crypto.caauthority.service;
 
 import com.gov.crypto.caauthority.model.CertificateAuthority;
-import com.gov.crypto.caauthority.model.CertificateAuthority.CaLevel;
+import com.gov.crypto.caauthority.model.CertificateAuthority.CaType;
 import com.gov.crypto.caauthority.model.CertificateAuthority.CaStatus;
 import com.gov.crypto.caauthority.model.IssuedCertificate;
 import com.gov.crypto.caauthority.repository.CertificateAuthorityRepository;
@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,18 +47,27 @@ class HierarchicalCaServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Inject configuration values
+        ReflectionTestUtils.setField(caService, "caStoragePath", "build/tmp/unit-test/ca");
+        ReflectionTestUtils.setField(caService, "mtlsStoragePath", "build/tmp/unit-test/mtls");
+
+        // Ensure directories exist
+        new java.io.File("build/tmp/unit-test/ca").mkdirs();
+        new java.io.File("build/tmp/unit-test/mtls").mkdirs();
+
         // Setup test CA hierarchy
-        rootCa = createTestCa("National Root CA", CaLevel.ROOT, "ML-DSA-87", null);
-        provincialCa = createTestCa("Ho Chi Minh City", CaLevel.PROVINCIAL, "ML-DSA-87", rootCa);
-        districtRa = createTestCa("Quan 1", CaLevel.DISTRICT, "ML-DSA-65", provincialCa);
+        rootCa = createTestCa("National Root CA", CaType.ISSUING_CA, 0, "ML-DSA-87", null);
+        provincialCa = createTestCa("Ho Chi Minh City", CaType.ISSUING_CA, 1, "ML-DSA-87", rootCa);
+        districtRa = createTestCa("Quan 1", CaType.RA, 2, "ML-DSA-65", provincialCa);
     }
 
-    private CertificateAuthority createTestCa(String name, CaLevel level, String algorithm,
+    private CertificateAuthority createTestCa(String name, CaType type, int level, String algorithm,
             CertificateAuthority parent) {
         CertificateAuthority ca = new CertificateAuthority();
         ca.setId(UUID.randomUUID());
         ca.setName(name);
-        ca.setLevel(level);
+        ca.setType(type);
+        ca.setHierarchyLevel(level);
         ca.setAlgorithm(algorithm);
         ca.setParentCa(parent);
         ca.setStatus(CaStatus.ACTIVE);
@@ -77,7 +87,7 @@ class HierarchicalCaServiceTest {
         @DisplayName("Should return existing root CA if already initialized")
         void shouldReturnExistingRootCa() throws Exception {
             // Given
-            when(caRepository.findByLevelAndStatus(CaLevel.ROOT, CaStatus.ACTIVE))
+            when(caRepository.findByHierarchyLevelAndStatus(0, CaStatus.ACTIVE))
                     .thenReturn(Optional.of(rootCa));
 
             // When
@@ -240,10 +250,10 @@ class HierarchicalCaServiceTest {
         @DisplayName("Should return CAs by level")
         void shouldReturnCasByLevel() {
             // Given
-            when(caRepository.findByLevel(CaLevel.ROOT)).thenReturn(List.of(rootCa));
+            when(caRepository.findByHierarchyLevel(0)).thenReturn(List.of(rootCa));
 
             // When
-            List<CertificateAuthority> roots = caService.getCasByLevel(CaLevel.ROOT);
+            List<CertificateAuthority> roots = caService.getCasByLevel(0);
 
             // Then
             assertEquals(1, roots.size());

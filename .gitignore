@@ -2,5 +2,9 @@ node_modules/
 .idea/
 .gradle/
 build/
+bin/
 target/
 .DS_Store
+*.class
+*.jar
+*.log

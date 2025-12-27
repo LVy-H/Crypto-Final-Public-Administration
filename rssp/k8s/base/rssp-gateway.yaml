@@ -1,0 +1,56 @@
+# RSSP Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rssp-provider
+  labels:
+    name: rssp-provider
+    type: third-party
+---
+# RSSP Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rssp-gateway
+  namespace: rssp-provider
+  labels:
+    app: rssp-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rssp-gateway
+  template:
+    metadata:
+      labels:
+        app: rssp-gateway
+    spec:
+      containers:
+        - name: rssp-gateway
+          image: rssp/rssp-gateway:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "dev"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rssp-gateway
+  namespace: rssp-provider
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9080
+      targetPort: 9080
+  selector:
+    app: rssp-gateway

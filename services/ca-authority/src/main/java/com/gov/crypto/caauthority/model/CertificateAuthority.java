@@ -17,7 +17,13 @@ public class CertificateAuthority {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private CaLevel level; // ROOT, PROVINCIAL, DISTRICT, INTERNAL
+    private CaType type; // ISSUING_CA, RA
+
+    @Column(nullable = false)
+    private int hierarchyLevel; // 0=Root, 1=Provincial, 2=District/Internal
+
+    @Column(nullable = false)
+    private String label; // "Root CA", "Provincial CA", "District RA"
 
     @ManyToOne
     @JoinColumn(name = "parent_ca_id")
@@ -43,6 +49,10 @@ public class CertificateAuthority {
 
     private String subjectDn;
 
+    // Link to Organization (for org-specific CAs)
+    @Column(name = "organization_id")
+    private UUID organizationId;
+
     // Getters and Setters
     public UUID getId() {
         return id;
@@ -60,12 +70,28 @@ public class CertificateAuthority {
         this.name = name;
     }
 
-    public CaLevel getLevel() {
-        return level;
+    public CaType getType() {
+        return type;
     }
 
-    public void setLevel(CaLevel level) {
-        this.level = level;
+    public void setType(CaType type) {
+        this.type = type;
+    }
+
+    public int getHierarchyLevel() {
+        return hierarchyLevel;
+    }
+
+    public void setHierarchyLevel(int hierarchyLevel) {
+        this.hierarchyLevel = hierarchyLevel;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
     }
 
     public CertificateAuthority getParentCa() {
@@ -140,8 +166,18 @@ public class CertificateAuthority {
         this.subjectDn = subjectDn;
     }
 
-    public enum CaLevel {
-        ROOT, PROVINCIAL, DISTRICT, INTERNAL
+    public UUID getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(UUID organizationId) {
+        this.organizationId = organizationId;
+    }
+
+    public enum CaType {
+        ISSUING_CA, // Can issue to other CAs (if policy allows)
+        RA, // Can only issue end-entity certificates (identities/docs)
+        EXTERNAL_RA // Third-party RA managing their own keys
     }
 
     public enum CaStatus {

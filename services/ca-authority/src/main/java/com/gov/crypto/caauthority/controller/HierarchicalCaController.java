@@ -62,7 +62,37 @@ public class HierarchicalCaController {
     }
 
     /**
-     * Create Provincial CA (ML-DSA-87)
+     * Create Generic Subordinate CA
+     */
+    @PostMapping("/{parentId}/subordinate")
+    public ResponseEntity<Map<String, Object>> createSubordinate(
+            @PathVariable UUID parentId,
+            @RequestBody Map<String, Object> request) {
+        try {
+            String name = (String) request.get("name");
+            String label = (String) request.getOrDefault("label", "Subordinate CA");
+            String algo = (String) request.getOrDefault("algorithm", "mldsa65");
+            int validDays = (Integer) request.getOrDefault("validDays", 365);
+            String typeStr = (String) request.getOrDefault("type", "ISSUING_CA");
+            CertificateAuthority.CaType type = CertificateAuthority.CaType.valueOf(typeStr);
+
+            CertificateAuthority subCa = caService.createSubordinate(parentId, name, type, algo, label, validDays);
+
+            return ResponseEntity.ok(Map.of(
+                    "id", subCa.getId(),
+                    "name", subCa.getName(),
+                    "algorithm", subCa.getAlgorithm(),
+                    "parentCaId", subCa.getParentCa().getId(),
+                    "validUntil", subCa.getValidUntil().toString(),
+                    "type", subCa.getType().name(),
+                    "level", subCa.getHierarchyLevel()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Create Provincial CA (ML-DSA-87) - Legacy Wrapper
      */
     @PostMapping("/provincial")
     public ResponseEntity<Map<String, Object>> createProvincialCa(@RequestBody Map<String, String> request) {
@@ -82,7 +112,7 @@ public class HierarchicalCaController {
     }
 
     /**
-     * Create District RA (ML-DSA-65)
+     * Create District RA (ML-DSA-65) - Legacy Wrapper
      */
     @PostMapping("/district")
     public ResponseEntity<Map<String, Object>> createDistrictRa(@RequestBody Map<String, String> request) {
@@ -96,6 +126,35 @@ public class HierarchicalCaController {
                     "algorithm", districtRa.getAlgorithm(),
                     "parentCaId", districtRa.getParentCa().getId(),
                     "validUntil", districtRa.getValidUntil().toString()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Register Third-Party RA (External Keys)
+     */
+    @PostMapping("/{parentId}/external-ra")
+    public ResponseEntity<Map<String, Object>> registerExternalRa(
+            @PathVariable UUID parentId,
+            @RequestBody Map<String, Object> request) {
+        try {
+            String name = (String) request.get("name");
+            String csrPem = (String) request.get("csr");
+            String label = (String) request.getOrDefault("label", "External RA");
+            int validDays = (Integer) request.getOrDefault("validDays", 365);
+
+            CertificateAuthority extRa = caService.registerExternalRa(parentId, name, csrPem, label, validDays);
+
+            return ResponseEntity.ok(Map.of(
+                    "id", extRa.getId(),
+                    "name", extRa.getName(),
+                    "algorithm", extRa.getAlgorithm(),
+                    "parentCaId", extRa.getParentCa().getId(),
+                    "validUntil", extRa.getValidUntil().toString(),
+                    "type", extRa.getType().name(),
+                    "level", extRa.getHierarchyLevel(),
+                    "certificate", extRa.getCertificate()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
@@ -148,6 +207,19 @@ public class HierarchicalCaController {
     }
 
     /**
+     * Get CRL for a CA
+     */
+    @GetMapping(value = "/crl/{caId}", produces = "text/plain")
+    public ResponseEntity<String> getCrl(@PathVariable UUID caId) {
+        try {
+            String crlPem = caService.generateCrl(caId);
+            return ResponseEntity.ok(crlPem);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error generating CRL: " + e.getMessage());
+        }
+    }
+
+    /**
      * Revoke a CA/RA and all its subordinates (cascade)
      */
     @PostMapping("/revoke-ca/{caId}")
@@ -172,20 +244,20 @@ public class HierarchicalCaController {
         var result = subordinates.stream().map(ca -> Map.<String, Object>of(
                 "id", ca.getId(),
                 "name", ca.getName(),
-                "level", ca.getLevel().name(),
+                "level", ca.getHierarchyLevel(),
+                "label", ca.getLabel(),
                 "algorithm", ca.getAlgorithm(),
                 "status", ca.getStatus().name())).toList();
         return ResponseEntity.ok(result);
     }
 
     /**
-     * Get all CAs at a specific level (ROOT, PROVINCIAL, DISTRICT)
+     * Get all CAs at a specific hierarchy level
      */
     @GetMapping("/level/{level}")
-    public ResponseEntity<List<Map<String, Object>>> getCasByLevel(@PathVariable String level) {
+    public ResponseEntity<List<Map<String, Object>>> getCasByLevel(@PathVariable int level) {
         try {
-            var caLevel = CertificateAuthority.CaLevel.valueOf(level.toUpperCase());
-            var cas = caService.getCasByLevel(caLevel);
+            var cas = caService.getCasByLevel(level);
             var result = cas.stream().map(ca -> Map.<String, Object>of(
                     "id", ca.getId(),
                     "name", ca.getName(),
@@ -193,9 +265,84 @@ public class HierarchicalCaController {
                     "status", ca.getStatus().name(),
                     "validUntil", ca.getValidUntil().toString())).toList();
             return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(List.of(Map.of("error", "Invalid level. Use: ROOT, PROVINCIAL, or DISTRICT")));
+                    .body(List.of(Map.of("error", "Invalid level: " + e.getMessage())));
+        }
+    }
+
+    /**
+     * Get all CAs (flat list, for tree building)
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<Map<String, Object>>> listAllCas() {
+        var cas = caService.getAllCas();
+        var result = cas.stream().map(ca -> Map.<String, Object>of(
+                "id", ca.getId(),
+                "name", ca.getName(),
+                "algorithm", ca.getAlgorithm(),
+                "type", ca.getType() != null ? ca.getType().name() : "UNKNOWN",
+                "parentCaId", ca.getParentCa() != null ? ca.getParentCa().getId() : "",
+                "organizationId", ca.getOrganizationId() != null ? ca.getOrganizationId() : "",
+                "status", ca.getStatus().name(),
+                "level", ca.getHierarchyLevel())).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Create subordinate CA for a specific organization.
+     * The CA is linked to the org and can issue certs for that org's members.
+     */
+    @PostMapping("/org/{orgId}")
+    public ResponseEntity<Map<String, Object>> createCaForOrganization(
+            @PathVariable UUID orgId,
+            @RequestBody Map<String, Object> request) {
+        try {
+            UUID parentCaId = UUID.fromString((String) request.get("parentCaId"));
+            String name = (String) request.get("name");
+            String label = (String) request.getOrDefault("label", "Organization CA");
+            String algo = (String) request.getOrDefault("algorithm", "mldsa65");
+            int validDays = request.containsKey("validDays") ? (Integer) request.get("validDays") : 1825;
+
+            CertificateAuthority subCa = caService.createSubordinate(
+                    parentCaId, name, CertificateAuthority.CaType.RA, algo, label, validDays);
+
+            // Link CA to organization
+            subCa.setOrganizationId(orgId);
+            caService.saveCa(subCa);
+
+            return ResponseEntity.ok(Map.of(
+                    "id", subCa.getId(),
+                    "name", subCa.getName(),
+                    "organizationId", orgId,
+                    "algorithm", subCa.getAlgorithm(),
+                    "parentCaId", subCa.getParentCa().getId(),
+                    "validUntil", subCa.getValidUntil().toString(),
+                    "level", subCa.getHierarchyLevel()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get CA linked to a specific organization
+     */
+    @GetMapping("/org/{orgId}")
+    public ResponseEntity<Map<String, Object>> getCaByOrganization(@PathVariable UUID orgId) {
+        try {
+            var ca = caService.getCaByOrganizationId(orgId);
+            if (ca == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(Map.of(
+                    "id", ca.getId(),
+                    "name", ca.getName(),
+                    "organizationId", ca.getOrganizationId(),
+                    "algorithm", ca.getAlgorithm(),
+                    "status", ca.getStatus().name(),
+                    "level", ca.getHierarchyLevel()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 }

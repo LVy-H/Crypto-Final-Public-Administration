@@ -2,7 +2,7 @@ package com.gov.crypto.caauthority.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gov.crypto.caauthority.model.CertificateAuthority;
-import com.gov.crypto.caauthority.model.CertificateAuthority.CaLevel;
+import com.gov.crypto.caauthority.model.CertificateAuthority.CaType;
 import com.gov.crypto.caauthority.model.CertificateAuthority.CaStatus;
 import com.gov.crypto.caauthority.service.HierarchicalCaService;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,16 +46,17 @@ class HierarchicalCaControllerTest {
 
     @BeforeEach
     void setUp() {
-        rootCa = createTestCa("National Root CA", CaLevel.ROOT, "ML-DSA-87", null);
-        provincialCa = createTestCa("Ho Chi Minh City", CaLevel.PROVINCIAL, "ML-DSA-87", rootCa);
+        rootCa = createTestCa("National Root CA", CaType.ISSUING_CA, 0, "ML-DSA-87", null);
+        provincialCa = createTestCa("Ho Chi Minh City", CaType.ISSUING_CA, 1, "ML-DSA-87", rootCa);
     }
 
-    private CertificateAuthority createTestCa(String name, CaLevel level, String algorithm,
+    private CertificateAuthority createTestCa(String name, CaType type, int level, String algorithm,
             CertificateAuthority parent) {
         CertificateAuthority ca = new CertificateAuthority();
         ca.setId(UUID.randomUUID());
         ca.setName(name);
-        ca.setLevel(level);
+        ca.setType(type);
+        ca.setHierarchyLevel(level);
         ca.setAlgorithm(algorithm);
         ca.setParentCa(parent);
         ca.setStatus(CaStatus.ACTIVE);
@@ -143,10 +144,10 @@ class HierarchicalCaControllerTest {
         @DisplayName("Should return list of ROOT CAs")
         void shouldReturnRootCas() throws Exception {
             // Given
-            when(caService.getCasByLevel(CaLevel.ROOT)).thenReturn(List.of(rootCa));
+            when(caService.getCasByLevel(0)).thenReturn(List.of(rootCa));
 
             // When/Then
-            mockMvc.perform(get("/api/v1/ca/level/ROOT"))
+            mockMvc.perform(get("/api/v1/ca/level/0"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$[0].name").value("National Root CA"));

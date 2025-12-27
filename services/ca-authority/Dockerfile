@@ -1,10 +1,9 @@
-FROM eclipse-temurin:21-jdk-jammy AS builder
-WORKDIR /app
-COPY . .
-RUN chmod +x gradlew && ./gradlew :ca-authority:bootJar --no-daemon -x test
-
 FROM eclipse-temurin:21-jre-jammy
+
+# Create secure directories for CA storage
+RUN mkdir -p /secure/ca /secure/mtls && chmod 700 /secure/ca /secure/mtls
+
 WORKDIR /app
-COPY --from=builder /app/ca-authority/build/libs/ca-authority-0.0.1-SNAPSHOT.jar app.jar
+COPY build/libs/ca-authority-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "app.jar"]

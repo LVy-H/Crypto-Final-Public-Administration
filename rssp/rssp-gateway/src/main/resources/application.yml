@@ -1,0 +1,74 @@
+server:
+  port: 9080
+
+spring:
+  application:
+    name: rssp-gateway
+  cloud:
+    gateway:
+      routes:
+        # Cloud Sign Service - Key Management & Signing
+        - id: cloud-sign
+          uri: http://cloud-sign:8084
+          predicates:
+            - Path=/api/v1/cloud-sign/**
+          filters:
+            - StripPrefix=0
+
+        # CSC API Standard - Cloud Signing Consortium
+        - id: cloud-sign-csc
+          uri: http://cloud-sign:8084
+          predicates:
+            - Path=/csc/v1/**
+          filters:
+            - StripPrefix=0
+
+      globalcors:
+        cors-configurations:
+          "[/**]":
+            allowed-origins:
+              - "http://localhost:3000"
+              - "http://localhost:3001"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowed-headers: "*"
+            allow-credentials: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI:http://identity-service:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, gateway
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.rssp: INFO
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Disable JWT validation for dev
+          issuer-uri: ""
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.rssp: DEBUG

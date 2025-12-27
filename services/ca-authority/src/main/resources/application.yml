@@ -18,6 +18,12 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
+app:
+  ca:
+    storage-path: ${CA_STORAGE_PATH:/secure/ca}
+  mtls:
+    storage-path: ${MTLS_STORAGE_PATH:/secure/mtls}
+
 logging:
   level:
     com.gov.crypto: DEBUG

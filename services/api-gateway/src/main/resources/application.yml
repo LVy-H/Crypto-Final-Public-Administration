@@ -11,15 +11,25 @@ spring:
         - id: identity-service
           uri: http://identity-service:8081
           predicates:
-            - Path=/api/v1/auth/**
+            - Path=/api/v1/auth/**, /api/v1/identity/**
+          filters:
+            - StripPrefix=0
+        # NOTE: Cloud Sign routes moved to RSSP Gateway (:9080)
+        # Clients should call rssp-gateway directly for signing operations
+
+        # Organization Service - Hierarchy Management
+        - id: org-service
+          uri: http://org-service:8083
+          predicates:
+            - Path=/api/v1/org/**
           filters:
             - StripPrefix=0
 
-        # Cloud Sign Service - Key Management & Signing
-        - id: cloud-sign
-          uri: http://cloud-sign:8084
+        # Document Service - Document Storage with ACL
+        - id: doc-service
+          uri: http://doc-service:8086
           predicates:
-            - Path=/api/v1/cloud-sign/**
+            - Path=/api/v1/doc/**
           filters:
             - StripPrefix=0
 

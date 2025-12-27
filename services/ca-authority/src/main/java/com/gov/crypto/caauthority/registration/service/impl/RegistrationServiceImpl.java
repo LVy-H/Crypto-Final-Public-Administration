@@ -37,7 +37,7 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
-    public RegistrationResponse registerUser(RegistrationRequest request) {
+    public RegistrationResponse registerUser(RegistrationRequest request, String authToken) {
         // 1. Validate KYC (Mock)
         if (request.username() == null || request.email() == null) {
             throw new IllegalArgumentException("Invalid Request");
@@ -47,15 +47,21 @@ public class RegistrationServiceImpl implements RegistrationService {
         // POST /api/v1/cloud-sign/keys/generate
         // Note: Using username as alias for simplicity, in prod should use unique ID
         String keyGenUrl = cloudSignUrl + "/api/v1/cloud-sign/keys/generate";
-        restTemplate.postForObject(keyGenUrl, new CloudKeyGenRequest(request.username(), request.algorithm()),
-                Void.class);
+        // Create headers with Auth token
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.set("Authorization", authToken);
+        org.springframework.http.HttpEntity<CloudKeyGenRequest> keyGenEntity = new org.springframework.http.HttpEntity<>(
+                new CloudKeyGenRequest(request.username(), request.algorithm()), headers);
+
+        restTemplate.postForObject(keyGenUrl, keyGenEntity, Void.class);
 
         // 3. Generate CSR in Cloud Sign
         // POST /api/v1/cloud-sign/keys/csr
         String csrUrl = cloudSignUrl + "/api/v1/cloud-sign/keys/csr";
         String subject = "/CN=" + request.username() + "/emailAddress=" + request.email();
-        CloudCsrResponse csrResponse = restTemplate.postForObject(csrUrl,
-                new CloudCsrRequest(request.username(), subject), CloudCsrResponse.class);
+        org.springframework.http.HttpEntity<CloudCsrRequest> csrEntity = new org.springframework.http.HttpEntity<>(
+                new CloudCsrRequest(request.username(), subject), headers);
+        CloudCsrResponse csrResponse = restTemplate.postForObject(csrUrl, csrEntity, CloudCsrResponse.class);
 
         if (csrResponse == null || csrResponse.csrPem() == null) {
             throw new RuntimeException("Failed to generate CSR");
@@ -75,17 +81,16 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     private UUID findIssuingRa() {
-        // Find a District RA to issue the certificate
-        List<CertificateAuthority> ras = hierarchicalCaService.getCasByLevel(CertificateAuthority.CaLevel.DISTRICT);
+        // Find a District RA to issue the certificate (Level 2)
+        List<CertificateAuthority> ras = hierarchicalCaService.getCasByLevel(2);
         if (ras.isEmpty()) {
-            // Fallback: Check for Provincial if no District
-            List<CertificateAuthority> provCas = hierarchicalCaService
-                    .getCasByLevel(CertificateAuthority.CaLevel.PROVINCIAL);
+            // Fallback: Check for Provincial if no District (Level 1)
+            List<CertificateAuthority> provCas = hierarchicalCaService.getCasByLevel(1);
             if (!provCas.isEmpty()) {
                 return provCas.get(0).getId();
             }
-            // Fallback: Check for Root if nothing else (e.g. strict dev env)
-            List<CertificateAuthority> rootCas = hierarchicalCaService.getCasByLevel(CertificateAuthority.CaLevel.ROOT);
+            // Fallback: Check for Root if nothing else (Level 0)
+            List<CertificateAuthority> rootCas = hierarchicalCaService.getCasByLevel(0);
             if (!rootCas.isEmpty()) {
                 return rootCas.get(0).getId();
             }
