@@ -24,17 +24,20 @@ public class AuthController {
     private final TokenBlacklistService tokenBlacklistService;
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final com.gov.crypto.repository.RoleRepository roleRepository;
 
     public AuthController(AuthService authService,
             AuthenticationManager authenticationManager,
             TokenBlacklistService tokenBlacklistService,
             JwtService jwtService,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            com.gov.crypto.repository.RoleRepository roleRepository) {
         this.authService = authService;
         this.authenticationManager = authenticationManager;
         this.tokenBlacklistService = tokenBlacklistService;
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
     }
 
     record LoginRequest(String username, String password) {
@@ -68,7 +71,10 @@ public class AuthController {
         user.setUsername(request.username());
         user.setEmail(request.email());
         user.setPasswordHash(request.password()); // Will be encoded in service
-        user.setRole("CITIZEN");
+
+        com.gov.crypto.model.Role role = roleRepository.findByName("CITIZEN")
+                .orElseThrow(() -> new RuntimeException("Default role CITIZEN not found"));
+        user.setRole(role);
         user.setIdentityStatus(User.IdentityStatus.UNVERIFIED);
 
         String result = authService.saveUser(user);

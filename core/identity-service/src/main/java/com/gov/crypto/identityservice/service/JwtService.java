@@ -57,9 +57,17 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    public String generateToken(String username, String role, String identityStatus) {
+    public String generateToken(String username, com.gov.crypto.model.Role role, String identityStatus) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role);
+        if (role != null) {
+            claims.put("role", role.getName());
+            claims.put("permissions", role.getPermissions().stream()
+                    .map(com.gov.crypto.model.Permission::getName)
+                    .collect(java.util.stream.Collectors.toList()));
+        } else {
+            claims.put("role", "USER"); // Fallback
+            claims.put("permissions", java.util.Collections.emptyList());
+        }
         claims.put("identity_status", identityStatus);
         return createToken(claims, username);
     }

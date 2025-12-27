@@ -22,11 +22,18 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = repository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-        // Map our User to Spring Security User
+
+        java.util.List<org.springframework.security.core.GrantedAuthority> authorities = new ArrayList<>();
+        if (user.getRole() != null) {
+            authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                    "ROLE_" + user.getRole().getName()));
+            user.getRole().getPermissions().forEach(p -> authorities
+                    .add(new org.springframework.security.core.authority.SimpleGrantedAuthority(p.getName())));
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPasswordHash(),
-                new ArrayList<>() // Authorities/Roles can be mapped here
-        );
+                authorities);
     }
 }

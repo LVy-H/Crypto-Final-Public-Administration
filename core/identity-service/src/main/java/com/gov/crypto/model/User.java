@@ -20,7 +20,9 @@ public class User {
     @Column(nullable = false)
     private String passwordHash;
 
-    private String role; // CITIZEN, OFFICIAL, ADMIN
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     @Enumerated(EnumType.STRING)
     private IdentityStatus identityStatus; // UNVERIFIED, PENDING, VERIFIED, REJECTED
@@ -60,11 +62,11 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
-    public String getRole() {
+    public Role getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(Role role) {
         this.role = role;
     }
 

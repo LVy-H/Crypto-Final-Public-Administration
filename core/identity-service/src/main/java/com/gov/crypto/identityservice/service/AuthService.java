@@ -27,7 +27,7 @@ public class AuthService {
     public String generateToken(String username) {
         User user = repository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return jwtService.generateToken(username, user.getRole() != null ? user.getRole() : "USER",
+        return jwtService.generateToken(username, user.getRole(),
                 user.getIdentityStatus() != null ? user.getIdentityStatus().name() : "UNVERIFIED");
     }
 }
