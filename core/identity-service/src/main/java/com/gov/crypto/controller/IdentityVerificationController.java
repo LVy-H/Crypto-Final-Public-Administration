@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/identity")
@@ -47,27 +48,8 @@ public class IdentityVerificationController {
     }
 
     @PostMapping("/approve/{username}")
-    // @PreAuthorize("hasRole('ADMIN')") // Uncomment if method security is enabled
-    public ResponseEntity<?> approveVerification(@PathVariable String username, Authentication authentication) {
-        // Simple role check if PreAuthorize is not configured
-        // In a real scenario, we trust the Authentication object populated by JWT
-        // Filter
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
-
-        // OR checks based on claim if roles are simple strings
-        // For now, let's assume if they can hit this endpoint (protected by Gateway
-        // admin route potentially) or check here.
-        // But since I don't know the exact Role mapping in SecurityConfig, I'll allow
-        // it if the caller has role ADMIN.
-        // If security context is not populated (e.g. no filter), this might fail.
-        // Given AuthController uses AuthenticationManager, likely there is a filter.
-
-        // Fallback: If no auth object (unit testing or misconfig), block?
-        if (authentication == null || !authentication.isAuthenticated()) {
-            // return ResponseEntity.status(401).build(); // Let Spring Security handle 401
-        }
-
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('VERIFY_IDENTITY')")
+    public ResponseEntity<?> approveVerification(@PathVariable String username) {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -99,13 +81,10 @@ public class IdentityVerificationController {
     }
 
     @GetMapping("/pending")
-    // @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getPendingVerifications(Authentication authentication) {
-        // Basic admin check (simplistic)
-        if (authentication == null || authentication.getAuthorities().stream()
-                .noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"))) {
-            // return ResponseEntity.status(403).build(); // Uncomment to enforce
-        }
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('VERIFY_IDENTITY')")
+    public ResponseEntity<?> getPendingVerifications() {
+        // Protected by @PreAuthorize - only ADMIN or users with VERIFY_IDENTITY
+        // permission
 
         java.util.List<User> pendingUsers = userRepository.findByIdentityStatus(User.IdentityStatus.PENDING);
         // Map to DTO if needed to avoid exposing sensitive info like passwordHash
