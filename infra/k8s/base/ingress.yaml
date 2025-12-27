@@ -47,57 +47,8 @@ spec:
                   number: 3000
 
 ---
-# Network Policy - restrict traffic between services
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-ingress
-  namespace: crypto-pqc
-spec:
-  podSelector: {}
-  policyTypes:
-    - Ingress
-
----
-# Allow ingress traffic to API Gateway only
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-api-gateway-ingress
-  namespace: crypto-pqc
-spec:
-  podSelector:
-    matchLabels:
-      app: api-gateway
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              name: ingress-nginx
-      ports:
-        - protocol: TCP
-          port: 8080
-  policyTypes:
-    - Ingress
-
----
-# Allow internal service communication
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-internal-services
-  namespace: crypto-pqc
-spec:
-  podSelector:
-    matchLabels:
-      tier: backend
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              tier: gateway
-        - podSelector:
-            matchLabels:
-              tier: backend
-  policyTypes:
-    - Ingress
+# NOTE: NetworkPolicies moved to network-policies.yaml for comprehensive zone enforcement
+# The following legacy policies are replaced:
+# - default-deny-ingress → default-deny-all (with egress)
+# - allow-api-gateway-ingress → allow-api-gateway
+# - allow-internal-services → allow-internal-services (enhanced)
