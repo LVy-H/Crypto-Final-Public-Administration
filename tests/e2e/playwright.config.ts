@@ -1,42 +1,42 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Use remote tunnel endpoints to test ingress/WireGuard
+const API_BASE = 'https://api.gov-id.lvh.id.vn';
+const PORTAL_BASE = 'https://portal.gov-id.lvh.id.vn';
+
 export default defineConfig({
     testDir: './tests',
-    fullyParallel: true,
+    fullyParallel: false,  // Run serial for API tests
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
-    workers: process.env.CI ? 1 : undefined,
+    workers: 1,  // Single worker for deterministic order
     reporter: 'html',
+    timeout: 60000,
 
     use: {
-        baseURL: 'http://localhost:3000',
+        // Use remote tunnel URL
+        baseURL: API_BASE,
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: 'retain-on-failure',
+        ignoreHTTPSErrors: true,  // Allow self-signed certs
     },
 
     projects: [
         {
-            name: 'chromium',
+            name: 'api',
+            testMatch: ['**/api.spec.ts', '**/auth.spec.ts', '**/ca-hierarchy.spec.ts', '**/cloud-signing.spec.ts', '**/validation.spec.ts', '**/security.spec.ts', '**/integration.spec.ts'],
             use: { ...devices['Desktop Chrome'] },
         },
         {
-            name: 'firefox',
-            use: { ...devices['Desktop Firefox'] },
-        },
-        {
-            name: 'webkit',
-            use: { ...devices['Desktop Safari'] },
+            name: 'portal',
+            testMatch: ['**/public-portal.spec.ts', '**/admin-portal.spec.ts'],
+            use: {
+                ...devices['Desktop Chrome'],
+                baseURL: PORTAL_BASE,
+            },
         },
     ],
 
-    webServer: [
-        {
-            command: 'docker compose up public-portal admin-portal -d && sleep 10',
-            url: 'http://localhost:3000',
-            timeout: 120 * 1000,
-            reuseExistingServer: !process.env.CI,
-            cwd: '../..',
-        },
-    ],
+    // No webServer - using production K8s via WireGuard tunnel
 });

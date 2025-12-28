@@ -1,0 +1,181 @@
+# Custom nginx PQC Ingress with OpenSSL 3.5+ for X25519MLKEM768
+# Uses Alpine 3.22 base which ships with OpenSSL 3.5.x
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-pqc-config
+  namespace: ingress-nginx
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /run/nginx.pid;
+
+    events {
+        worker_connections 1024;
+        use epoll;
+        multi_accept on;
+    }
+
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        log_format main '$remote_addr - [$time_local] "$request" '
+                        '$status $body_bytes_sent PQC:$ssl_curve';
+        access_log /var/log/nginx/access.log main;
+        
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        
+        # SSL/TLS - Post-Quantum Cryptography
+        ssl_protocols TLSv1.3;
+        ssl_prefer_server_ciphers off;
+        
+        # X25519MLKEM768 hybrid PQC key exchange (OpenSSL 3.5+)
+        ssl_ecdh_curve X25519MLKEM768:X25519;
+        
+        # HSTS
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        
+        # Upstream backends
+        upstream api_gateway {
+            server api-gateway.crypto-pqc.svc.cluster.local:8080;
+        }
+        
+        upstream public_portal {
+            server public-portal.crypto-pqc.svc.cluster.local:3000;
+        }
+        
+        # API Server
+        server {
+            listen 443 ssl;
+            server_name api.gov-id.lvh.id.vn;
+            
+            ssl_certificate /etc/nginx/ssl/tls.crt;
+            ssl_certificate_key /etc/nginx/ssl/tls.key;
+            
+            location / {
+                proxy_pass http://api_gateway;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+        }
+        
+        # Portal Server
+        server {
+            listen 443 ssl;
+            server_name portal.gov-id.lvh.id.vn;
+            
+            ssl_certificate /etc/nginx/ssl/tls.crt;
+            ssl_certificate_key /etc/nginx/ssl/tls.key;
+            
+            location / {
+                proxy_pass http://public_portal;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+            }
+        }
+        
+        # HTTP redirect
+        server {
+            listen 80;
+            server_name _;
+            return 301 https://$host$request_uri;
+        }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-pqc-ingress
+  namespace: ingress-nginx
+  labels:
+    app: nginx-pqc-ingress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-pqc-ingress
+  template:
+    metadata:
+      labels:
+        app: nginx-pqc-ingress
+    spec:
+      containers:
+        - name: nginx
+          # Alpine 3.22 ships with OpenSSL 3.5.x which supports X25519MLKEM768
+          image: nginx:alpine3.22
+          ports:
+            - containerPort: 80
+              name: http
+            - containerPort: 443
+              name: https
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: tls-certs
+              mountPath: /etc/nginx/ssl
+              readOnly: true
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-pqc-config
+        - name: tls-certs
+          secret:
+            secretName: gov-id-le-tls
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-pqc-ingress
+  namespace: ingress-nginx
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx-pqc-ingress
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: https
+      port: 443
+      targetPort: 443
