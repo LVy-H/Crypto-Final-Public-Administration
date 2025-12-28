@@ -18,9 +18,13 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
   session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
+    store-type: redis
+    redis:
+      namespace: crypto-session
+  data:
+    redis:
+      host: redis
+      port: 6379
 
 jwt:
   secret: ${JWT_SECRET}

@@ -30,7 +30,7 @@ echo "=== Applying Kubernetes Manifests ==="
 $KUBECTL apply -k infra/k8s/base/
 
 echo "=== Waiting for Pods ==="
-$KUBECTL -n crypto-pqc rollout status deployment/postgres --timeout=120s || true
+$KUBECTL -n crypto-pqc rollout status statefulset/postgres --timeout=120s || true
 $KUBECTL -n crypto-pqc rollout status deployment/ca-authority --timeout=120s || true
 $KUBECTL -n crypto-pqc rollout status deployment/identity-service --timeout=120s || true
 

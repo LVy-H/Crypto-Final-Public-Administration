@@ -31,7 +31,7 @@ spec:
                   name: crypto-config
                   key: SPRING_PROFILES_ACTIVE
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:postgresql://postgres:5432/crypto_identity"
+              value: "jdbc:postgresql://postgres:5432/identity_db"
             - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
               value: "org.postgresql.Driver"
             - name: SPRING_JPA_DATABASE_PLATFORM

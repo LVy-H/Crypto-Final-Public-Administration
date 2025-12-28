@@ -2,12 +2,11 @@ package com.gov.crypto.caauthority.controller;
 
 import com.gov.crypto.caauthority.model.IssuedCertificate;
 import com.gov.crypto.caauthority.service.HierarchicalCaService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -16,22 +15,24 @@ import java.util.Map;
 public class CertificateController {
 
     private final HierarchicalCaService caService;
-    private final ObjectMapper objectMapper;
 
     public CertificateController(HierarchicalCaService caService) {
         this.caService = caService;
-        this.objectMapper = new ObjectMapper();
     }
 
     /**
      * Request a new certificate (User facing)
+     * Uses Spring Security session-based authentication via Redis
      */
     @PostMapping("/request")
     public ResponseEntity<Map<String, Object>> requestCertificate(
-            @RequestHeader("Authorization") String authHeader,
             @RequestBody Map<String, String> request) {
         try {
-            String username = extractUsername(authHeader);
+            String username = getCurrentUsername();
+            if (username == null) {
+                return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+            }
+
             String algorithm = request.getOrDefault("algorithm", "ML-DSA-44");
 
             IssuedCertificate certRequest = caService.createCertificateRequest(username, algorithm);
@@ -48,12 +49,16 @@ public class CertificateController {
 
     /**
      * Get my certificates
+     * Uses Spring Security session-based authentication via Redis
      */
     @GetMapping("/my")
-    public ResponseEntity<List<Map<String, Object>>> getMyCertificates(
-            @RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<List<Map<String, Object>>> getMyCertificates() {
         try {
-            String username = extractUsername(authHeader);
+            String username = getCurrentUsername();
+            if (username == null) {
+                return ResponseEntity.status(401).build();
+            }
+
             List<IssuedCertificate> certs = caService.getUserCertificates(username);
 
             var result = certs.stream().map(cert -> Map.<String, Object>of(
@@ -73,22 +78,14 @@ public class CertificateController {
         }
     }
 
-    private String extractUsername(String authHeader) {
-        try {
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                String[] parts = token.split("\\.");
-                if (parts.length >= 2) {
-                    String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
-                    JsonNode node = objectMapper.readTree(payload);
-                    if (node.has("sub")) {
-                        return node.get("sub").asText();
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    /**
+     * Get username from Spring Security context (session-based auth via Redis)
+     */
+    private String getCurrentUsername() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            return auth.getName();
         }
-        return "anonymous";
+        return null;
     }
 }

@@ -51,6 +51,14 @@ spring:
           filters:
             - StripPrefix=0
 
+        # Stamp/Countersignature Service - Part of CA Authority
+        - id: stamp-service
+          uri: http://ca-authority:8082
+          predicates:
+            - Path=/api/v1/stamp/**
+          filters:
+            - StripPrefix=0
+
         # Validation Service - Signature Verification
         - id: validation-service
           uri: http://validation-service:8085

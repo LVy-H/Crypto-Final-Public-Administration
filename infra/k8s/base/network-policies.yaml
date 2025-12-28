@@ -190,6 +190,14 @@ spec:
         - podSelector:
             matchLabels:
               tier: backend
+    # Can talk to Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
     # Secure zone services can talk to HSM
     - to:
         - podSelector:
@@ -254,6 +262,14 @@ spec:
         - podSelector:
             matchLabels:
               app: softhsm-ca
+    # Can talk to Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
     # DNS
     - to: []
       ports:

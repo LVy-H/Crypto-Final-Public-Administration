@@ -45,9 +45,15 @@ data:
     CREATE DATABASE ca_db;
     CREATE DATABASE ra_db;
     CREATE DATABASE validation_db;
+    CREATE DATABASE crypto_doc;
+    CREATE DATABASE crypto_org;
+    CREATE DATABASE crypto_cloud_sign;
 
     -- Create user with appropriate permissions
-    GRANT ALL PRIVILEGES ON DATABASE identity_db TO crypto_admin;
-    GRANT ALL PRIVILEGES ON DATABASE ca_db TO crypto_admin;
-    GRANT ALL PRIVILEGES ON DATABASE ra_db TO crypto_admin;
-    GRANT ALL PRIVILEGES ON DATABASE validation_db TO crypto_admin;
+    GRANT ALL PRIVILEGES ON DATABASE identity_db TO admin;
+    GRANT ALL PRIVILEGES ON DATABASE ca_db TO admin;
+    GRANT ALL PRIVILEGES ON DATABASE ra_db TO admin;
+    GRANT ALL PRIVILEGES ON DATABASE validation_db TO admin;
+    GRANT ALL PRIVILEGES ON DATABASE crypto_doc TO admin;
+    GRANT ALL PRIVILEGES ON DATABASE crypto_org TO admin;
+    GRANT ALL PRIVILEGES ON DATABASE crypto_cloud_sign TO admin;

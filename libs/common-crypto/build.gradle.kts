@@ -26,6 +26,9 @@ dependencies {
     api("org.bouncycastle:bcprov-jdk18on:1.78.1")
     api("org.bouncycastle:bcpkix-jdk18on:1.78.1")
     
+    // Spring Context for @Service annotation
+    compileOnly("org.springframework:spring-context:6.2.1")
+    
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.9")
     
