@@ -20,4 +20,6 @@ public interface IssuedCertificateRepository extends JpaRepository<IssuedCertifi
     List<IssuedCertificate> findByStatus(CertStatus status);
 
     List<IssuedCertificate> findBySubjectDnContaining(String subjectPart);
+
+    List<IssuedCertificate> findByUsername(String username);
 }

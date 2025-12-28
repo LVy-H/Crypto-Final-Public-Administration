@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
  * - Error cases
  */
 
-const API_BASE = 'http://localhost:8080/api/v1';
+const API_BASE = 'https://api.gov-id.lvh.id.vn/api/v1';
 
 test.describe('Authentication - Registration Extended', () => {
     test.describe.configure({ mode: 'serial' });

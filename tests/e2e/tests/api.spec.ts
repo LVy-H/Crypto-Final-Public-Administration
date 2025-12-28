@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
  * Tests API endpoints directly via Playwright's request context
  */
 
-const API_BASE = 'http://localhost:8080/api/v1';
+const API_BASE = 'https://api.gov-id.lvh.id.vn/api/v1';
 
 test.describe('API - Authentication Endpoints', () => {
     test('POST /auth/register - should register new user', async ({ request }) => {

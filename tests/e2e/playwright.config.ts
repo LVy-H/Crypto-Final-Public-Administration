@@ -18,19 +18,19 @@ export default defineConfig({
         baseURL: API_BASE,
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
-        video: 'retain-on-failure',
+        video: 'on',  // Always record for demonstration
         ignoreHTTPSErrors: true,  // Allow self-signed certs
     },
 
     projects: [
         {
             name: 'api',
-            testMatch: ['**/api.spec.ts', '**/auth.spec.ts', '**/ca-hierarchy.spec.ts', '**/cloud-signing.spec.ts', '**/validation.spec.ts', '**/security.spec.ts', '**/integration.spec.ts'],
+            testMatch: ['**/pqc-compliance.spec.ts', '**/api.spec.ts', '**/auth.spec.ts', '**/ca-hierarchy.spec.ts', '**/cloud-signing.spec.ts', '**/validation.spec.ts', '**/security.spec.ts', '**/integration.spec.ts'],
             use: { ...devices['Desktop Chrome'] },
         },
         {
             name: 'portal',
-            testMatch: ['**/public-portal.spec.ts', '**/admin-portal.spec.ts'],
+            testMatch: ['**/public-portal.spec.ts', '**/admin-portal.spec.ts', '**/ui-user-journey.spec.ts', '**/full-journey.spec.ts'],
             use: {
                 ...devices['Desktop Chrome'],
                 baseURL: PORTAL_BASE,

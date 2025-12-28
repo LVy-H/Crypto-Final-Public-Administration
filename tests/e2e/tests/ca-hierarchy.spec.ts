@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
  * - CA revocation
  */
 
-const API_BASE = 'http://localhost:8080/api/v1';
+const API_BASE = 'https://api.gov-id.lvh.id.vn/api/v1';
 
 // Store IDs for chain testing
 let rootCaId: string | null = null;
@@ -40,7 +40,7 @@ test.describe('CA Hierarchy - Root CA Operations', () => {
     });
 
     test('Root CA should use ML-DSA-87 algorithm (NIST Level 5)', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/ROOT`);
+        const response = await request.get(`${API_BASE}/ca/level/0`);
         expect(response.status()).toBe(200);
 
         const roots = await response.json();
@@ -51,7 +51,7 @@ test.describe('CA Hierarchy - Root CA Operations', () => {
     });
 
     test('Root CA should have ACTIVE status', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/ROOT`);
+        const response = await request.get(`${API_BASE}/ca/level/0`);
         expect(response.status()).toBe(200);
 
         const roots = await response.json();
@@ -60,8 +60,8 @@ test.describe('CA Hierarchy - Root CA Operations', () => {
         }
     });
 
-    test('GET /ca/level/ROOT - should list all root CAs', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/ROOT`);
+    test('GET /ca/level/0 - should list all root CAs', async ({ request }) => {
+        const response = await request.get(`${API_BASE}/ca/level/0`);
 
         expect(response.status()).toBe(200);
         const body = await response.json();
@@ -69,7 +69,7 @@ test.describe('CA Hierarchy - Root CA Operations', () => {
     });
 
     test('Root CA should have certificate data', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/ROOT`);
+        const response = await request.get(`${API_BASE}/ca/level/0`);
         expect(response.status()).toBe(200);
 
         const roots = await response.json();
@@ -79,7 +79,7 @@ test.describe('CA Hierarchy - Root CA Operations', () => {
     });
 
     test('Root CA should have public key', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/ROOT`);
+        const response = await request.get(`${API_BASE}/ca/level/0`);
         expect(response.status()).toBe(200);
 
         const roots = await response.json();
@@ -104,7 +104,7 @@ test.describe('CA Hierarchy - Root CA Operations', () => {
     });
 
     test('Root CA should have valid date range', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/ROOT`);
+        const response = await request.get(`${API_BASE}/ca/level/0`);
         expect(response.status()).toBe(200);
 
         const roots = await response.json();
@@ -121,7 +121,7 @@ test.describe('CA Hierarchy - Provincial CA Operations', () => {
 
     test('POST /ca/provincial - should create provincial CA', async ({ request }) => {
         // First get root CA
-        const rootResponse = await request.get(`${API_BASE}/ca/level/ROOT`);
+        const rootResponse = await request.get(`${API_BASE}/ca/level/0`);
         const roots = await rootResponse.json();
 
         if (roots.length > 0) {
@@ -145,7 +145,7 @@ test.describe('CA Hierarchy - Provincial CA Operations', () => {
     });
 
     test('Provincial CA should use ML-DSA-87 algorithm', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/PROVINCIAL`);
+        const response = await request.get(`${API_BASE}/ca/level/2`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -155,8 +155,8 @@ test.describe('CA Hierarchy - Provincial CA Operations', () => {
         }
     });
 
-    test('GET /ca/level/PROVINCIAL - should list provincial CAs', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/PROVINCIAL`);
+    test('GET /ca/level/2 - should list provincial CAs', async ({ request }) => {
+        const response = await request.get(`${API_BASE}/ca/level/2`);
 
         expect(response.status()).toBe(200);
         const body = await response.json();
@@ -164,7 +164,7 @@ test.describe('CA Hierarchy - Provincial CA Operations', () => {
     });
 
     test('Provincial CA should reference parent root CA', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/PROVINCIAL`);
+        const response = await request.get(`${API_BASE}/ca/level/2`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -174,7 +174,7 @@ test.describe('CA Hierarchy - Provincial CA Operations', () => {
     });
 
     test('Provincial CA should have ACTIVE status', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/PROVINCIAL`);
+        const response = await request.get(`${API_BASE}/ca/level/2`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -184,7 +184,7 @@ test.describe('CA Hierarchy - Provincial CA Operations', () => {
     });
 
     test('Provincial CA should have certificate', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/PROVINCIAL`);
+        const response = await request.get(`${API_BASE}/ca/level/2`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -199,7 +199,7 @@ test.describe('CA Hierarchy - District RA Operations', () => {
 
     test('POST /ca/district - should create district RA', async ({ request }) => {
         // Get provincial CA first
-        const provResponse = await request.get(`${API_BASE}/ca/level/PROVINCIAL`);
+        const provResponse = await request.get(`${API_BASE}/ca/level/2`);
         const provincials = await provResponse.json();
 
         if (provincials.length > 0) {
@@ -223,7 +223,7 @@ test.describe('CA Hierarchy - District RA Operations', () => {
     });
 
     test('District RA should use ML-DSA-65 algorithm (NIST Level 3)', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/DISTRICT`);
+        const response = await request.get(`${API_BASE}/ca/level/3`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -232,8 +232,8 @@ test.describe('CA Hierarchy - District RA Operations', () => {
         }
     });
 
-    test('GET /ca/level/DISTRICT - should list district RAs', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/DISTRICT`);
+    test('GET /ca/level/3 - should list district RAs', async ({ request }) => {
+        const response = await request.get(`${API_BASE}/ca/level/3`);
 
         expect(response.status()).toBe(200);
         const body = await response.json();
@@ -241,7 +241,7 @@ test.describe('CA Hierarchy - District RA Operations', () => {
     });
 
     test('District RA should reference parent provincial CA', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/DISTRICT`);
+        const response = await request.get(`${API_BASE}/ca/level/3`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -251,7 +251,7 @@ test.describe('CA Hierarchy - District RA Operations', () => {
     });
 
     test('District RA should have ACTIVE status', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/DISTRICT`);
+        const response = await request.get(`${API_BASE}/ca/level/3`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -261,7 +261,7 @@ test.describe('CA Hierarchy - District RA Operations', () => {
     });
 
     test('District RA should have shorter validity than Provincial CA', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/DISTRICT`);
+        const response = await request.get(`${API_BASE}/ca/level/3`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -279,7 +279,7 @@ test.describe('CA Hierarchy - Internal Services CA', () => {
     test.describe.configure({ mode: 'serial' });
 
     test('POST /ca/internal - should create internal services CA', async ({ request }) => {
-        const rootResponse = await request.get(`${API_BASE}/ca/level/ROOT`);
+        const rootResponse = await request.get(`${API_BASE}/ca/level/0`);
         const roots = await rootResponse.json();
 
         if (roots.length > 0) {
@@ -299,8 +299,8 @@ test.describe('CA Hierarchy - Internal Services CA', () => {
         }
     });
 
-    test('GET /ca/level/INTERNAL - should list internal CAs', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/INTERNAL`);
+    test('GET /ca/level/1 - should list internal CAs', async ({ request }) => {
+        const response = await request.get(`${API_BASE}/ca/level/1`);
 
         expect(response.status()).toBe(200);
         const body = await response.json();
@@ -308,7 +308,7 @@ test.describe('CA Hierarchy - Internal Services CA', () => {
     });
 
     test('Internal CA should use ML-DSA-65 algorithm', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/INTERNAL`);
+        const response = await request.get(`${API_BASE}/ca/level/1`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -318,7 +318,7 @@ test.describe('CA Hierarchy - Internal Services CA', () => {
     });
 
     test('Internal CA should have mTLS purpose', async ({ request }) => {
-        const response = await request.get(`${API_BASE}/ca/level/INTERNAL`);
+        const response = await request.get(`${API_BASE}/ca/level/1`);
         expect(response.status()).toBe(200);
 
         const cas = await response.json();
@@ -329,7 +329,7 @@ test.describe('CA Hierarchy - Internal Services CA', () => {
 
 test.describe('CA Hierarchy - Certificate Chain', () => {
     test('GET /ca/chain/{id} - should return certificate chain for root CA', async ({ request }) => {
-        const rootResponse = await request.get(`${API_BASE}/ca/level/ROOT`);
+        const rootResponse = await request.get(`${API_BASE}/ca/level/0`);
         const roots = await rootResponse.json();
 
         if (roots.length > 0) {
@@ -344,7 +344,7 @@ test.describe('CA Hierarchy - Certificate Chain', () => {
     });
 
     test('Certificate chain should include all CAs up to root', async ({ request }) => {
-        const districtResponse = await request.get(`${API_BASE}/ca/level/DISTRICT`);
+        const districtResponse = await request.get(`${API_BASE}/ca/level/3`);
         const districts = await districtResponse.json();
 
         if (districts.length > 0) {
@@ -359,7 +359,7 @@ test.describe('CA Hierarchy - Certificate Chain', () => {
     });
 
     test('Certificate chain should be in correct order (leaf to root)', async ({ request }) => {
-        const provincialResponse = await request.get(`${API_BASE}/ca/level/PROVINCIAL`);
+        const provincialResponse = await request.get(`${API_BASE}/ca/level/2`);
         const provincials = await provincialResponse.json();
 
         if (provincials.length > 0) {
@@ -376,7 +376,7 @@ test.describe('CA Hierarchy - Certificate Chain', () => {
     });
 
     test('GET /ca/subordinates/{id} - should return subordinate CAs', async ({ request }) => {
-        const rootResponse = await request.get(`${API_BASE}/ca/level/ROOT`);
+        const rootResponse = await request.get(`${API_BASE}/ca/level/0`);
         const roots = await rootResponse.json();
 
         if (roots.length > 0) {

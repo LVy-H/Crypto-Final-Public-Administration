@@ -57,7 +57,8 @@ const requesting = ref(false)
 
 const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
 
-onMounted(async () => {
+async function loadCertificates() {
+  loading.value = true
   try {
     const authToken = token.value || localStorage.getItem('token')
     const res = await fetch(`${apiBase.value}/certificates/my`, {
@@ -67,10 +68,10 @@ onMounted(async () => {
       const data = await res.json()
       certificates.value = data.map(c => ({
         ...c,
-        statusText: c.revoked ? 'Thu hồi' : 'Hoạt động',
-        status: c.revoked ? 'revoked' : 'active',
-        issuedAt: new Date(c.notBefore).toLocaleDateString('vi-VN'),
-        expiresAt: new Date(c.notAfter).toLocaleDateString('vi-VN')
+        statusText: c.revoked ? 'Thu hồi' : (c.status === 'PENDING' ? 'Đang chờ' : 'Hoạt động'),
+        status: c.status?.toLowerCase() || (c.revoked ? 'revoked' : 'active'),
+        issuedAt: new Date(c.validFrom || c.notBefore).toLocaleDateString('vi-VN'),
+        expiresAt: new Date(c.validUntil || c.notAfter).toLocaleDateString('vi-VN')
       }))
     }
   } catch (e) {
@@ -78,6 +79,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+}
+
+onMounted(() => {
+  loadCertificates()
 })
 
 function downloadCert(cert) {
@@ -98,6 +103,7 @@ async function requestCertificate() {
     })
     if (res.ok) {
       alert('Yêu cầu đã được gửi!')
+      await loadCertificates()
     } else {
       alert('Có lỗi xảy ra')
     }
@@ -123,6 +129,7 @@ async function requestCertificate() {
 .status-badge { padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 3px; }
 .status-badge.active { background: #d4edda; color: #155724; }
 .status-badge.revoked { background: #f8d7da; color: #721c24; }
+.status-badge.pending { background: #fff3cd; color: #856404; }
 
 .info-table { width: 100%; margin-bottom: 1rem; }
 .info-table th, .info-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #eee; font-size: 0.85rem; }

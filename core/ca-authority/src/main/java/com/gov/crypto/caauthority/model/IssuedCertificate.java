@@ -22,6 +22,9 @@ public class IssuedCertificate {
     @Column(unique = true, nullable = false)
     private String serialNumber;
 
+    @Column(name = "username")
+    private String username;
+
     @Column(columnDefinition = "TEXT", nullable = false)
     private String certificate;
 
@@ -40,6 +43,14 @@ public class IssuedCertificate {
     // Getters and Setters
     public UUID getId() {
         return id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public void setId(UUID id) {
@@ -127,6 +138,6 @@ public class IssuedCertificate {
     }
 
     public enum CertStatus {
-        ACTIVE, REVOKED, EXPIRED
+        ACTIVE, REVOKED, EXPIRED, PENDING
     }
 }

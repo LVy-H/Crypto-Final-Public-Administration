@@ -1,6 +1,6 @@
-# WireGuard Tunnel Proxy
-# Handles VPN tunnel and DNAT to nginx-ingress controller
-# Uses postStart hook to dynamically discover nginx-ingress pod IP via K8s API
+# WireGuard Tunnel Proxy with Dynamic DNAT
+# Includes sidecar container that monitors nginx-ingress pod IP and updates iptables DNAT
+# This ensures routing works even when nginx-ingress pod restarts and gets a new IP
 
 ---
 apiVersion: apps/v1
@@ -23,7 +23,7 @@ spec:
       serviceAccountName: ingress-nginx
 
       containers:
-        # WireGuard VPN + dynamic DNAT setup
+        # WireGuard VPN container
         - name: wireguard
           image: linuxserver/wireguard:latest
           imagePullPolicy: IfNotPresent
@@ -47,37 +47,12 @@ spec:
                   - |
                     # Add default route (required for hostNetwork to reach internet)
                     ip route add default via 172.18.0.1 dev eth0 2>/dev/null || true
-                    # Wait for WireGuard interface to be created
-                    sleep 10
-                    # Get nginx-ingress pod IP via K8s API
-                    TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null)
-                    if [ -n "$TOKEN" ]; then
-                      NGINX_IP=$(wget -qO- --header="Authorization: Bearer $TOKEN" --no-check-certificate \
-                        "https://kubernetes.default.svc/api/v1/namespaces/ingress-nginx/pods?labelSelector=app.kubernetes.io/name=ingress-nginx" 2>/dev/null \
-                        | grep -o '"podIP":"[^"]*"' | head -1 | cut -d'"' -f4)
-                    fi
-                    # Fallback: try curl if wget grep failed
-                    if [ -z "$NGINX_IP" ] || [ "$NGINX_IP" = "null" ]; then
-                      NGINX_IP=$(curl -sk --header "Authorization: Bearer $TOKEN" \
-                        "https://kubernetes.default.svc/api/v1/namespaces/ingress-nginx/pods?labelSelector=app.kubernetes.io/name=ingress-nginx" 2>/dev/null \
-                        | grep -o '"podIP":"[^"]*"' | head -1 | cut -d'"' -f4)
-                    fi
-                    # Final fallback
-                    if [ -z "$NGINX_IP" ] || [ "$NGINX_IP" = "null" ]; then
-                      echo "WARNING: Could not discover nginx-ingress IP, using fallback"
-                      NGINX_IP="10.244.0.39"
-                    fi
-                    echo "Setting up DNAT to nginx-ingress at $NGINX_IP"
-                    # Clear any existing DNAT rules for ports 80/443 on wg0
-                    iptables -t nat -F PREROUTING 2>/dev/null || true
-                    # Re-add KUBE-SERVICES chain
-                    iptables -t nat -A PREROUTING -m comment --comment "kubernetes service portals" -j KUBE-SERVICES 2>/dev/null || true
-                    # Insert DNAT rules at position 1 (before KUBE-SERVICES)
-                    iptables -t nat -I PREROUTING 1 -i wg0 -p tcp --dport 80 -j DNAT --to-destination ${NGINX_IP}:80
-                    iptables -t nat -I PREROUTING 1 -i wg0 -p tcp --dport 443 -j DNAT --to-destination ${NGINX_IP}:443
-                    # Accept forwarded traffic
-                    iptables -I FORWARD 1 -p tcp -d ${NGINX_IP} -j ACCEPT
-                    echo "DNAT rules configured for $NGINX_IP"
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - ip link del wg0 2>/dev/null || true
           volumeMounts:
             - name: wireguard-config
               mountPath: /config/wg_confs
@@ -91,6 +66,69 @@ spec:
             requests:
               memory: "64Mi"
               cpu: "50m"
+
+        # DNAT Manager sidecar - monitors nginx-ingress IP and updates iptables
+        - name: dnat-manager
+          image: linuxserver/wireguard:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["NET_ADMIN"]
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Add default route (required for hostNetwork to reach K8s API)
+              # Add default route (required for hostNetwork to reach K8s API)
+              ip route add default via 172.18.0.1 dev eth0 2>/dev/null || true
+
+              CURRENT_IP=""
+
+              while true; do
+                # Get nginx-ingress Pod IP via K8s API
+                TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null)
+                if [ -n "$TOKEN" ]; then
+                  NGINX_IP=$(curl -sk --header "Authorization: Bearer $TOKEN" \
+                    "https://10.96.0.1/api/v1/namespaces/ingress-nginx/pods?labelSelector=app.kubernetes.io/name=ingress-nginx" 2>/dev/null \
+                    | grep -o '"podIP":"[^"]*"' | head -1 | cut -d'"' -f4)
+                fi
+                
+                # Only update if IP changed and is valid
+                if [ -n "$NGINX_IP" ] && [ "$NGINX_IP" != "null" ] && [ "$NGINX_IP" != "$CURRENT_IP" ]; then
+                  echo "$(date): nginx-ingress IP changed from $CURRENT_IP to $NGINX_IP"
+                  
+                  # Clear existing DNAT rules for wg0
+                  iptables -t nat -S PREROUTING 2>/dev/null | grep "wg0" | grep DNAT | while read line; do
+                    rule=$(echo "$line" | sed 's/^-A/-D/')
+                    iptables -t nat $rule 2>/dev/null || true
+                  done
+                  
+                  # Add new DNAT rules
+                  iptables -t nat -I PREROUTING 1 -i wg0 -p tcp --dport 443 -j DNAT --to-destination ${NGINX_IP}:443
+                  iptables -t nat -I PREROUTING 1 -i wg0 -p tcp --dport 80 -j DNAT --to-destination ${NGINX_IP}:80
+                  
+                  # Accept forwarded traffic
+                  iptables -D FORWARD -p tcp -d ${CURRENT_IP} -j ACCEPT 2>/dev/null || true
+                  iptables -I FORWARD 1 -p tcp -d ${NGINX_IP} -j ACCEPT
+                  
+                  # Re-add KUBE-SERVICES chain if missing
+                  iptables -t nat -C PREROUTING -m comment --comment "kubernetes service portals" -j KUBE-SERVICES 2>/dev/null || \
+                    iptables -t nat -A PREROUTING -m comment --comment "kubernetes service portals" -j KUBE-SERVICES
+                  
+                  CURRENT_IP=$NGINX_IP
+                  echo "$(date): DNAT updated to $NGINX_IP"
+                fi
+                
+                sleep 10
+              done
+          resources:
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
 
       volumes:
         - name: wireguard-config

@@ -27,11 +27,21 @@ export function useAuth() {
         })
 
         token.value = response.token
-        user.value = response.user
+
+        // Decode JWT to get role (API response.user doesn't include role)
+        try {
+            const payload = JSON.parse(atob(response.token.split('.')[1]))
+            user.value = {
+                ...response.user,
+                role: payload.role || 'CITIZEN'
+            }
+        } catch {
+            user.value = response.user
+        }
 
         if (import.meta.client) {
             localStorage.setItem('token', response.token)
-            localStorage.setItem('user', JSON.stringify(response.user))
+            localStorage.setItem('user', JSON.stringify(user.value))
         }
 
         return response

@@ -9,8 +9,8 @@ import { test, expect } from '@playwright/test';
  * - End-to-end signing workflow
  */
 
-const API_BASE = 'http://localhost:8080/api/v1';
-const CSC_BASE = 'http://localhost:8080/csc/v1';
+const API_BASE = 'https://api.gov-id.lvh.id.vn/api/v1';
+const CSC_BASE = 'https://api.gov-id.lvh.id.vn/csc/v1';
 
 test.describe('Integration - Complete User Journey', () => {
     test.describe.configure({ mode: 'serial' });

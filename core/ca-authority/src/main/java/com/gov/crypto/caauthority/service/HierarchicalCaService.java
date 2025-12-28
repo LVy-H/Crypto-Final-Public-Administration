@@ -21,6 +21,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
+import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -524,55 +525,55 @@ public class HierarchicalCaService {
         // Generate safe file paths using sanitized name
         String safeFileName = sanitizedName.toLowerCase().replaceAll("[^a-z0-9-]", "-");
         String keyPath = caStoragePath + "/" + safeFileName + "-key.pem";
-        String csrPath = caStoragePath + "/" + safeFileName + ".csr";
+        // String csrPath = caStoragePath + "/" + safeFileName + ".csr"; // No longer
+        // needed
         String certPath = caStoragePath + "/" + safeFileName + "-cert.pem";
-        String subjectDn = "/CN=" + sanitizedName + " " + label + "/O=PQC Digital Signature System/C=VN";
 
-        // Generate key pair with validated algorithm
-        runProcess(new ProcessBuilder(
-                "openssl", "genpkey",
-                "-algorithm", validatedAlgorithm,
-                "-out", keyPath), sanitizedName + " Key Generation");
+        // BouncyCastle expects RFC 4514 format (comma separated)
+        String subjectDn = "CN=" + sanitizedName + " " + label + ",O=PQC Digital Signature System,C=VN";
 
-        // Generate CSR
-        runProcess(new ProcessBuilder(
-                "openssl", "req", "-new",
-                "-key", keyPath,
-                "-out", csrPath,
-                "-subj", subjectDn), name + " CSR Generation");
+        // Determine algorithms levels
+        MlDsaLevel childLevel = switch (validatedAlgorithm.toLowerCase()) {
+            case "mldsa44", "ml-dsa-44" -> MlDsaLevel.ML_DSA_44;
+            case "mldsa65", "ml-dsa-65" -> MlDsaLevel.ML_DSA_65;
+            default -> MlDsaLevel.ML_DSA_87;
+        };
 
-        // Write parent CA cert to temp file for signing
-        Path parentCertPath = Files.createTempFile("parent_ca", ".pem");
-        Files.writeString(parentCertPath, parentCa.getCertificate());
+        MlDsaLevel parentLevel = switch (parentCa.getAlgorithm().toLowerCase()) {
+            case "mldsa44", "ml-dsa-44" -> MlDsaLevel.ML_DSA_44;
+            case "mldsa65", "ml-dsa-65" -> MlDsaLevel.ML_DSA_65;
+            default -> MlDsaLevel.ML_DSA_87;
+        };
 
-        // Create config with Sub CA extensions
-        Path configPath = createExtensionConfig("""
-                basicConstraints=critical,CA:TRUE,pathlen:0
-                keyUsage=critical,keyCertSign,cRLSign
-                subjectKeyIdentifier=hash
-                authorityKeyIdentifier=keyid:always,issuer
-                """);
+        log.info("Generating Subordinate CA with Java PQC: {} (Algo: {}, Parent: {})",
+                sanitizedName, childLevel, parentLevel);
 
-        // Sign with parent CA
-        runProcess(new ProcessBuilder(
-                "openssl", "x509", "-req",
-                "-in", csrPath,
-                "-CA", parentCertPath.toString(),
-                "-CAkey", parentCa.getPrivateKeyPath(),
-                "-out", certPath,
-                "-days", String.valueOf(validDays),
-                "-CAcreateserial",
-                "-extfile", configPath.toString(),
-                "-extensions", "v3_ext"), name + " Signing");
+        // 1. Generate Key Pair (Java)
+        KeyPair keyPair = pqcCryptoService.generateMlDsaKeyPair(childLevel);
+        String privateKeyPem = pqcCryptoService.privateKeyToPem(keyPair.getPrivate());
+        String publicKeyPem = pqcCryptoService.publicKeyToPem(keyPair.getPublic());
 
-        Files.deleteIfExists(configPath);
+        // Save private key to file (compatibility)
+        Files.writeString(Path.of(keyPath), privateKeyPem);
 
-        Files.deleteIfExists(parentCertPath);
+        // 2. Load Parent Key & Cert
+        String parentKeyPem = Files.readString(Path.of(parentCa.getPrivateKeyPath()));
+        String parentCertPem = parentCa.getCertificate();
 
-        // Extract public key
-        Path pubKeyPath = Files.createTempFile("sub_pub", ".pem");
-        runProcess(new ProcessBuilder(
-                "openssl", "pkey", "-in", keyPath, "-pubout", "-out", pubKeyPath.toString()), "Extract Public Key");
+        // 3. Generate & Sign Certificate (Java)
+        // Note: generateSubordinateCertificate handles extensions for CA=true
+        X509Certificate cert = pqcCryptoService.generateSubordinateCertificate(
+                keyPair.getPublic(),
+                subjectDn,
+                parentKeyPem,
+                parentCertPem,
+                validDays,
+                parentLevel, // Signing uses parent's algorithm
+                true // isCA
+        );
+
+        String certPem = pqcCryptoService.certificateToPem(cert);
+        Files.writeString(Path.of(certPath), certPem);
 
         // Save to database
         CertificateAuthority subCa = new CertificateAuthority();
@@ -581,17 +582,14 @@ public class HierarchicalCaService {
         subCa.setHierarchyLevel(newLevel);
         subCa.setLabel(label);
         subCa.setParentCa(parentCa);
-        subCa.setAlgorithm(algorithm.toUpperCase().replace("MLDSA", "ML-DSA-"));
+        subCa.setAlgorithm(algorithm.toUpperCase().replace("MLDSA", "ML-DSA-")); // Standardize
         subCa.setSubjectDn(subjectDn);
         subCa.setPrivateKeyPath(keyPath);
-        subCa.setCertificate(Files.readString(Path.of(certPath)));
-        subCa.setPublicKey(Files.readString(pubKeyPath));
+        subCa.setCertificate(certPem);
+        subCa.setPublicKey(publicKeyPem);
         subCa.setValidFrom(LocalDateTime.now());
         subCa.setValidUntil(LocalDateTime.now().plusDays(validDays));
         subCa.setStatus(CaStatus.ACTIVE);
-
-        Files.deleteIfExists(pubKeyPath);
-        Files.deleteIfExists(Path.of(csrPath));
 
         return caRepository.save(subCa);
     }
@@ -606,59 +604,58 @@ public class HierarchicalCaService {
         CertificateAuthority issuingRa = caRepository.findById(issuingRaId)
                 .orElseThrow(() -> new RuntimeException("Issuing RA not found"));
 
-        Path csrPath = Files.createTempFile("user", ".csr");
-        Path certPath = Files.createTempFile("user", ".pem");
-
-        Files.writeString(csrPath, csrContent);
-
         try {
-            // Write issuing CA cert to temp file
-            Path issuingCertPath = Files.createTempFile("issuing_ca", ".pem");
-            Files.writeString(issuingCertPath, issuingRa.getCertificate());
+            // 1. Parse CSR and extract Public Key
+            log.info("Parsing CSR for user certificate issuance...");
+            var csr = pqcCryptoService.parseCsrPem(csrContent);
+            PublicKey userPublicKey = pqcCryptoService.getPublicKeyFromCsr(csr);
 
-            // Create config with End User extensions
-            Path configPath = createExtensionConfig("""
-                    basicConstraints=critical,CA:FALSE
-                    keyUsage=critical,digitalSignature,nonRepudiation,keyEncipherment
-                    extendedKeyUsage=clientAuth,emailProtection
-                    subjectKeyIdentifier=hash
-                    authorityKeyIdentifier=keyid,issuer
-                    """);
+            // Use provided DN or extract from CSR if null/empty
+            String finalSubjectDn = (subjectDn != null && !subjectDn.isBlank())
+                    ? subjectDn
+                    : pqcCryptoService.getSubjectDnFromCsr(csr);
 
-            // Sign the CSR
-            runProcess(new ProcessBuilder(
-                    "openssl", "x509", "-req",
-                    "-in", csrPath.toString(),
-                    "-CA", issuingCertPath.toString(),
-                    "-CAkey", issuingRa.getPrivateKeyPath(),
-                    "-out", certPath.toString(),
-                    "-days", "365",
-                    "-CAcreateserial",
-                    "-extfile", configPath.toString(),
-                    "-extensions", "v3_ext"), "User Certificate Signing");
+            // 2. Load Issuer Materials
+            String issuerKeyPem = Files.readString(Path.of(issuingRa.getPrivateKeyPath()));
+            String issuerCertPem = issuingRa.getCertificate();
 
-            Files.deleteIfExists(configPath);
+            // Determine Issuer Level
+            MlDsaLevel issuerLevel = switch (issuingRa.getAlgorithm().toLowerCase()) {
+                case "mldsa44", "ml-dsa-44" -> MlDsaLevel.ML_DSA_44;
+                case "mldsa65", "ml-dsa-65" -> MlDsaLevel.ML_DSA_65;
+                default -> MlDsaLevel.ML_DSA_87;
+            };
 
-            Files.deleteIfExists(issuingCertPath);
+            // 3. Sign Certificate (isCA=false for end user)
+            log.info("Signing user certificate with PQC (Issuer: {}, Algo: {})", issuingRa.getName(), issuerLevel);
+            X509Certificate userX509String = pqcCryptoService.generateSubordinateCertificate(
+                    userPublicKey,
+                    finalSubjectDn,
+                    issuerKeyPem,
+                    issuerCertPem,
+                    365, // 1 year validity
+                    issuerLevel,
+                    false // isCA = false
+            );
 
-            String certificate = Files.readString(certPath);
-            // SECURITY: Generate cryptographically secure serial number (RFC 5280
-            // compliant)
+            String certPem = pqcCryptoService.certificateToPem(userX509String);
+
+            // SECURITY: Generate cryptographically secure serial number
             String serialNumber = SecurityUtils.generateSecureSerialNumber();
 
             IssuedCertificate userCert = new IssuedCertificate();
             userCert.setIssuingCa(issuingRa);
-            userCert.setSubjectDn(subjectDn);
+            userCert.setSubjectDn(finalSubjectDn);
             userCert.setSerialNumber(serialNumber);
-            userCert.setCertificate(certificate);
+            userCert.setCertificate(certPem);
             userCert.setValidFrom(LocalDateTime.now());
             userCert.setValidUntil(LocalDateTime.now().plusYears(1));
             userCert.setStatus(CertStatus.ACTIVE);
 
             return certRepository.save(userCert);
-        } finally {
-            Files.deleteIfExists(csrPath);
-            Files.deleteIfExists(certPath);
+        } catch (Exception e) {
+            log.error("Failed to issue user certificate: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -797,6 +794,38 @@ public class HierarchicalCaService {
             Files.deleteIfExists(caCertPath);
             // Config and CRL cleaned up if needed or return content first
         }
+    }
+
+    // ============ User Certificate Request Workflow ============
+
+    @Transactional
+    public IssuedCertificate createCertificateRequest(String username, String algorithm) {
+        // Find an appropriate Issuing CA (e.g., Internal Service CA or any active
+        // Issuing CA)
+        // In a real system, this might choose based on algorithm or user org
+        List<CertificateAuthority> potentialCas = caRepository.findByStatus(CaStatus.ACTIVE);
+        CertificateAuthority issuingCa = potentialCas.stream()
+                .filter(ca -> ca.getType() == CaType.ISSUING_CA || ca.getType() == CaType.RA)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No active Issuing CA found to handle request"));
+
+        // Create pending certificate record
+        IssuedCertificate request = new IssuedCertificate();
+        request.setUsername(username);
+        request.setIssuingCa(issuingCa);
+        request.setStatus(CertStatus.PENDING);
+        request.setSerialNumber(UUID.randomUUID().toString()); // Temporary serial for request tracking
+        request.setSubjectDn("CN=" + username + ", O=Citizen, C=VN"); // Placeholder DN
+        request.setCertificate(""); // No cert yet
+        request.setValidFrom(LocalDateTime.now());
+        request.setValidUntil(LocalDateTime.now().plusYears(1)); // Default valid time
+
+        log.info("Created certificate request for user: {} algorithm: {}", username, algorithm);
+        return certRepository.save(request);
+    }
+
+    public List<IssuedCertificate> getUserCertificates(String username) {
+        return certRepository.findByUsername(username);
     }
 
     private String formatIndexDate(LocalDateTime date) {

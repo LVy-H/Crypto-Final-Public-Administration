@@ -20,9 +20,9 @@ public interface CertificateAuthorityRepository extends JpaRepository<Certificat
 
     Optional<CertificateAuthority> findByName(String name);
 
-    // Find Internal CA by label
     List<CertificateAuthority> findByLabel(String label);
 
-    // Find CA linked to a specific organization
     Optional<CertificateAuthority> findByOrganizationId(UUID organizationId);
+
+    List<CertificateAuthority> findByStatus(CertificateAuthority.CaStatus status);
 }

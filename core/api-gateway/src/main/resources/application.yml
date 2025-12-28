@@ -5,6 +5,8 @@ spring:
   application:
     name: api-gateway
   cloud:
+    compatibility-verifier:
+      enabled: false
     gateway:
       routes:
         # Identity Service - Authentication
@@ -37,7 +39,7 @@ spring:
         - id: ca-authority
           uri: http://ca-authority:8082
           predicates:
-            - Path=/api/v1/ca/**
+            - Path=/api/v1/ca/**, /api/v1/certificates/**
           filters:
             - StripPrefix=0
 
@@ -62,6 +64,8 @@ spring:
         cors-configurations:
           "[/**]":
             allowed-origins:
+              - "https://portal.gov-id.lvh.id.vn"
+              - "https://api.gov-id.lvh.id.vn"
               - "http://localhost:3000"
               - "http://localhost:3001"
             allowed-methods:

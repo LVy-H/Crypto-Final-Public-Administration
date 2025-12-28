@@ -15,3 +15,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.mockito:mockito-core")
 }
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+}

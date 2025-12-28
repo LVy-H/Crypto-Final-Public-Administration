@@ -1,5 +1,5 @@
-FROM eclipse-temurin:21-jre-jammy
-WORKDIR /app
-COPY build/libs/validation-service-1.0.0-SNAPSHOT.jar app.jar
-EXPOSE 8086
-ENTRYPOINT ["java", "-jar", "app.jar"]
+FROM eclipse-temurin:21-jre-alpine
+VOLUME /tmp
+ARG JAR_FILE=build/libs/*.jar
+COPY ${JAR_FILE} app.jar
+ENTRYPOINT ["java","-jar","/app.jar"]

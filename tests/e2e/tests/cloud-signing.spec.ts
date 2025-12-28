@@ -10,8 +10,8 @@ import { test, expect } from '@playwright/test';
  * - Authorization/SAD validation
  */
 
-const API_BASE = 'http://localhost:8080/api/v1';
-const CSC_BASE = 'http://localhost:8080/csc/v1';
+const API_BASE = 'https://api.gov-id.lvh.id.vn/api/v1';
+const CSC_BASE = 'https://api.gov-id.lvh.id.vn/csc/v1';
 
 // Helper to get auth token
 async function getAuthToken(request: any): Promise<string | null> {
