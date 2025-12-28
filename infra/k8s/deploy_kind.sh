@@ -5,6 +5,14 @@ set -e
 CLUSTER_NAME="crypto-pqc"
 NAMESPACE="crypto-pqc"
 
+# Cache nix binary paths to avoid repeated evaluations
+KIND_BIN=$(nix build nixpkgs#kind --print-out-paths --no-link 2>/dev/null)/bin/kind
+if [ -x "$KIND_BIN" ]; then
+    KIND="$KIND_BIN"
+else
+    KIND="nix run nixpkgs#kind --"
+fi
+
 echo "=========================================="
 echo "PQC Crypto Services - Kind Deployment"
 echo "=========================================="
@@ -29,7 +37,7 @@ for service in "${SERVICES[@]}"; do
     docker build -t "crypto-pqc/$service:latest" -f "services/$service/Dockerfile" "services/$service"
     
     # Load into Kind
-    nix run nixpkgs#kind -- load docker-image "crypto-pqc/$service:latest" --name "$CLUSTER_NAME"
+    $KIND load docker-image "crypto-pqc/$service:latest" --name "$CLUSTER_NAME"
 done
 
 echo "Applying Kubernetes manifests..."

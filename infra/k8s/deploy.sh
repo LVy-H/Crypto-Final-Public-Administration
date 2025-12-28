@@ -21,9 +21,21 @@ if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "prod" ]]; then
     exit 1
 fi
 
-# Define commands
-KUBECTL="nix run nixpkgs#kubectl --"
-KIND="nix run nixpkgs#kind --"
+# Define commands - cache nix binary paths to avoid repeated evaluations
+KUBECTL_BIN=$(nix build nixpkgs#kubectl --print-out-paths --no-link 2>/dev/null)/bin/kubectl
+KIND_BIN=$(nix build nixpkgs#kind --print-out-paths --no-link 2>/dev/null)/bin/kind
+
+# Use cached path if available, fallback to nix run
+if [ -x "$KUBECTL_BIN" ]; then
+    KUBECTL="$KUBECTL_BIN"
+else
+    KUBECTL="nix run nixpkgs#kubectl --"
+fi
+if [ -x "$KIND_BIN" ]; then
+    KIND="$KIND_BIN"
+else
+    KIND="nix run nixpkgs#kind --"
+fi
 
 # Check prerequisites
 # command -v kubectl >/dev/null 2>&1 || { echo "kubectl is required but not installed."; exit 1; }

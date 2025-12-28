@@ -283,4 +283,43 @@ public class ValidationServiceImpl implements ValidationService {
             return PqcCryptoService.MlDsaLevel.ML_DSA_87;
         }
     }
+
+    @Override
+    public String signDebug(String privateKeyPem, String dataBase64, String algorithm) {
+        try {
+            java.security.PrivateKey privateKey = pqcService.parsePrivateKeyPem(privateKeyPem);
+            byte[] data = Base64.getDecoder().decode(dataBase64);
+            PqcCryptoService.MlDsaLevel level = getMlDsaLevel(algorithm);
+
+            byte[] signature = pqcService.sign(data, privateKey, level);
+            return Base64.getEncoder().encodeToString(signature);
+        } catch (Exception e) {
+            log.error("Debug signing failed", e);
+            throw new RuntimeException("Debug signing failed: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public java.util.Map<String, String> generateCsrDebug(String subjectDn, String algorithm) {
+        try {
+            PqcCryptoService.MlDsaLevel level = getMlDsaLevel(algorithm);
+            java.security.KeyPair keyPair = pqcService.generateMlDsaKeyPair(level);
+
+            var csr = pqcService.generateCsr(keyPair, subjectDn, level);
+
+            String privateKeyPem = pqcService.privateKeyToPem(keyPair.getPrivate());
+            String publicKeyPem = pqcService.publicKeyToPem(keyPair.getPublic());
+            String csrPem = pqcService.csrToPem(csr);
+
+            return java.util.Map.of(
+                    "privateKey", privateKeyPem,
+                    "publicKey", publicKeyPem,
+                    "csr", csrPem);
+        } catch (Throwable e) {
+            log.error("Debug CSR generation failed", e);
+            System.err.println("CRITICAL ERROR: Debug CSR generation failed");
+            e.printStackTrace();
+            throw new RuntimeException("Debug CSR generation failed: " + e.getMessage());
+        }
+    }
 }

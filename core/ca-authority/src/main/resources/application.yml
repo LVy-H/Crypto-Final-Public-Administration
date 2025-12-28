@@ -1,5 +1,10 @@
 server:
   port: 8082
+  servlet:
+    session:
+      cookie:
+        domain: gov-id.lvh.id.vn
+        path: /
 
 spring:
   application:

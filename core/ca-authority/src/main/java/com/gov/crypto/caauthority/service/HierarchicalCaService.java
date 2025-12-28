@@ -799,7 +799,7 @@ public class HierarchicalCaService {
     // ============ User Certificate Request Workflow ============
 
     @Transactional
-    public IssuedCertificate createCertificateRequest(String username, String algorithm) {
+    public IssuedCertificate createCertificateRequest(String username, String algorithm, String csrPem) {
         // Find an appropriate Issuing CA (e.g., Internal Service CA or any active
         // Issuing CA)
         // In a real system, this might choose based on algorithm or user org
@@ -817,10 +817,73 @@ public class HierarchicalCaService {
         request.setSerialNumber(UUID.randomUUID().toString()); // Temporary serial for request tracking
         request.setSubjectDn("CN=" + username + ", O=Citizen, C=VN"); // Placeholder DN
         request.setCertificate(""); // No cert yet
+        request.setCsr(csrPem); // Store CSR
         request.setValidFrom(LocalDateTime.now());
         request.setValidUntil(LocalDateTime.now().plusYears(1)); // Default valid time
 
         log.info("Created certificate request for user: {} algorithm: {}", username, algorithm);
+        return certRepository.save(request);
+    }
+
+    /**
+     * Approve a pending certificate request
+     */
+    @Transactional
+    public IssuedCertificate approveCertificate(UUID requestId) throws Exception {
+        IssuedCertificate request = certRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Certificate request not found"));
+
+        if (request.getStatus() != CertStatus.PENDING) {
+            throw new IllegalStateException("Certificate is not in PENDING status");
+        }
+
+        if (request.getCsr() == null || request.getCsr().isBlank()) {
+            throw new IllegalStateException("No CSR found in request");
+        }
+
+        // Issue the certificate using the stored CSR
+        // This will update the existing record or create a new one?
+        // issueUserCertificate logic creates a NEW record. We should refactor or adapt.
+        // Let's adapt issueUserCertificate logic here directly or reuse it.
+        // issueUserCertificate takes csrContent and subjectDn parameters.
+
+        // Let's reuse issueUserCertificate but update the EXISTING record instead of
+        // creating new.
+        // Actually, let's just modify the existing record in place here.
+
+        CertificateAuthority issuingRa = request.getIssuingCa();
+
+        // 1. Parse CSR
+        var csrObj = pqcCryptoService.parseCsrPem(request.getCsr());
+        java.security.PublicKey userPublicKey = pqcCryptoService.getPublicKeyFromCsr(csrObj);
+
+        // 2. Issuer materials
+        String issuerKeyPem = Files.readString(Path.of(issuingRa.getPrivateKeyPath()));
+        String issuerCertPem = issuingRa.getCertificate();
+        MlDsaLevel issuerLevel = switch (issuingRa.getAlgorithm().toLowerCase()) {
+            case "mldsa44", "ml-dsa-44" -> MlDsaLevel.ML_DSA_44;
+            case "mldsa65", "ml-dsa-65" -> MlDsaLevel.ML_DSA_65;
+            default -> MlDsaLevel.ML_DSA_87;
+        };
+
+        // 3. Sign
+        X509Certificate userX509 = pqcCryptoService.generateSubordinateCertificate(
+                userPublicKey,
+                request.getSubjectDn(),
+                issuerKeyPem,
+                issuerCertPem,
+                365,
+                issuerLevel,
+                false);
+
+        String certPem = pqcCryptoService.certificateToPem(userX509);
+        String serialNumber = SecurityUtils.generateSecureSerialNumber();
+
+        request.setCertificate(certPem);
+        request.setSerialNumber(serialNumber);
+        request.setStatus(CertStatus.ACTIVE);
+        request.setPublicKey(pqcCryptoService.publicKeyToPem(userPublicKey)); // Save PK
+
         return certRepository.save(request);
     }
 

@@ -120,6 +120,8 @@ spec:
               tier: backend
       ports:
         - protocol: TCP
+          port: 8080
+        - protocol: TCP
           port: 8081
         - protocol: TCP
           port: 8082
@@ -131,10 +133,12 @@ spec:
           port: 8085
         - protocol: TCP
           port: 8086
-    # DNS
+    # Allow DNS
     - to: []
       ports:
         - protocol: UDP
+          port: 53
+        - protocol: TCP
           port: 53
 
 ---
@@ -158,19 +162,6 @@ spec:
         - podSelector:
             matchLabels:
               app: api-gateway
-      ports:
-        - protocol: TCP
-          port: 8081
-        - protocol: TCP
-          port: 8082
-        - protocol: TCP
-          port: 8083
-        - protocol: TCP
-          port: 8084
-        - protocol: TCP
-          port: 8085
-        - protocol: TCP
-          port: 8086
     # Accept from other backend services (internal mesh)
     - from:
         - podSelector:

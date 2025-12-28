@@ -13,4 +13,16 @@ public interface ValidationService {
      * officer signature, and optional timestamp.
      */
     StampVerifyResponse verifyStamp(StampVerifyRequest request);
+
+    /**
+     * Debug only: Generate signature for testing.
+     * WARNING: Do not use in production.
+     */
+    String signDebug(String privateKeyPem, String dataBase64, String algorithm);
+
+    /**
+     * Debug only: Generate KeyPair and CSR for testing.
+     * Returns Map with "privateKey", "publicKey", "csr".
+     */
+    java.util.Map<String, String> generateCsrDebug(String subjectDn, String algorithm);
 }

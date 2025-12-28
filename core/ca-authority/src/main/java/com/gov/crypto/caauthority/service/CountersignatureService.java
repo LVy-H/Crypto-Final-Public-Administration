@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
@@ -84,8 +86,9 @@ public class CountersignatureService {
         byte[] stampData = createStampData(documentHash, userSignature);
 
         // Get officer's private key and certificate from CA
-        // Note: privateKeyPath field stores the private key PEM (legacy naming)
-        PrivateKey officerPrivateKey = pqcService.parsePrivateKeyPem(officerCa.getPrivateKeyPath());
+        // Note: privateKeyPath field stores the file path to the private key PEM
+        String keyPem = Files.readString(Path.of(officerCa.getPrivateKeyPath()));
+        PrivateKey officerPrivateKey = pqcService.parsePrivateKeyPem(keyPem);
         X509Certificate officerCert = pqcService.parseCertificatePem(officerCa.getCertificate());
         PqcCryptoService.MlDsaLevel officerLevel = getMlDsaLevelFromCert(officerCert);
 

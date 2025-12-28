@@ -126,34 +126,12 @@ def main():
     print()
     
     # ========================================
-    # STEP 3: GET USER PROFILE
+    # STEP 3: LIST CERTIFICATES (should be empty)
     # ========================================
-    print("STEP 3: GET USER PROFILE")
+    print("STEP 3: LIST CERTIFICATES")
     print("-" * 40)
     
-    resp = client.request("GET", "/api/v1/identity/me")
-    
-    if resp.get("status") == 200:
-        print(f"  ✅ Profile retrieved")
-        if resp.get("body"):
-            profile = resp.get("body")
-            print(f"     Username: {profile.get('username', 'N/A')}")
-            print(f"     Email: {profile.get('email', 'N/A')}")
-            print(f"     Verified: {profile.get('identityVerified', 'N/A')}")
-    elif resp.get("status") == 404:
-        print(f"  ⚠️  Profile endpoint not available (404)")
-    else:
-        print(f"  ⚠️  Profile request returned: {resp.get('status')}")
-    
-    print()
-    
-    # ========================================
-    # STEP 4: LIST CERTIFICATES (should be empty)
-    # ========================================
-    print("STEP 4: LIST CERTIFICATES")
-    print("-" * 40)
-    
-    resp = client.request("GET", "/api/v1/certificates")
+    resp = client.request("GET", "/api/v1/certificates/my")
     
     if resp.get("status") == 200:
         certs = resp.get("body", [])
@@ -168,9 +146,9 @@ def main():
     print()
     
     # ========================================
-    # STEP 5: REQUEST CERTIFICATE
+    # STEP 4: REQUEST CERTIFICATE
     # ========================================
-    print("STEP 5: REQUEST CERTIFICATE")
+    print("STEP 4: REQUEST CERTIFICATE")
     print("-" * 40)
     
     cert_request = {
@@ -195,9 +173,9 @@ def main():
     print()
     
     # ========================================
-    # STEP 6: TEST CA CSR GENERATION
+    # STEP 5: TEST CA CSR GENERATION
     # ========================================
-    print("STEP 6: TEST CA CSR GENERATION")
+    print("STEP 5: TEST CA CSR GENERATION")
     print("-" * 40)
     
     csr_request = {
@@ -211,7 +189,7 @@ def main():
     if resp.get("status") == 200:
         body = resp.get("body", {})
         if isinstance(body, dict):
-            csr = body.get("csr", "")
+            csr = body.get("csrPem", "")
             if "BEGIN CERTIFICATE REQUEST" in csr:
                 print(f"  ✅ CSR generated successfully")
                 print(f"     CSR length: {len(csr)} bytes")
@@ -227,9 +205,9 @@ def main():
     print()
     
     # ========================================
-    # STEP 7: LOGOUT
+    # STEP 6: LOGOUT
     # ========================================
-    print("STEP 7: LOGOUT")
+    print("STEP 6: LOGOUT")
     print("-" * 40)
     
     resp = client.request("POST", "/api/v1/auth/logout")

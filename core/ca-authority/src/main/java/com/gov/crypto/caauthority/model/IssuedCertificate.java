@@ -31,6 +31,9 @@ public class IssuedCertificate {
     @Column(columnDefinition = "TEXT")
     private String publicKey;
 
+    @Column(columnDefinition = "TEXT")
+    private String csr;
+
     private LocalDateTime validFrom;
     private LocalDateTime validUntil;
 
@@ -95,6 +98,14 @@ public class IssuedCertificate {
 
     public void setPublicKey(String publicKey) {
         this.publicKey = publicKey;
+    }
+
+    public String getCsr() {
+        return csr;
+    }
+
+    public void setCsr(String csr) {
+        this.csr = csr;
     }
 
     public LocalDateTime getValidFrom() {

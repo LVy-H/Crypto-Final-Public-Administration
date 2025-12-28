@@ -90,7 +90,7 @@ spec:
                 TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null)
                 if [ -n "$TOKEN" ]; then
                   NGINX_IP=$(curl -sk --header "Authorization: Bearer $TOKEN" \
-                    "https://10.96.0.1/api/v1/namespaces/ingress-nginx/pods?labelSelector=app.kubernetes.io/name=ingress-nginx" 2>/dev/null \
+                    "https://10.96.0.1/api/v1/namespaces/ingress-nginx/pods?labelSelector=app=nginx-pqc-ingress" 2>/dev/null \
                     | grep -o '"podIP":"[^"]*"' | head -1 | cut -d'"' -f4)
                 fi
                 

@@ -34,8 +34,9 @@ public class CertificateController {
             }
 
             String algorithm = request.getOrDefault("algorithm", "ML-DSA-44");
+            String csrPem = request.get("csrPem");
 
-            IssuedCertificate certRequest = caService.createCertificateRequest(username, algorithm);
+            IssuedCertificate certRequest = caService.createCertificateRequest(username, algorithm, csrPem);
 
             return ResponseEntity.ok(Map.of(
                     "id", certRequest.getId(),
@@ -44,6 +45,46 @@ public class CertificateController {
                     "message", "Certificate request submitted successfully"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Approve a certificate request (Admin/Debug only)
+     */
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<Map<String, Object>> approveCertificate(@PathVariable java.util.UUID id) {
+        try {
+            IssuedCertificate cert = caService.approveCertificate(id);
+            return ResponseEntity.ok(Map.of(
+                    "id", cert.getId(),
+                    "status", cert.getStatus().name(),
+                    "message", "Certificate approved and issued"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Download certificate PEM (User facing)
+     */
+    @GetMapping("/{id}/download")
+    public ResponseEntity<Map<String, String>> downloadCertificate(@PathVariable java.util.UUID id) {
+        try {
+            String username = getCurrentUsername();
+            if (username == null) {
+                return ResponseEntity.status(401).build();
+            }
+
+            // In production, verify ownership!
+            // For now, allow download if authenticated
+            IssuedCertificate cert = caService.getUserCertificates(username).stream()
+                    .filter(c -> c.getId().equals(id))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Certificate not found or acess denied"));
+
+            return ResponseEntity.ok(Map.of("certificate", cert.getCertificate()));
+        } catch (Exception e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         }
     }
 

@@ -12,6 +12,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: crypto-config
+  namespace: crypto-pqc
 data:
   # Service URLs (internal)
   SERVICE_CA_AUTHORITY_URL: "http://ca-authority:8082"
@@ -38,6 +39,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: postgres-config
+  namespace: crypto-pqc
 data:
   init.sql: |
     -- Initialize databases for microservices
