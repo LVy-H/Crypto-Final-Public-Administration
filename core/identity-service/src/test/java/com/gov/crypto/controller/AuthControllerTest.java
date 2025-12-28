@@ -10,20 +10,20 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Controller tests for Identity Service authentication endpoints.
- * Tests match the actual AuthController API.
+ * Tests session-based authentication.
  */
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false) // Disable security for unit tests
@@ -75,45 +75,47 @@ class AuthControllerTest {
     }
 
     @Nested
-    @DisplayName("POST /api/v1/auth/login - User Login")
+    @DisplayName("POST /api/v1/auth/login - User Login (Session-based)")
     class LoginTests {
 
         @Test
         @DisplayName("Should login successfully with valid credentials")
         void shouldLoginSuccessfully() throws Exception {
-            // Given - mock authentication and token generation
+            // Given - mock authentication
+            User mockUser = new User();
+            mockUser.setUsername("testuser");
+
             Authentication mockAuth = mock(Authentication.class);
             when(mockAuth.isAuthenticated()).thenReturn(true);
+            when(mockAuth.getPrincipal()).thenReturn(mockUser);
             when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                     .thenReturn(mockAuth);
-            when(authService.generateToken("testuser")).thenReturn("jwt.token.here");
 
-            // When/Then
+            // When/Then - session-based login returns user info without token
             mockMvc.perform(post("/api/v1/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"username\":\"testuser\",\"password\":\"Pass123!\"}"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.token").value("jwt.token.here"))
-                    .andExpect(jsonPath("$.user.username").value("testuser"));
+                    .andExpect(jsonPath("$.username").value("testuser"))
+                    .andExpect(jsonPath("$.message").value("Login successful"));
         }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/auth/logout - User Logout")
+    class LogoutTests {
 
         @Test
-        @DisplayName("Should generate token on successful authentication")
-        void shouldGenerateTokenOnSuccess() throws Exception {
-            // Given
-            Authentication mockAuth = mock(Authentication.class);
-            when(mockAuth.isAuthenticated()).thenReturn(true);
-            when(authenticationManager.authenticate(any())).thenReturn(mockAuth);
-            when(authService.generateToken(anyString())).thenReturn("test.jwt.token");
+        @DisplayName("Should logout successfully")
+        void shouldLogoutSuccessfully() throws Exception {
+            // Given - a session
+            MockHttpSession session = new MockHttpSession();
 
-            // When
-            mockMvc.perform(post("/api/v1/auth/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"username\":\"user\",\"password\":\"pass\"}"))
-                    .andExpect(status().isOk());
-
-            // Then
-            verify(authService).generateToken("user");
+            // When/Then
+            mockMvc.perform(post("/api/v1/auth/logout")
+                    .session(session))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Logout successful"));
         }
     }
 }

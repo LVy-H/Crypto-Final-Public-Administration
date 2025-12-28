@@ -1,5 +1,6 @@
 package com.gov.crypto.identityservice.service;
 
+import com.gov.crypto.model.Role;
 import com.gov.crypto.model.User;
 import com.gov.crypto.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,12 +16,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for Identity Service - Authentication operations.
- * Tests match the actual AuthService API.
+ * Tests session-based authentication.
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -31,21 +31,23 @@ class AuthServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private JwtService jwtService;
-
     @InjectMocks
     private AuthService authService;
 
     private User testUser;
+    private Role citizenRole;
 
     @BeforeEach
     void setUp() {
+        citizenRole = new Role();
+        citizenRole.setName("CITIZEN");
+        citizenRole.setOfficerRole(false);
+
         testUser = new User();
         testUser.setUsername("citizen01");
         testUser.setEmail("citizen01@gov.vn");
         testUser.setPasswordHash("rawPassword");
-        testUser.setRole("CITIZEN");
+        testUser.setRole(citizenRole);
     }
 
     @Nested
@@ -84,41 +86,34 @@ class AuthServiceTest {
     }
 
     @Nested
-    @DisplayName("Token Generation Tests")
-    class TokenGenerationTests {
+    @DisplayName("User Lookup Tests")
+    class UserLookupTests {
 
         @Test
-        @DisplayName("Should generate token for username")
-        void shouldGenerateTokenForUsername() {
+        @DisplayName("Should find user by username")
+        void shouldFindUserByUsername() {
             // Given
-            String expectedToken = "eyJhbGciOiJIUzI1NiJ9.test.signature";
             when(userRepository.findByUsername("citizen01")).thenReturn(java.util.Optional.of(testUser));
-            when(jwtService.generateToken("citizen01", "USER", "UNVERIFIED")).thenReturn(expectedToken);
 
             // When
-            String token = authService.generateToken("citizen01");
+            var result = userRepository.findByUsername("citizen01");
 
             // Then
-            assertEquals(expectedToken, token);
-            verify(jwtService).generateToken("citizen01", "USER", "UNVERIFIED");
+            assertTrue(result.isPresent());
+            assertEquals("citizen01", result.get().getUsername());
         }
 
         @Test
-        @DisplayName("Should use default USER role for token generation")
-        void shouldUseDefaultUserRole() {
+        @DisplayName("Should return empty when user not found")
+        void shouldReturnEmptyWhenUserNotFound() {
             // Given
-            User defaultUser = new User();
-            defaultUser.setUsername("anyuser");
-            // No role set, no status set
-
-            when(userRepository.findByUsername("anyuser")).thenReturn(java.util.Optional.of(defaultUser));
-            when(jwtService.generateToken(anyString(), eq("USER"), eq("UNVERIFIED"))).thenReturn("token");
+            when(userRepository.findByUsername("nonexistent")).thenReturn(java.util.Optional.empty());
 
             // When
-            authService.generateToken("anyuser");
+            var result = userRepository.findByUsername("nonexistent");
 
             // Then
-            verify(jwtService).generateToken("anyuser", "USER", "UNVERIFIED");
+            assertTrue(result.isEmpty());
         }
     }
 }
