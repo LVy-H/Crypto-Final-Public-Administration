@@ -1,6 +1,8 @@
 package com.gov.crypto.validationservice.service.impl;
 
 import com.gov.crypto.common.pqc.PqcCryptoService;
+import com.gov.crypto.validationservice.dto.StampVerifyRequest;
+import com.gov.crypto.validationservice.dto.StampVerifyResponse;
 import com.gov.crypto.validationservice.dto.VerifyRequest;
 import com.gov.crypto.validationservice.dto.VerifyResponse;
 import com.gov.crypto.validationservice.service.ValidationService;
@@ -170,6 +172,115 @@ public class ValidationServiceImpl implements ValidationService {
                 msg.append("[Invalid Chain] ");
             msg.append(details);
             return msg.toString();
+        }
+    }
+
+    @Override
+    public StampVerifyResponse verifyStamp(StampVerifyRequest request) {
+        StringBuilder details = new StringBuilder();
+        boolean userSigValid = false;
+        boolean officerSigValid = false;
+        boolean timestampValid = true; // Optional, default to true if not provided
+        boolean userCertValid = false;
+        boolean officerCertValid = false;
+
+        try {
+            // 1. Parse and validate user certificate
+            X509Certificate userCert = pqcService.parseCertificatePem(request.userCertPem());
+            try {
+                userCert.checkValidity();
+                userCertValid = true;
+                details.append("✓ User certificate is valid. ");
+            } catch (Exception e) {
+                details.append("✗ User certificate expired/invalid. ");
+            }
+
+            // 2. Verify user's signature on document
+            byte[] docHash = Base64.getDecoder().decode(request.documentHash());
+            byte[] userSig = Base64.getDecoder().decode(request.userSignature());
+            PqcCryptoService.MlDsaLevel userLevel = getMlDsaLevel(userCert.getPublicKey().getAlgorithm());
+
+            userSigValid = pqcService.verify(docHash, userSig, userCert.getPublicKey(), userLevel);
+            if (userSigValid) {
+                details.append("✓ User signature verified. ");
+            } else {
+                details.append("✗ User signature INVALID. ");
+            }
+
+            // 3. Parse and validate officer certificate
+            X509Certificate officerCert = pqcService.parseCertificatePem(request.officerCertPem());
+            try {
+                officerCert.checkValidity();
+                officerCertValid = true;
+                details.append("✓ Officer certificate is valid. ");
+            } catch (Exception e) {
+                details.append("✗ Officer certificate expired/invalid. ");
+            }
+
+            // 4. Verify officer's countersignature
+            // Officer signs: SHA256(documentHash + ":" + userSignature)
+            String stampData = request.documentHash() + ":" + request.userSignature();
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] stampHash = digest.digest(stampData.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+            byte[] officerSig = Base64.getDecoder().decode(request.officerSignature());
+            PqcCryptoService.MlDsaLevel officerLevel = getMlDsaLevel(officerCert.getPublicKey().getAlgorithm());
+
+            officerSigValid = pqcService.verify(stampHash, officerSig, officerCert.getPublicKey(), officerLevel);
+            if (officerSigValid) {
+                details.append("✓ Officer countersignature verified. ");
+            } else {
+                details.append("✗ Officer countersignature INVALID. ");
+            }
+
+            // 5. Verify timestamp (if provided)
+            if (request.timestampToken() != null && !request.timestampToken().isEmpty()) {
+                // Simplified timestamp verification - just check format
+                // Full TSA verification would require the TSA certificate
+                try {
+                    byte[] tsToken = Base64.getDecoder().decode(request.timestampToken());
+                    String tokenStr = new String(tsToken, java.nio.charset.StandardCharsets.UTF_8);
+                    if (tokenStr.contains("genTime") && tokenStr.contains("hashedMessage")) {
+                        timestampValid = true;
+                        details.append("✓ Timestamp token present. ");
+                    } else {
+                        timestampValid = false;
+                        details.append("⚠ Timestamp format unrecognized. ");
+                    }
+                } catch (Exception e) {
+                    timestampValid = false;
+                    details.append("⚠ Timestamp verification failed. ");
+                }
+            } else {
+                details.append("ℹ No timestamp provided. ");
+            }
+
+            boolean allValid = userSigValid && officerSigValid && userCertValid && officerCertValid && timestampValid;
+            String message = allValid ? "Stamp is VALID" : "Stamp verification FAILED";
+
+            return new StampVerifyResponse(
+                    allValid,
+                    userSigValid,
+                    officerSigValid,
+                    timestampValid,
+                    userCertValid,
+                    officerCertValid,
+                    message,
+                    details.toString());
+
+        } catch (Exception e) {
+            log.error("Stamp verification failed", e);
+            return new StampVerifyResponse(false, "Verification error: " + e.getMessage());
+        }
+    }
+
+    private PqcCryptoService.MlDsaLevel getMlDsaLevel(String algorithm) {
+        if (algorithm.equalsIgnoreCase("Dilithium2") || algorithm.contains("44")) {
+            return PqcCryptoService.MlDsaLevel.ML_DSA_44;
+        } else if (algorithm.equalsIgnoreCase("Dilithium3") || algorithm.contains("65")) {
+            return PqcCryptoService.MlDsaLevel.ML_DSA_65;
+        } else {
+            return PqcCryptoService.MlDsaLevel.ML_DSA_87;
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.gov.crypto.validationservice.controller;
 
+import com.gov.crypto.validationservice.dto.StampVerifyRequest;
+import com.gov.crypto.validationservice.dto.StampVerifyResponse;
 import com.gov.crypto.validationservice.dto.VerifyRequest;
 import com.gov.crypto.validationservice.dto.VerifyResponse;
 import com.gov.crypto.validationservice.service.ValidationService;
@@ -19,5 +21,10 @@ public class ValidationController {
     @PostMapping("/verify")
     public ResponseEntity<VerifyResponse> verifySignature(@RequestBody VerifyRequest request) {
         return ResponseEntity.ok(validationService.verifySignature(request));
+    }
+
+    @PostMapping("/verify-stamp")
+    public ResponseEntity<StampVerifyResponse> verifyStamp(@RequestBody StampVerifyRequest request) {
+        return ResponseEntity.ok(validationService.verifyStamp(request));
     }
 }
