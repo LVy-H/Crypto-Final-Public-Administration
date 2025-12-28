@@ -27,7 +27,7 @@ spec:
             - containerPort: 3000
           env:
             - name: NUXT_PUBLIC_API_BASE
-              value: "http://localhost:8080/api/v1"
+              value: "https://api.gov-id.lvh.id.vn/api/v1"
           resources:
             requests:
               memory: "256Mi"

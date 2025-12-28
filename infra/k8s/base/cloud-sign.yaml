@@ -39,6 +39,20 @@ spec:
                   key: SPRING_PROFILES_ACTIVE
             - name: KEYSTORAGE_PATH
               value: "/secure/keys"
+            # HSM Configuration - connects to user signing HSM
+            - name: HSM_ENABLED
+              value: "true"
+            - name: HSM_HOST
+              value: "softhsm-user"
+            - name: HSM_PORT
+              value: "2345"
+            - name: HSM_TOKEN_LABEL
+              value: "user-signing-token"
+            - name: HSM_USER_PIN
+              valueFrom:
+                secretKeyRef:
+                  name: hsm-user-secrets
+                  key: user-pin
             - name: SERVER_PORT
               value: "8084"
             - name: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED

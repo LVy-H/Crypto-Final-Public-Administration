@@ -1,0 +1,32 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@gov-id.lvh.id.vn
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gov-id-wildcard
+  namespace: crypto-pqc
+spec:
+  secretName: gov-id-le-tls
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: "portal.gov-id.lvh.id.vn"
+  dnsNames:
+    - "portal.gov-id.lvh.id.vn"
+    - "api.gov-id.lvh.id.vn"

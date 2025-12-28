@@ -8,3 +8,21 @@ target/
 *.class
 *.jar
 *.log
+
+# Secrets and Keys
+*.key
+*.crt
+*.pem
+*.csr
+*.p12
+*.jks
+*.keystore
+secrets/
+
+# WireGuard
+*.conf
+infra/wireguard/*.conf
+wg0.conf
+infra/k8s/base/wg-secret.yaml
+
+

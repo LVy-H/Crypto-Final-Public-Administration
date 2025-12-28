@@ -235,6 +235,11 @@ spec:
       ports:
         - protocol: TCP
           port: 8082
+    # Allow external ingress
+    - from: []
+      ports:
+        - protocol: TCP
+          port: 8082
   egress:
     # Can talk to database
     - to:
@@ -244,11 +249,11 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
-    # Can talk to HSM
+    # Can talk to CA HSM
     - to:
         - podSelector:
             matchLabels:
-              app: softhsm
+              app: softhsm-ca
     # DNS
     - to: []
       ports:
@@ -284,6 +289,11 @@ spec:
       ports:
         - protocol: TCP
           port: 8084
+    # Allow external ingress
+    - from: []
+      ports:
+        - protocol: TCP
+          port: 8084
   egress:
     # Can talk to database
     - to:
@@ -293,11 +303,11 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
-    # Can talk to HSM
+    # Can talk to User HSM
     - to:
         - podSelector:
             matchLabels:
-              app: softhsm
+              app: softhsm-user
     # Can talk to identity-service for token validation
     - to:
         - podSelector:
@@ -322,8 +332,12 @@ metadata:
     zone: secure
 spec:
   podSelector:
-    matchLabels:
-      app: softhsm
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - softhsm-user
+          - softhsm-ca
   policyTypes:
     - Ingress
     - Egress

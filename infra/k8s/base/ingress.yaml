@@ -1,4 +1,4 @@
-# Ingress configuration for external access
+# Ingress configuration for unified portal
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -6,36 +6,24 @@ metadata:
   namespace: crypto-pqc
   annotations:
     kubernetes.io/ingress.class: nginx
+    # Let's Encrypt certificate via cert-manager
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    # Enable CORS for portal access
     nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-origin: "https://portal.crypto.gov.vn"
-    # Rate limiting
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://portal.gov-id.lvh.id.vn"
     nginx.ingress.kubernetes.io/limit-rps: "10"
     nginx.ingress.kubernetes.io/limit-connections: "5"
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - api.crypto.gov.vn
-        - portal.crypto.gov.vn
-      secretName: crypto-tls-secret
+        - "portal.gov-id.lvh.id.vn"
+        - "api.gov-id.lvh.id.vn"
+      secretName: gov-id-le-tls
   rules:
-    # API Gateway - all backend API traffic
-    - host: api.crypto.gov.vn
-      http:
-        paths:
-          - path: /api/v1
-            pathType: Prefix
-            backend:
-              service:
-                name: api-gateway
-                port:
-                  number: 8080
-
-    # Public Portal (Nuxt.js)
-    - host: portal.crypto.gov.vn
+    # Unified portal (citizen + admin)
+    - host: "portal.gov-id.lvh.id.vn"
       http:
         paths:
           - path: /
@@ -45,10 +33,14 @@ spec:
                 name: public-portal
                 port:
                   number: 3000
-
----
-# NOTE: NetworkPolicies moved to network-policies.yaml for comprehensive zone enforcement
-# The following legacy policies are replaced:
-# - default-deny-ingress → default-deny-all (with egress)
-# - allow-api-gateway-ingress → allow-api-gateway
-# - allow-internal-services → allow-internal-services (enhanced)
+    # API Gateway
+    - host: "api.gov-id.lvh.id.vn"
+      http:
+        paths:
+          - path: /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080

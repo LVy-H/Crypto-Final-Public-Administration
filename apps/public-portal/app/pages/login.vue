@@ -1,24 +1,16 @@
 <template>
-  <div class="login-page">
-    <header class="gov-header">
-      <div class="header-content">
-        <span class="logo">🏛️</span>
-        <h1>Hệ thống Chữ ký số Lượng tử</h1>
-      </div>
-    </header>
 
-    <main class="login-main">
+    <div class="login-container">
       <div class="login-card">
-        <h2>Đăng nhập hệ thống</h2>
+        <h2>Đăng nhập</h2>
         
-        <form @submit.prevent="handleLogin" class="login-form">
+        <form @submit.prevent="handleLogin">
           <div class="form-group">
             <label for="username">Tên đăng nhập</label>
             <input 
               id="username"
               v-model="form.username" 
               type="text" 
-              placeholder="Nhập tên đăng nhập"
               required
             />
           </div>
@@ -29,66 +21,54 @@
               id="password"
               v-model="form.password" 
               type="password" 
-              placeholder="Nhập mật khẩu"
               required
             />
           </div>
 
-          <div v-if="error" class="error-message">
-            {{ error }}
-          </div>
+          <div v-if="error" class="error-msg">{{ error }}</div>
 
-          <button type="submit" class="btn btn-primary" :disabled="loading">
+          <button type="submit" class="btn-submit" :disabled="loading">
             {{ loading ? 'Đang xử lý...' : 'Đăng nhập' }}
           </button>
         </form>
 
-        <div class="login-footer">
-          <p>Chưa có tài khoản? <NuxtLink to="/register">Đăng ký tài khoản mới</NuxtLink></p>
-        </div>
+        <p class="register-link">
+          Chưa có tài khoản? <NuxtLink to="/register">Đăng ký</NuxtLink>
+        </p>
       </div>
+    </div>
 
-      <div class="info-box">
-        <h3>Thông tin hệ thống</h3>
-        <ul>
-          <li>Hệ thống sử dụng thuật toán ML-DSA (Dilithium) đạt chuẩn NIST</li>
-          <li>Tuân thủ Nghị định 130/2018/NĐ-CP về chữ ký số</li>
-          <li>Bảo mật an toàn trước máy tính lượng tử</li>
-        </ul>
-      </div>
-    </main>
-
-    <footer class="gov-footer">
-      <p>© 2024 Hệ thống Chữ ký số Lượng tử - Nguyễn Trọng Nhân & Lê Việt Hoàng</p>
-    </footer>
-  </div>
 </template>
 
 <script setup>
-const config = useRuntimeConfig()
 const router = useRouter()
+const { login, checkAuth, hasAdminAccess } = useAuth()
 
 const form = ref({ username: '', password: '' })
 const loading = ref(false)
 const error = ref('')
+
+onMounted(() => {
+  if (checkAuth()) {
+    router.push('/dashboard')
+  }
+})
 
 const handleLogin = async () => {
   loading.value = true
   error.value = ''
   
   try {
-    const response = await $fetch(`${config.public.apiBase}/auth/login`, {
-      method: 'POST',
-      body: form.value
-    })
+    await login(form.value.username, form.value.password)
     
-    if (response.token) {
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('user', JSON.stringify(response.user || { username: form.value.username }))
+    // Redirect based on role
+    if (hasAdminAccess.value) {
+      router.push('/admin')
+    } else {
       router.push('/dashboard')
     }
   } catch (e) {
-    error.value = 'Đăng nhập thất bại. Vui lòng kiểm tra tên đăng nhập và mật khẩu.'
+    error.value = 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.'
   } finally {
     loading.value = false
   }
@@ -96,78 +76,42 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #f5f5f5;
-}
-
-.gov-header {
-  background: #1a4d8c;
-  color: white;
-  padding: 16px 24px;
-  border-bottom: 3px solid #c41e3a;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.logo { font-size: 28px; }
-
-.gov-header h1 {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.login-main {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 32px;
-  padding: 48px 24px;
-  max-width: 1000px;
-  margin: 0 auto;
+.login-container {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 0 1rem;
 }
 
 .login-card {
   background: white;
   border: 1px solid #ddd;
-  padding: 32px;
-  width: 400px;
+  padding: 2rem;
 }
 
 .login-card h2 {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #1a4d8c;
+  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
   color: #1a4d8c;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #1a4d8c;
 }
 
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  color: #333;
 }
 
 .form-group input {
   width: 100%;
-  padding: 10px 12px;
+  padding: 0.6rem 0.75rem;
   border: 1px solid #ccc;
-  font-size: 14px;
+  font-size: 0.9rem;
 }
 
 .form-group input:focus {
@@ -175,89 +119,42 @@ const handleLogin = async () => {
   border-color: #1a4d8c;
 }
 
-.error-message {
+.error-msg {
   background: #fee;
   border: 1px solid #c41e3a;
   color: #c41e3a;
-  padding: 10px 12px;
-  margin-bottom: 16px;
-  font-size: 13px;
+  padding: 0.6rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
 }
 
-.btn {
+.btn-submit {
   width: 100%;
-  padding: 12px;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.btn-primary {
+  padding: 0.75rem;
   background: #1a4d8c;
   color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
-.btn-primary:hover {
+.btn-submit:hover {
   background: #153d6e;
 }
 
-.btn-primary:disabled {
+.btn-submit:disabled {
   background: #999;
   cursor: not-allowed;
 }
 
-.login-footer {
-  margin-top: 20px;
+.register-link {
+  margin-top: 1rem;
   text-align: center;
-  font-size: 13px;
+  font-size: 0.85rem;
   color: #666;
 }
 
-.login-footer a {
+.register-link a {
   color: #1a4d8c;
-}
-
-.info-box {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 24px;
-  width: 320px;
-}
-
-.info-box h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: #1a4d8c;
-}
-
-.info-box ul {
-  list-style: none;
-  padding: 0;
-}
-
-.info-box li {
-  padding: 8px 0;
-  padding-left: 20px;
-  position: relative;
-  font-size: 13px;
-  color: #555;
-  border-bottom: 1px solid #eee;
-}
-
-.info-box li:before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: #28a745;
-}
-
-.gov-footer {
-  background: #333;
-  color: #ccc;
-  text-align: center;
-  padding: 16px;
-  font-size: 13px;
 }
 </style>

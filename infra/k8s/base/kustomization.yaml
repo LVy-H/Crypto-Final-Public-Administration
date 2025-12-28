@@ -20,7 +20,7 @@ resources:
   - softhsm.yaml # HSM mock (secure zone)
   - tsa-mock.yaml # TSA mock (internal zone)
   - public-portal.yaml
-  - admin-portal.yaml
+  # admin-portal removed - merged into unified public-portal
   - ingress.yaml
 
 labels:

@@ -59,6 +59,20 @@ spec:
                   key: postgres-password
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://postgres:5432/crypto_db"
+            # HSM Configuration - connects to CA signing HSM
+            - name: HSM_ENABLED
+              value: "true"
+            - name: HSM_HOST
+              value: "softhsm-ca"
+            - name: HSM_PORT
+              value: "2345"
+            - name: HSM_TOKEN_LABEL
+              value: "ca-signing-token"
+            - name: HSM_USER_PIN
+              valueFrom:
+                secretKeyRef:
+                  name: hsm-ca-secrets
+                  key: user-pin
           envFrom:
             - configMapRef:
                 name: crypto-config

@@ -1,22 +1,10 @@
 <template>
-  <div class="dashboard-page">
-    <header class="gov-header">
-      <div class="header-content">
-        <div class="header-left">
-          <span class="logo">🏛️</span>
-          <h1>Hệ thống Chữ ký số Lượng tử</h1>
-        </div>
-        <div class="header-right">
-          <span class="user-info">Xin chào, {{ user?.username || 'Người dùng' }}</span>
-          <button @click="logout" class="btn-link">Đăng xuất</button>
-        </div>
-      </div>
-    </header>
+  <div class="dashboard">
+      <h2 class="page-title">Tổng quan</h2>
 
-    <main class="main-content">
-      <div class="container">
-        <h2 class="page-title">Bảng điều khiển</h2>
+      <div v-if="loading" class="loading">Đang tải...</div>
 
+      <template v-else>
         <div class="stats-row">
           <div class="stat-card">
             <div class="stat-value">{{ stats.totalSigned }}</div>
@@ -28,55 +16,51 @@
           </div>
           <div class="stat-card">
             <div class="stat-value">{{ stats.pending }}</div>
-            <div class="stat-label">Đang chờ xử lý</div>
+            <div class="stat-label">Chờ xử lý</div>
           </div>
         </div>
 
-        <div class="actions-section">
-          <h3>Chức năng chính</h3>
-          <div class="action-buttons">
+        <div class="section">
+          <h3>Chức năng</h3>
+          <div class="action-grid">
             <NuxtLink to="/sign/upload" class="action-btn">
-              <span class="action-icon">📝</span>
+              <span class="icon">📝</span>
               <span>Ký văn bản</span>
             </NuxtLink>
             <NuxtLink to="/verify" class="action-btn">
-              <span class="action-icon">🔍</span>
-              <span>Xác thực chữ ký</span>
+              <span class="icon">🔍</span>
+              <span>Xác thực</span>
             </NuxtLink>
             <NuxtLink to="/certificates" class="action-btn">
-              <span class="action-icon">📜</span>
-              <span>Chứng chỉ của tôi</span>
+              <span class="icon">📜</span>
+              <span>Chứng chỉ</span>
             </NuxtLink>
             <NuxtLink to="/history" class="action-btn">
-              <span class="action-icon">📋</span>
-              <span>Lịch sử hoạt động</span>
+              <span class="icon">📋</span>
+              <span>Lịch sử</span>
             </NuxtLink>
           </div>
         </div>
 
-        <div class="cert-section">
-          <h3>Thông tin chứng chỉ</h3>
+        <div v-if="certInfo" class="section">
+          <h3>Chứng chỉ</h3>
           <table class="info-table">
             <tr>
               <th>Thuật toán</th>
-              <td>ML-DSA-44 (Dilithium2)</td>
+              <td>{{ certInfo.algorithm || 'ML-DSA-44' }}</td>
             </tr>
             <tr>
               <th>Trạng thái</th>
-              <td><span class="status-badge active">Hoạt động</span></td>
+              <td><span class="badge badge-active">{{ certInfo.status || 'Hoạt động' }}</span></td>
             </tr>
             <tr>
-              <th>Ngày cấp</th>
-              <td>{{ certInfo.issued }}</td>
-            </tr>
-            <tr>
-              <th>Ngày hết hạn</th>
-              <td>{{ certInfo.expires }}</td>
+              <th>Hết hạn</th>
+              <td>{{ certInfo.expiresAt || 'N/A' }}</td>
             </tr>
           </table>
         </div>
 
-        <div class="activity-section">
+        <div class="section">
           <h3>Hoạt động gần đây</h3>
           <table class="data-table">
             <thead>
@@ -87,247 +71,116 @@
               </tr>
             </thead>
             <tbody>
+              <tr v-if="recentActivity.length === 0">
+                <td colspan="3" class="text-center">Chưa có hoạt động</td>
+              </tr>
               <tr v-for="item in recentActivity" :key="item.id">
-                <td>{{ item.time }}</td>
-                <td>{{ item.title }}</td>
-                <td><span :class="['status-badge', item.status]">{{ item.statusText }}</span></td>
+                <td>{{ formatDate(item.createdAt) }}</td>
+                <td>{{ item.action }}</td>
+                <td><span :class="['badge', 'badge-' + item.status?.toLowerCase()]">{{ item.status }}</span></td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
-    </main>
-
-    <footer class="gov-footer">
-      <p>© 2024 Hệ thống Chữ ký số Lượng tử - Nguyễn Trọng Nhân & Lê Việt Hoàng</p>
-    </footer>
+      </template>
   </div>
 </template>
 
 <script setup>
+definePageMeta({
+  middleware: 'auth'
+})
+
+const config = useRuntimeConfig()
 const router = useRouter()
+const { checkAuth, user, token } = useAuth()
 
-const user = ref(null)
-const stats = ref({ totalSigned: 12, verified: 10, pending: 2 })
-const certInfo = ref({ issued: '15/01/2024', expires: '15/01/2025' })
+const loading = ref(true)
+const stats = ref({ totalSigned: 0, verified: 0, pending: 0 })
+const certInfo = ref(null)
+const recentActivity = ref([])
 
-const recentActivity = ref([
-  { id: 1, time: '25/12/2024 14:32', title: 'Ký văn bản: Hop_dong_2024.pdf', status: 'success', statusText: 'Hoàn thành' },
-  { id: 2, time: '25/12/2024 10:15', title: 'Xác thực: Bao_cao_Q4.pdf', status: 'success', statusText: 'Hợp lệ' },
-  { id: 3, time: '24/12/2024 16:45', title: 'Gửi yêu cầu gia hạn chứng chỉ', status: 'pending', statusText: 'Đang chờ' },
-])
+const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleString('vi-VN')
+}
+
+const loadDashboard = async () => {
+  try {
+    loading.value = true
+    const authToken = token.value || localStorage.getItem('token')
+    
+    const headers = { 'Authorization': `Bearer ${authToken}` }
+    
+    // Load stats
+    try {
+      const statsRes = await fetch(`${apiBase.value}/user/stats`, { headers })
+      if (statsRes.ok) stats.value = await statsRes.json()
+    } catch (e) { console.warn('Stats not available') }
+    
+    // Load certificate info
+    try {
+      const certRes = await fetch(`${apiBase.value}/certificates/my`, { headers })
+      if (certRes.ok) {
+        const certs = await certRes.json()
+        certInfo.value = certs[0] || null
+      }
+    } catch (e) { console.warn('Certs not available') }
+    
+    // Load recent activity
+    try {
+      const actRes = await fetch(`${apiBase.value}/user/activity?limit=5`, { headers })
+      if (actRes.ok) recentActivity.value = await actRes.json()
+    } catch (e) { console.warn('Activity not available') }
+    
+  } catch (e) {
+    console.error('Dashboard load error:', e)
+  } finally {
+    loading.value = false
+  }
+}
 
 onMounted(() => {
-  const token = localStorage.getItem('token')
-  if (!token) {
+  if (!checkAuth()) {
     router.push('/login')
     return
   }
-  
-  const userData = localStorage.getItem('user')
-  if (userData) {
-    user.value = JSON.parse(userData)
-  }
+  loadDashboard()
 })
-
-const logout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
-  router.push('/login')
-}
 </script>
 
 <style scoped>
-.dashboard-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #f5f5f5;
-}
+.dashboard { max-width: 900px; }
+.page-title { font-size: 1.25rem; color: #1a4d8c; margin-bottom: 1.5rem; }
 
-.gov-header {
-  background: #1a4d8c;
-  color: white;
-  padding: 12px 24px;
-  border-bottom: 3px solid #c41e3a;
-}
+.loading { padding: 2rem; text-align: center; color: #666; }
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-}
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+.stat-card { background: white; border: 1px solid #ddd; padding: 1.25rem; text-align: center; }
+.stat-value { font-size: 1.75rem; font-weight: 700; color: #1a4d8c; }
+.stat-label { font-size: 0.8rem; color: #666; margin-top: 0.25rem; }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+.section { background: white; border: 1px solid #ddd; padding: 1.25rem; margin-bottom: 1rem; }
+.section h3 { font-size: 0.95rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee; }
 
-.logo { font-size: 24px; }
+.action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+.action-btn { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1rem; background: #f8f9fa; border: 1px solid #ddd; text-decoration: none; color: #333; font-size: 0.8rem; }
+.action-btn:hover { background: #e8f0fe; border-color: #1a4d8c; }
+.action-btn .icon { font-size: 1.5rem; }
 
-.gov-header h1 {
-  font-size: 18px;
-  font-weight: 600;
-}
+.info-table { width: 100%; }
+.info-table th, .info-table td { padding: 0.6rem; text-align: left; border-bottom: 1px solid #eee; }
+.info-table th { width: 120px; color: #666; font-weight: 500; font-size: 0.85rem; }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 14px;
-}
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th, .data-table td { padding: 0.6rem; text-align: left; border-bottom: 1px solid #eee; font-size: 0.85rem; }
+.data-table th { background: #f8f9fa; font-weight: 600; color: #555; }
 
-.btn-link {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  text-decoration: underline;
-}
+.badge { display: inline-block; padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 3px; }
+.badge-active, .badge-success { background: #d4edda; color: #155724; }
+.badge-pending { background: #fff3cd; color: #856404; }
 
-.main-content {
-  flex: 1;
-  padding: 24px;
-}
-
-.container {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  color: #1a4d8c;
-}
-
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.stat-card {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 20px;
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: #1a4d8c;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: #666;
-  margin-top: 4px;
-}
-
-.actions-section, .cert-section, .activity-section {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 20px;
-  margin-bottom: 24px;
-}
-
-.actions-section h3, .cert-section h3, .activity-section h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
-  color: #333;
-}
-
-.action-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.action-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: #f8f9fa;
-  border: 1px solid #ddd;
-  text-decoration: none;
-  color: #333;
-  font-size: 13px;
-}
-
-.action-btn:hover {
-  background: #e8f0fe;
-  border-color: #1a4d8c;
-}
-
-.action-icon { font-size: 24px; }
-
-.info-table {
-  width: 100%;
-}
-
-.info-table th, .info-table td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.info-table th {
-  width: 150px;
-  color: #666;
-  font-weight: 500;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th, .data-table td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.data-table th {
-  background: #f8f9fa;
-  font-weight: 600;
-  font-size: 13px;
-  color: #555;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 3px 8px;
-  font-size: 12px;
-}
-
-.status-badge.active, .status-badge.success {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-badge.pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.gov-footer {
-  background: #333;
-  color: #ccc;
-  text-align: center;
-  padding: 16px;
-  font-size: 13px;
-}
+.text-center { text-align: center; color: #999; }
 </style>
