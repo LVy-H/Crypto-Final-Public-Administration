@@ -10,7 +10,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import java.util.Map;
 import java.util.UUID;
@@ -53,13 +57,21 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
         Authentication authenticate = authenticationManager
                 .authenticate(new UsernamePasswordAuthenticationToken(request.username(), request.password()));
         if (authenticate.isAuthenticated()) {
-            String token = authService.generateToken(request.username());
-            Map<String, Object> userInfo = Map.of("username", request.username());
-            return ResponseEntity.ok(new LoginResponse(token, userInfo));
+            // Establish session
+            SecurityContextHolder.getContext().setAuthentication(authenticate);
+            HttpSession session = httpRequest.getSession(true);
+            session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+
+            Map<String, Object> response = Map.of(
+                    "message", "Login successful",
+                    "sessionId", session.getId(),
+                    "username", request.username());
+            return ResponseEntity.ok(response);
         } else {
             throw new RuntimeException("invalid access");
         }
@@ -82,34 +94,15 @@ public class AuthController {
     }
 
     /**
-     * Logout endpoint - blacklists the current token.
+     * Logout endpoint - invalidates the session.
      */
     @PostMapping("/logout")
-    public ResponseEntity<LogoutResponse> logout(@RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.badRequest().body(new LogoutResponse("Invalid authorization header"));
+    public ResponseEntity<LogoutResponse> logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
         }
-
-        String token = authHeader.substring(7);
-
-        try {
-            String username = jwtService.extractUsername(token);
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            // Get token expiration
-            java.util.Date expiration = jwtService.extractExpiration(token);
-
-            // Blacklist the token
-            tokenBlacklistService.blacklistToken(
-                    token,
-                    user.getId(),
-                    expiration.toInstant(),
-                    BlacklistedToken.BlacklistReason.LOGOUT);
-
-            return ResponseEntity.ok(new LogoutResponse("Logged out successfully"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new LogoutResponse("Failed to logout: " + e.getMessage()));
-        }
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.ok(new LogoutResponse("Logged out successfully"));
     }
 }

@@ -16,4 +16,5 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-mail")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     runtimeOnly("org.postgresql:postgresql")
+    implementation("org.springframework.session:spring-session-jdbc")
 }
