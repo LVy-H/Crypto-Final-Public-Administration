@@ -32,10 +32,45 @@ public class DataInitializer {
         Permission verifyIdentity = createPermissionIfNotFound(permissionRepository, "VERIFY_IDENTITY",
                 "Verify user identity");
 
-        // Roles
-        createRoleIfNotFound(roleRepository, "ADMIN", Set.of(userRead, userWrite, adminAccess, verifyIdentity));
-        createRoleIfNotFound(roleRepository, "OFFICIAL", Set.of(userRead, verifyIdentity));
-        createRoleIfNotFound(roleRepository, "CITIZEN", Set.of(userRead));
+        // New officer permissions
+        Permission manageCA = createPermissionIfNotFound(permissionRepository, "MANAGE_CA",
+                "Create and manage Certificate Authorities");
+        Permission manageRA = createPermissionIfNotFound(permissionRepository, "MANAGE_RA",
+                "Create and manage Registration Authorities");
+        Permission issueCert = createPermissionIfNotFound(permissionRepository, "ISSUE_CERT",
+                "Issue certificates to users");
+        Permission applyStamp = createPermissionIfNotFound(permissionRepository, "APPLY_STAMP",
+                "Apply countersignature/stamp to documents");
+        Permission assignOfficer = createPermissionIfNotFound(permissionRepository, "ASSIGN_OFFICER",
+                "Assign officer roles to users");
+
+        // Non-officer roles
+        createRoleIfNotFound(roleRepository, "ADMIN",
+                Set.of(userRead, userWrite, adminAccess, verifyIdentity),
+                null, false);
+        createRoleIfNotFound(roleRepository, "OFFICIAL",
+                Set.of(userRead, verifyIdentity),
+                null, false);
+        createRoleIfNotFound(roleRepository, "CITIZEN",
+                Set.of(userRead),
+                null, false);
+
+        // Officer roles (with hierarchy)
+        // Level 0 = highest authority (POLICY_OFFICER)
+        createRoleIfNotFound(roleRepository, "POLICY_OFFICER",
+                Set.of(userRead, userWrite, adminAccess, verifyIdentity, manageCA, manageRA, issueCert, applyStamp,
+                        assignOfficer),
+                0, true);
+
+        // Level 1 = mid-level (ISSUING_OFFICER)
+        createRoleIfNotFound(roleRepository, "ISSUING_OFFICER",
+                Set.of(userRead, userWrite, verifyIdentity, manageRA, issueCert, applyStamp, assignOfficer),
+                1, true);
+
+        // Level 2 = lowest officer (RA_OFFICER)
+        createRoleIfNotFound(roleRepository, "RA_OFFICER",
+                Set.of(userRead, verifyIdentity, issueCert, applyStamp),
+                2, true);
     }
 
     private Permission createPermissionIfNotFound(PermissionRepository repository, String name, String description) {
@@ -45,10 +80,13 @@ public class DataInitializer {
         });
     }
 
-    private Role createRoleIfNotFound(RoleRepository repository, String name, Set<Permission> permissions) {
+    private Role createRoleIfNotFound(RoleRepository repository, String name, Set<Permission> permissions,
+            Integer hierarchyLevel, boolean isOfficerRole) {
         return repository.findByName(name).orElseGet(() -> {
             Role role = new Role(name);
             role.setPermissions(permissions);
+            role.setHierarchyLevel(hierarchyLevel);
+            role.setOfficerRole(isOfficerRole);
             return repository.save(role);
         });
     }

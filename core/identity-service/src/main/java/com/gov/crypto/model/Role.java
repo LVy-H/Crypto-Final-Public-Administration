@@ -20,6 +20,22 @@ public class Role {
     @JoinTable(name = "roles_permissions", joinColumns = @JoinColumn(name = "role_id"), inverseJoinColumns = @JoinColumn(name = "permission_id"))
     private Set<Permission> permissions = new HashSet<>();
 
+    /**
+     * Hierarchy level for officer roles.
+     * null = non-officer (e.g., CITIZEN)
+     * 0 = highest online officer (POLICY_OFFICER)
+     * 1 = mid-level officer (ISSUING_OFFICER)
+     * 2 = lowest officer (RA_OFFICER)
+     */
+    @Column(name = "hierarchy_level")
+    private Integer hierarchyLevel;
+
+    /**
+     * Whether this role is an officer role that can manage CAs/RAs.
+     */
+    @Column(name = "is_officer_role", nullable = false)
+    private boolean officerRole = false;
+
     public Role() {
     }
 
@@ -49,5 +65,35 @@ public class Role {
 
     public void setPermissions(Set<Permission> permissions) {
         this.permissions = permissions;
+    }
+
+    public Integer getHierarchyLevel() {
+        return hierarchyLevel;
+    }
+
+    public void setHierarchyLevel(Integer hierarchyLevel) {
+        this.hierarchyLevel = hierarchyLevel;
+    }
+
+    public boolean isOfficerRole() {
+        return officerRole;
+    }
+
+    public void setOfficerRole(boolean officerRole) {
+        this.officerRole = officerRole;
+    }
+
+    /**
+     * Check if this role has higher or equal authority than another role.
+     * Lower hierarchy level = higher authority.
+     */
+    public boolean hasAuthorityOver(Role other) {
+        if (!this.officerRole)
+            return false;
+        if (!other.officerRole)
+            return true; // Officers have authority over non-officers
+        if (this.hierarchyLevel == null || other.hierarchyLevel == null)
+            return false;
+        return this.hierarchyLevel <= other.hierarchyLevel;
     }
 }
