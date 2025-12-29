@@ -28,7 +28,16 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Post-Quantum Cryptography (PQC) Service using Bouncy Castle.
- * Supports ML-DSA (Dilithium) algorithms for CA operations.
+ * 
+ * Implements ML-DSA (FIPS 204) digital signature algorithm.
+ * 
+ * NAMING NOTE: Bouncy Castle uses "Dilithium" internally, which was the
+ * competition name. The final NIST standard is "ML-DSA" (FIPS 204).
+ * 
+ * Algorithm Mapping:
+ * ML-DSA-44 (FIPS 204) = Dilithium2 (Bouncy Castle) = NIST Level 2
+ * ML-DSA-65 (FIPS 204) = Dilithium3 (Bouncy Castle) = NIST Level 3
+ * ML-DSA-87 (FIPS 204) = Dilithium5 (Bouncy Castle) = NIST Level 5
  */
 @Service
 public class PqcCryptoService {
@@ -42,12 +51,17 @@ public class PqcCryptoService {
         }
 
         /**
-         * Supported ML-DSA algorithm levels
+         * Supported ML-DSA (FIPS 204) algorithm levels.
+         * 
+         * Maps FIPS 204 names to Bouncy Castle's internal Dilithium names.
          */
         public enum MlDsaLevel {
-                ML_DSA_44("Dilithium2", DilithiumParameterSpec.dilithium2), // NIST Level 2
-                ML_DSA_65("Dilithium3", DilithiumParameterSpec.dilithium3), // NIST Level 3
-                ML_DSA_87("Dilithium5", DilithiumParameterSpec.dilithium5); // NIST Level 5
+                /** ML-DSA-44 = Dilithium2 (NIST Level 2, 128-bit security) */
+                ML_DSA_44("Dilithium2", DilithiumParameterSpec.dilithium2),
+                /** ML-DSA-65 = Dilithium3 (NIST Level 3, 192-bit security) */
+                ML_DSA_65("Dilithium3", DilithiumParameterSpec.dilithium3),
+                /** ML-DSA-87 = Dilithium5 (NIST Level 5, 256-bit security) */
+                ML_DSA_87("Dilithium5", DilithiumParameterSpec.dilithium5);
 
                 private final String algorithmName;
                 private final DilithiumParameterSpec spec;
