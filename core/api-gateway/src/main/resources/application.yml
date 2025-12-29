@@ -16,8 +16,13 @@ spring:
             - Path=/api/v1/auth/**, /api/v1/identity/**
           filters:
             - StripPrefix=0
-        # NOTE: Cloud Sign routes moved to RSSP Gateway (:9080)
-        # Clients should call rssp-gateway directly for signing operations
+        # Cloud Sign Service - Remote Signing
+        - id: cloud-sign
+          uri: http://cloud-sign:8084
+          predicates:
+            - Path=/api/v1/sign/**
+          filters:
+            - StripPrefix=0
 
         # Organization Service - Hierarchy Management
         - id: org-service

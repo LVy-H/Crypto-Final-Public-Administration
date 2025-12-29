@@ -21,27 +21,42 @@ export function useAuth() {
     const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
 
     const login = async (username: string, password: string) => {
-        const response = await $fetch<{ token: string; user: User }>(`${apiBase.value}/auth/login`, {
+        const response = await $fetch<{ sessionId?: string; username: string; message: string; token?: string; user?: User }>(`${apiBase.value}/auth/login`, {
             method: 'POST',
-            body: { username, password }
+            body: { username, password },
+            credentials: 'include' // Include cookies for session-based auth
         })
 
-        token.value = response.token
-
-        // Decode JWT to get role (API response.user doesn't include role)
-        try {
-            const payload = JSON.parse(atob(response.token.split('.')[1]))
-            user.value = {
-                ...response.user,
-                role: payload.role || 'CITIZEN'
+        // Handle both session-based and JWT-based responses
+        if (response.token) {
+            // JWT-based auth
+            token.value = response.token
+            try {
+                const payload = JSON.parse(atob(response.token.split('.')[1]))
+                user.value = {
+                    ...response.user,
+                    role: payload.role || 'CITIZEN'
+                } as User
+            } catch {
+                user.value = response.user || { username: response.username, role: 'CITIZEN' }
             }
-        } catch {
-            user.value = response.user
-        }
-
-        if (import.meta.client) {
-            localStorage.setItem('token', response.token)
-            localStorage.setItem('user', JSON.stringify(user.value))
+            if (import.meta.client) {
+                localStorage.setItem('token', response.token)
+                localStorage.setItem('user', JSON.stringify(user.value))
+            }
+        } else if (response.sessionId) {
+            // Session-based auth (cookie-managed)
+            user.value = {
+                username: response.username,
+                role: 'CITIZEN' // Default role, can be fetched separately
+            }
+            token.value = response.sessionId // Use sessionId as token identifier
+            if (import.meta.client) {
+                localStorage.setItem('sessionId', response.sessionId)
+                localStorage.setItem('user', JSON.stringify(user.value))
+            }
+        } else {
+            throw new Error('Invalid login response')
         }
 
         return response
@@ -52,13 +67,14 @@ export function useAuth() {
         user.value = null
         if (import.meta.client) {
             localStorage.removeItem('token')
+            localStorage.removeItem('sessionId')
             localStorage.removeItem('user')
         }
     }
 
     const checkAuth = () => {
         if (import.meta.client) {
-            const storedToken = localStorage.getItem('token')
+            const storedToken = localStorage.getItem('token') || localStorage.getItem('sessionId')
             const storedUser = localStorage.getItem('user')
 
             if (storedToken && storedUser) {

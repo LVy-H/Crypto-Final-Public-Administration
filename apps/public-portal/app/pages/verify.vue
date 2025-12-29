@@ -28,11 +28,47 @@
 
       <div v-if="verificationResult" class="result-box" :class="verificationResult.valid ? 'success' : 'error'">
         <h4>{{ verificationResult.valid ? '✓ Chữ ký hợp lệ' : '✗ Chữ ký không hợp lệ' }}</h4>
-        <table class="info-table" v-if="verificationResult.valid">
-          <tr><th>Người ký</th><td>{{ verificationResult.signer }}</td></tr>
-          <tr><th>Thời gian</th><td>{{ verificationResult.timestamp }}</td></tr>
-          <tr><th>Thuật toán</th><td>{{ verificationResult.algorithm }}</td></tr>
-        </table>
+        
+        <div v-if="verificationResult.valid">
+          <!-- Basic Info Table -->
+          <table class="info-table">
+            <tr><th>Người ký</th><td>{{ verificationResult.signer }}</td></tr>
+            <tr><th>Thời gian ký</th><td>{{ verificationResult.timestamp }}</td></tr>
+            <tr><th>Thuật toán</th><td>{{ verificationResult.algorithm }}</td></tr>
+          </table>
+          
+          <!-- Verification Timestamp -->
+          <p class="verify-time">Được xác thực lúc: {{ new Date().toLocaleString('vi-VN') }}</p>
+          
+          <!-- Trust Chain Section -->
+          <div class="section-block" v-if="verificationResult.certificateChain && verificationResult.certificateChain.length">
+            <h4>Chuỗi Tin Cậy (Trust Chain)</h4>
+            <div class="chain-list">
+              <div v-for="(cert, idx) in verificationResult.certificateChain" :key="idx" class="chain-item">
+                <span class="cert-icon">🔐</span>
+                <div class="cert-info">
+                  <strong>{{ cert.subject || cert }}</strong>
+                  <small v-if="cert.issuer">Cấp bởi: {{ cert.issuer }}</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- TSA Section -->
+          <div class="section-block" v-if="verificationResult.tsaCertificate">
+            <h4>Chứng nhận Thời gian (TSA)</h4>
+            <div class="chain-list">
+              <div class="chain-item">
+                <span class="cert-icon">⏰</span>
+                <div class="cert-info">
+                  <strong>{{ verificationResult.tsaCertificate.subject || 'TSA Server' }}</strong>
+                  <small>{{ verificationResult.tsaCertificate.timestamp || verificationResult.timestamp }}</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <p v-if="verificationResult.message" class="error-text">{{ verificationResult.message }}</p>
       </div>
     </div>
@@ -80,7 +116,8 @@ async function verifySignature() {
     if (selectedFile.value) formData.append('document', selectedFile.value)
     if (signatureData.value) formData.append('signature', signatureData.value)
 
-    const response = await fetch(`${apiBase.value}/validation/verify`, {
+    // Call the new verify-document endpoint
+    const response = await fetch(`${apiBase.value}/validation/verify-document`, {
       method: 'POST',
       body: formData,
       headers: { 'Authorization': `Bearer ${authToken}` }
@@ -88,7 +125,15 @@ async function verifySignature() {
 
     if (response.ok) {
       const data = await response.json()
-      verificationResult.value = { valid: data.valid, signer: data.signerSubject, timestamp: data.signedAt, algorithm: data.algorithm }
+      verificationResult.value = {
+        valid: data.valid,
+        signer: data.signerSubject,
+        timestamp: data.signedAt,
+        algorithm: data.algorithm,
+        message: data.details,
+        certificateChain: data.certificateChain || [],
+        tsaCertificate: data.tsaCertificate || null
+      }
     } else {
       verificationResult.value = { valid: false, message: 'Xác thực thất bại' }
     }
@@ -129,4 +174,16 @@ async function verifySignature() {
 .info-table th, .info-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.1); font-size: 0.85rem; }
 .info-table th { width: 100px; color: #555; font-weight: 500; }
 .error-text { color: #721c24; margin-top: 0.5rem; font-size: 0.85rem; }
+
+.verify-time { font-size: 0.8rem; color: #666; margin-top: 0.75rem; font-style: italic; }
+
+.section-block { margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.5); border: 1px solid #c3e6cb; border-radius: 4px; }
+.section-block h4 { font-size: 0.9rem; color: #1a4d8c; margin-bottom: 0.75rem; }
+
+.chain-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.chain-item { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.5rem; background: white; border: 1px solid #ddd; border-radius: 4px; }
+.cert-icon { font-size: 1.2rem; }
+.cert-info { display: flex; flex-direction: column; }
+.cert-info strong { font-size: 0.85rem; color: #333; }
+.cert-info small { font-size: 0.75rem; color: #666; }
 </style>

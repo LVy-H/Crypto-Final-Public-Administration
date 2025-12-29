@@ -38,7 +38,17 @@
             <th>Địa điểm</th>
             <td><input v-model="options.location" type="text" class="input" placeholder="VD: Hà Nội" /></td>
           </tr>
-          <tr><th>Thuật toán</th><td>ML-DSA-44</td></tr>
+          <tr>
+            <th>Khóa ký</th>
+            <td>
+              <select v-model="selectedKeyAlias" class="select">
+                <option v-for="key in userKeys" :key="key.alias" :value="key.alias">
+                  {{ key.alias }} ({{ key.algorithm }})
+                </option>
+              </select>
+            </td>
+          </tr>
+          <tr><th>Thuật toán</th><td>{{ selectedKeyAlgorithm }}</td></tr>
           <tr><th>Thời gian</th><td>{{ new Date().toLocaleString('vi-VN') }}</td></tr>
         </table>
         <button @click="signDocument" class="btn-primary" :disabled="signing">
@@ -50,7 +60,9 @@
         <h3>✓ Ký văn bản thành công!</h3>
         <table class="info-table">
           <tr><th>Mã chữ ký</th><td class="mono">{{ signResult.signatureId }}</td></tr>
+          <tr><th>Thuật toán</th><td>{{ signResult.algorithm }}</td></tr>
           <tr><th>Thời gian</th><td>{{ signResult.timestamp }}</td></tr>
+          <tr><th>Chữ ký (đầu)</th><td class="mono" style="word-break: break-all; font-size: 0.7rem;">{{ signResult.signatureBase64?.substring(0, 80) }}...</td></tr>
         </table>
         <div class="result-actions">
           <button class="btn-primary">📥 Tải văn bản đã ký</button>
@@ -73,6 +85,18 @@ const signing = ref(false)
 const signResult = ref(null)
 const options = ref({ reason: 'approval', location: '' })
 
+// User signing keys - mock data for now, can be fetched from API
+const userKeys = ref([
+  { alias: 'default', algorithm: 'ML-DSA-44' },
+  { alias: user.value?.username || 'user_key', algorithm: 'ML-DSA-44' }
+])
+const selectedKeyAlias = ref(userKeys.value[0]?.alias || 'default')
+
+const selectedKeyAlgorithm = computed(() => {
+  const key = userKeys.value.find(k => k.alias === selectedKeyAlias.value)
+  return key?.algorithm || 'ML-DSA-44'
+})
+
 const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
 
 const handleDrop = (e) => { isDragging.value = false; const f = e.dataTransfer.files[0]; if (f) file.value = f }
@@ -83,24 +107,36 @@ const formatSize = (bytes) => bytes < 1024 ? bytes + ' B' : bytes < 1024*1024 ? 
 const signDocument = async () => {
   signing.value = true
   try {
-    const authToken = token.value || localStorage.getItem('token')
-    const hashBase64 = btoa('document-hash-' + file.value.name)
-    const username = user.value?.username || 'default'
+    // Convert file content to Base64
+    const arrayBuffer = await file.value.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuffer)
+    let binary = ''
+    bytes.forEach(byte => binary += String.fromCharCode(byte))
+    const dataBase64 = btoa(binary)
     
-    await fetch(`${apiBase.value}/cloud-sign/sign`, {
+    const res = await fetch(`${apiBase.value}/sign/remote`, {
       method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ keyAlias: username, dataHashBase64: hashBase64, algorithm: 'ML-DSA-44' })
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ keyAlias: selectedKeyAlias.value, dataBase64 })
     })
-    signResult.value = { signatureId: 'SIG-' + Date.now().toString(36).toUpperCase(), timestamp: new Date().toLocaleString('vi-VN') }
+    
+    if (!res.ok) throw new Error('Signing failed')
+    
+    const data = await res.json()
+    signResult.value = { 
+      signatureId: 'SIG-' + Date.now().toString(36).toUpperCase(), 
+      timestamp: new Date().toLocaleString('vi-VN'),
+      algorithm: data.algorithm || 'ML-DSA-44',
+      signatureBase64: data.signatureBase64
+    }
   } catch (e) {
-    signResult.value = { signatureId: 'SIG-' + Date.now().toString(36).toUpperCase(), timestamp: new Date().toLocaleString('vi-VN') }
-  } finally {
+    console.error('Signing error:', e)
+    alert('Ký văn bản thất bại: ' + e.message)
     signing.value = false
+    return
   }
+  signing.value = false
 }
 </script>
 

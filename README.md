@@ -18,9 +18,9 @@ A compliance-ready digital signature platform for Vietnam's government agencies,
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         ZONE A: PUBLIC (DMZ)                        │
-│   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
-│   │Public Portal │    │ Admin Portal │    │ RSSP Gateway │          │
-│   └──────┬───────┘    └──────┬───────┘    └──────┬───────┘          │
+│   ┌──────────────┐                        ┌──────────────┐          │
+│   │Public Portal │                        │ RSSP Gateway │          │
+│   └──────┬───────┘                        └──────┬───────┘          │
 └──────────┼───────────────────┼───────────────────┼──────────────────┘
            │                   │                   │
            ▼                   ▼                   ▼
@@ -85,21 +85,21 @@ cd infra/k8s
 
 ### Run Tests
 ```bash
-./gradlew test                    # Unit tests
-./e2e_test_phase7.sh              # E2E tests
+./gradlew test                              # Unit tests
+cd tests/e2e && npx playwright test         # Playwright E2E tests
+python tests/scripts/test_api.py            # API integration tests
 ```
 
 ## 📁 Project Structure
 
 ```
 ├── apps/
-│   ├── public-portal/            # Citizen-facing Nuxt.js app
-│   └── admin-portal/             # Admin Nuxt.js app
+│   └── public-portal/            # Citizen-facing Nuxt.js app
 ├── core/
 │   ├── ca-authority/             # Certificate Authority (Sub-CA)
 │   ├── identity-service/         # Authentication & JWT
-│   ├── validation-service/       # Signature verification
-│   └── doc-service/              # PDF signing & timestamping
+│   ├── signature-core/           # Core signing service
+│   └── validation-service/       # Signature verification
 ├── rssp/
 │   ├── cloud-sign/               # Remote Signing (CSC API)
 │   └── rssp-gateway/             # CSC API Gateway
@@ -109,14 +109,22 @@ cd infra/k8s
 │       ├── HybridSigningService  # ECDSA + Dilithium
 │       ├── PqcCryptoService      # ML-DSA (Dilithium)
 │       └── TsaClient             # RFC 3161 timestamping
+├── tests/
+│   ├── e2e/                      # Playwright E2E tests
+│   └── scripts/                  # Python test scripts
+├── docs/
+│   ├── architecture.md           # System architecture
+│   └── reference/mock-ui/        # UI design reference
 └── infra/
+    ├── certs/                    # Certificates (gitignored)
     ├── k8s/                      # Kubernetes manifests
     │   └── base/
-    │       └── network-policies.yaml  # Security zone enforcement
+    │       └── network-policies.yaml
     └── docker/
         ├── softhsm/              # HSM mock
         └── tsa-mock/             # TSA mock
 ```
+
 
 ## 📜 Key Components
 

@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
  * Post-Quantum Cryptography (PQC) Service using Bouncy Castle.
  * Supports ML-DSA (Dilithium) algorithms for CA operations.
  */
+@Service
 public class PqcCryptoService {
 
         private static final Logger log = LoggerFactory.getLogger(PqcCryptoService.class);

@@ -1,12 +1,23 @@
+# Dependencies
 node_modules/
+venv/
 .idea/
 .gradle/
+
+# Build outputs
 build/
 bin/
 target/
-.DS_Store
+.output/
+dist/
 *.class
 *.jar
+
+# OS
+.DS_Store
+.fuse_hidden*
+
+# Logs
 *.log
 
 # Secrets and Keys
@@ -18,6 +29,9 @@ target/
 *.jks
 *.keystore
 secrets/
+infra/certs/*.pem
+infra/certs/*.key
+infra/certs/*.crt
 
 # WireGuard
 *.conf
@@ -25,4 +39,11 @@ infra/wireguard/*.conf
 wg0.conf
 infra/k8s/base/wg-secret.yaml
 
+# Test artifacts
+tests/e2e/test-results/
+tests/e2e/artifacts/
+playwright-report/
 
+# Temp files
+*.tmp
+*.bak

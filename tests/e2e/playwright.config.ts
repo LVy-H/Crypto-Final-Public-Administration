@@ -30,7 +30,7 @@ export default defineConfig({
         },
         {
             name: 'portal',
-            testMatch: ['**/public-portal.spec.ts', '**/admin-portal.spec.ts', '**/ui-user-journey.spec.ts', '**/full-journey.spec.ts'],
+            testMatch: ['**/public-portal.spec.ts', '**/admin-portal.spec.ts', '**/ui-user-journey.spec.ts', '**/full-journey.spec.ts', '**/mock-ui-screenshots.spec.ts', '**/sign-verify-ui.spec.ts', '**/auth-features.spec.ts', '**/real-api-tests.spec.ts'],
             use: {
                 ...devices['Desktop Chrome'],
                 baseURL: PORTAL_BASE,
