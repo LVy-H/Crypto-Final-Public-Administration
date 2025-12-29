@@ -6,7 +6,7 @@ namespace: crypto-pqc
 
 resources:
   - namespace-config.yaml
-  - secrets.yaml
+  # secrets.yaml removed (Audit 2.2) - use kubectl create secret or sealed-secrets
   - network-policies.yaml # Security zone enforcement
   - postgres.yaml
   - api-gateway.yaml
@@ -33,3 +33,10 @@ configMapGenerator:
     behavior: merge
     literals:
       - SPRING_PROFILES_ACTIVE=kubernetes
+
+# Secrets managed via Kustomize (Audit 2.2)
+# Reads from .env file (gitignored) - copy .env.example to .env
+secretGenerator:
+  - name: crypto-secrets
+    envs:
+      - .env

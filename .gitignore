@@ -47,3 +47,8 @@ playwright-report/
 # Temp files
 *.tmp
 *.bak
+# Sensitive files
+infra/k8s/base/secrets.yaml
+
+# Kustomize secrets
+infra/k8s/base/.env
