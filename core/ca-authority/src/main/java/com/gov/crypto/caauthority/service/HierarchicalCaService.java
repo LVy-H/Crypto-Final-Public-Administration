@@ -43,12 +43,15 @@ public class HierarchicalCaService {
     private final CertificateAuthorityRepository caRepository;
     private final IssuedCertificateRepository certRepository;
     private final PqcCryptoService pqcCryptoService;
+    private final com.gov.crypto.caauthority.security.KeyEncryptionService keyEncryptionService;
 
     public HierarchicalCaService(CertificateAuthorityRepository caRepository,
-            IssuedCertificateRepository certRepository) {
+            IssuedCertificateRepository certRepository,
+            com.gov.crypto.caauthority.security.KeyEncryptionService keyEncryptionService) {
         this.caRepository = caRepository;
         this.certRepository = certRepository;
         this.pqcCryptoService = new PqcCryptoService();
+        this.keyEncryptionService = keyEncryptionService;
     }
 
     @jakarta.annotation.PostConstruct
@@ -155,9 +158,9 @@ public class HierarchicalCaService {
         String certSubject = cert.getSubjectX500Principal().getName();
         log.info("Certificate subject: {}", certSubject);
 
-        // Save private key to file
+        // Save encrypted private key to file
         String keyPath = caStoragePath + "/subordinate-key-" + pendingCaId + ".pem";
-        Files.writeString(Path.of(keyPath), pending.privateKeyPem());
+        keyEncryptionService.writeEncryptedKey(Path.of(keyPath), pending.privateKeyPem());
 
         // Create CA record
         CertificateAuthority ca = new CertificateAuthority();
@@ -219,9 +222,9 @@ public class HierarchicalCaService {
         String publicKeyPem = pqcCryptoService.publicKeyToPem(keyPair.getPublic());
         String privateKeyPem = pqcCryptoService.privateKeyToPem(keyPair.getPrivate());
 
-        // Save private key to file (for backward compatibility)
+        // Save encrypted private key to file
         String keyPath = caStoragePath + "/root-key.pem";
-        Files.writeString(Path.of(keyPath), privateKeyPem);
+        keyEncryptionService.writeEncryptedKey(Path.of(keyPath), privateKeyPem);
 
         // Save to database
         CertificateAuthority rootCa = new CertificateAuthority();
@@ -408,10 +411,10 @@ public class HierarchicalCaService {
         String publicKeyPem = pqcCryptoService.publicKeyToPem(keyPair.getPublic());
         String privateKeyPem = pqcCryptoService.privateKeyToPem(keyPair.getPrivate());
 
-        // Save private key to file
+        // Save encrypted private key to file
         new File(mtlsStoragePath).mkdirs();
         String keyPath = mtlsStoragePath + "/internal-ca-key.pem";
-        Files.writeString(Path.of(keyPath), privateKeyPem);
+        keyEncryptionService.writeEncryptedKey(Path.of(keyPath), privateKeyPem);
         Files.writeString(Path.of(mtlsStoragePath + "/internal-ca.pem"), certPem);
 
         // Save to database
@@ -469,10 +472,10 @@ public class HierarchicalCaService {
         String certPem = pqcCryptoService.certificateToPem(cert);
         String privateKeyPem = pqcCryptoService.privateKeyToPem(keyPair.getPrivate());
 
-        // Save to mTLS storage
+        // Save encrypted private key to mTLS storage
         String keyPath = mtlsStoragePath + "/" + serviceName + "-key.pem";
         String certPath = mtlsStoragePath + "/" + serviceName + ".pem";
-        Files.writeString(Path.of(keyPath), privateKeyPem);
+        keyEncryptionService.writeEncryptedKey(Path.of(keyPath), privateKeyPem);
         Files.writeString(Path.of(certPath), certPem);
 
         log.info("Service certificate issued for: {}", serviceName);
