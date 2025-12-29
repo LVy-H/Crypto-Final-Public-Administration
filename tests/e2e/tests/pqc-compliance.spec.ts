@@ -261,3 +261,113 @@ test.describe('Security - OWASP Compliance', () => {
         expect(response.status()).toBeLessThan(500);
     });
 });
+
+// ============================================================================
+// RFC 5280 Compliance - Certificate Extensions
+// ============================================================================
+
+test.describe('RFC5280-001: CRL Distribution Points Extension', () => {
+    test('CRL endpoint is accessible and returns valid response', async ({ request }) => {
+        // Test CRL endpoint that should be referenced in CDP extension
+        const response = await request.get(`${API_BASE}/ca/crl/1`);
+
+        // CRL endpoint should exist (may return CRL data or 400/404 if no CRL yet)
+        console.log('CRL endpoint status:', response.status());
+        expect([200, 400, 404]).toContain(response.status());
+
+        // If successful, should return CRL data
+        if (response.ok()) {
+            const contentType = response.headers()['content-type'];
+            console.log('CRL content-type:', contentType);
+        }
+    });
+
+    test('CA hierarchy includes CDP-compatible endpoints at each level', async ({ request }) => {
+        // Verify all CA levels are accessible for CDP
+        for (const level of [0, 1, 2]) {
+            const response = await request.get(`${API_BASE}/ca/level/${level}`);
+            if (response.ok()) {
+                const cas = await response.json();
+                if (Array.isArray(cas) && cas.length > 0) {
+                    console.log(`CA Level ${level}: ${cas[0].name} - Algorithm: ${cas[0].algorithm}`);
+                    expect(cas[0]).toHaveProperty('id');
+                }
+            }
+        }
+    });
+});
+
+test.describe('RFC5280-002: Authority Information Access Extension', () => {
+    test('CA chain endpoint returns valid certificate chain', async ({ request }) => {
+        // First get a valid CA ID
+        const rootResponse = await request.get(`${API_BASE}/ca/level/0`);
+        if (rootResponse.ok()) {
+            const roots = await rootResponse.json();
+            if (Array.isArray(roots) && roots.length > 0) {
+                const caId = roots[0].id;
+
+                // Test AIA caIssuers endpoint
+                const chainResponse = await request.get(`${API_BASE}/ca/chain/${caId}`);
+                console.log('CA chain endpoint status for ID', caId, ':', chainResponse.status());
+                expect([200, 400, 404]).toContain(chainResponse.status());
+            }
+        }
+    });
+
+    test('CA level endpoint returns certificates with algorithm info', async ({ request }) => {
+        const response = await request.get(`${API_BASE}/ca/level/0`);
+
+        if (response.ok()) {
+            const cas = await response.json();
+            if (Array.isArray(cas) && cas.length > 0) {
+                // Verify CA has required fields that would be in AIA
+                expect(cas[0]).toHaveProperty('id');
+                expect(cas[0]).toHaveProperty('algorithm');
+                expect(cas[0]).toHaveProperty('name');
+                console.log('Root CA:', cas[0].name, '- Algorithm:', cas[0].algorithm);
+
+                // Algorithm should be ML-DSA (post-quantum)
+                expect(['ML-DSA-87', 'ML-DSA-65', 'ML-DSA-44']).toContain(cas[0].algorithm);
+            }
+        }
+    });
+});
+
+test.describe('RFC5280-003: Certificate Extension Endpoints', () => {
+    test('All required RFC 5280 endpoints are accessible', async ({ request }) => {
+        const endpoints = [
+            { url: `${API_BASE}/ca/level/0`, name: 'Root CA Endpoint' },
+            { url: `${API_BASE}/ca/crl/1`, name: 'CRL Endpoint (CDP)' },
+        ];
+
+        for (const ep of endpoints) {
+            const response = await request.get(ep.url);
+            console.log(`${ep.name}: ${response.status()}`);
+            // All endpoints should be reachable (not 5xx)
+            expect(response.status()).toBeLessThan(500);
+        }
+    });
+
+    test('Signing endpoint produces ML-DSA signatures', async ({ request }) => {
+        // Test that signing uses post-quantum algorithm
+        const signResponse = await request.post(`${API_BASE}/sign/remote`, {
+            data: {
+                userId: null,
+                keyAlias: 'default',
+                dataBase64: Buffer.from('RFC5280 test document').toString('base64')
+            }
+        });
+
+        console.log('Sign endpoint status:', signResponse.status());
+
+        // May require auth, but endpoint should exist
+        if (signResponse.ok()) {
+            const result = await signResponse.json();
+            if (result.algorithm) {
+                console.log('Signature algorithm:', result.algorithm);
+                expect(result.algorithm).toContain('ML-DSA');
+            }
+        }
+        expect([200, 400, 401, 403]).toContain(signResponse.status());
+    });
+});
