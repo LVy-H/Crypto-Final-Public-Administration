@@ -4,6 +4,14 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
 import org.bouncycastle.pqc.jcajce.spec.DilithiumParameterSpec;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.AccessDescription;
+import org.bouncycastle.asn1.x509.AuthorityInformationAccess;
+import org.bouncycastle.asn1.x509.CRLDistPoint;
+import org.bouncycastle.asn1.x509.DistributionPoint;
+import org.bouncycastle.asn1.x509.DistributionPointName;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -13,6 +21,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
@@ -201,6 +210,24 @@ public class PqcCryptoService {
                                         new org.bouncycastle.asn1.x509.KeyUsage(
                                                         org.bouncycastle.asn1.x509.KeyUsage.digitalSignature |
                                                                         org.bouncycastle.asn1.x509.KeyUsage.nonRepudiation));
+
+                        // Add CRL Distribution Point (CDP) - RFC 5280
+                        // URL where CRL can be downloaded for revocation checking
+                        GeneralName crlUri = new GeneralName(GeneralName.uniformResourceIdentifier,
+                                        "https://api.gov-id.lvh.id.vn/api/v1/ca/crl/1");
+                        DistributionPointName dpName = new DistributionPointName(new GeneralNames(crlUri));
+                        DistributionPoint dp = new DistributionPoint(dpName, null, null);
+                        certBuilder.addExtension(Extension.cRLDistributionPoints, false,
+                                        new CRLDistPoint(new DistributionPoint[] { dp }));
+
+                        // Add Authority Information Access (AIA) - RFC 5280
+                        // Where to find issuer cert and OCSP responder
+                        GeneralName caIssuersUri = new GeneralName(GeneralName.uniformResourceIdentifier,
+                                        "https://api.gov-id.lvh.id.vn/api/v1/ca/chain/1");
+                        AccessDescription caIssuers = new AccessDescription(
+                                        AccessDescription.id_ad_caIssuers, caIssuersUri);
+                        certBuilder.addExtension(Extension.authorityInfoAccess, false,
+                                        new AuthorityInformationAccess(caIssuers));
                 }
 
                 ContentSigner signer = new JcaContentSignerBuilder(level.getAlgorithmName())
@@ -271,6 +298,22 @@ public class PqcCryptoService {
                                         new org.bouncycastle.asn1.x509.KeyUsage(
                                                         org.bouncycastle.asn1.x509.KeyUsage.digitalSignature |
                                                                         org.bouncycastle.asn1.x509.KeyUsage.nonRepudiation));
+
+                        // Add CRL Distribution Point (CDP) - RFC 5280
+                        GeneralName crlUri = new GeneralName(GeneralName.uniformResourceIdentifier,
+                                        "https://api.gov-id.lvh.id.vn/api/v1/ca/crl/1");
+                        DistributionPointName dpName = new DistributionPointName(new GeneralNames(crlUri));
+                        DistributionPoint dp = new DistributionPoint(dpName, null, null);
+                        certBuilder.addExtension(Extension.cRLDistributionPoints, false,
+                                        new CRLDistPoint(new DistributionPoint[] { dp }));
+
+                        // Add Authority Information Access (AIA) - RFC 5280
+                        GeneralName caIssuersUri = new GeneralName(GeneralName.uniformResourceIdentifier,
+                                        "https://api.gov-id.lvh.id.vn/api/v1/ca/chain/1");
+                        AccessDescription caIssuers = new AccessDescription(
+                                        AccessDescription.id_ad_caIssuers, caIssuersUri);
+                        certBuilder.addExtension(Extension.authorityInfoAccess, false,
+                                        new AuthorityInformationAccess(caIssuers));
                 }
 
                 ContentSigner signer = new JcaContentSignerBuilder(signingLevel.getAlgorithmName())
