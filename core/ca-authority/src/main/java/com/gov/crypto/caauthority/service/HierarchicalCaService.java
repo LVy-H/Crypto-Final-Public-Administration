@@ -726,77 +726,74 @@ public class HierarchicalCaService {
 
     /**
      * Generate Certificate Revocation List (CRL) for a specific CA.
-     * This creates an index.txt database from the SQL records and runs openssl ca
-     * -gencrl.
+     * 
+     * Uses Bouncy Castle X509v2CRLBuilder for pure Java CRL generation.
+     * No OpenSSL dependency, no temp files.
      */
     @Transactional
     public String generateCrl(UUID caId) throws Exception {
         CertificateAuthority ca = caRepository.findById(caId)
-                .orElseThrow(() -> new RuntimeException("CA not found"));
+                .orElseThrow(() -> new RuntimeException("CA not found: " + caId));
 
         if (ca.getStatus() != CaStatus.ACTIVE && ca.getStatus() != CaStatus.REVOKED) {
             throw new IllegalArgumentException("Cannot generate CRL for inactive/expired CA");
         }
 
+        // Load CA private key
+        String privateKeyPem = keyEncryptionService.readDecryptedKey(Path.of(ca.getPrivateKeyPath()));
+        java.security.PrivateKey caPrivateKey = pqcCryptoService.parsePrivateKeyPem(privateKeyPem);
+
+        // Parse CA certificate
+        java.security.cert.X509Certificate caCert = pqcCryptoService.parseCertificatePem(ca.getCertificate());
+
+        // Build CRL using Bouncy Castle
+        org.bouncycastle.asn1.x500.X500Name issuer = new org.bouncycastle.asn1.x500.X500Name(
+                caCert.getSubjectX500Principal().getName());
+
+        java.util.Date now = new java.util.Date();
+        java.util.Date nextUpdate = new java.util.Date(System.currentTimeMillis() + 7L * 24 * 60 * 60 * 1000); // 7 days
+
+        org.bouncycastle.cert.X509v2CRLBuilder crlBuilder = new org.bouncycastle.cert.X509v2CRLBuilder(issuer, now);
+        crlBuilder.setNextUpdate(nextUpdate);
+
+        // Add revoked certificates
         List<IssuedCertificate> issuedCerts = certRepository.findByIssuingCa(ca);
+        int revokedCount = 0;
 
-        // Prepare temporary directory for OpenSSL CA db
-        Path caDbDir = Files.createTempDirectory("ca_db_" + ca.getName().replaceAll("\\s+", "_"));
-        Path indexTxtPath = caDbDir.resolve("index.txt");
-        Path crlnumberPath = caDbDir.resolve("crlnumber");
-        Path caCertPath = caDbDir.resolve("ca.pem");
-        Path caKeyPath = Path.of(ca.getPrivateKeyPath()); // Use existing key path
+        for (IssuedCertificate cert : issuedCerts) {
+            if (cert.getStatus() == CertStatus.REVOKED && cert.getRevokedAt() != null) {
+                java.math.BigInteger serialNumber = new java.math.BigInteger(cert.getSerialNumber(), 16);
+                java.util.Date revocationDate = java.sql.Timestamp.valueOf(cert.getRevokedAt());
 
-        try {
-            // Write CA cert
-            Files.writeString(caCertPath, ca.getCertificate());
-
-            // Write crlnumber (initialize if needed, though openssl might handle it,
-            // usually needed)
-            Files.writeString(crlnumberPath, "1000"); // Start CRL number
-
-            // Build index.txt content
-            StringBuilder indexContent = new StringBuilder();
-            for (IssuedCertificate cert : issuedCerts) {
-                // Format: V/R ExpDate [RevDate] Serial unknown SubjectDN
-                // Dates in YYMMDDHHMMSSZ format
-                String status = (cert.getStatus() == CertStatus.REVOKED) ? "R" : "V";
-                String expDate = formatIndexDate(cert.getValidUntil());
-                String revDate = (cert.getStatus() == CertStatus.REVOKED)
-                        ? formatIndexDate(cert.getRevokedAt())
-                        : "";
-
-                String line = String.format("%s\t%s\t%s\t%s\tunknown\t%s",
-                        status,
-                        expDate,
-                        revDate,
-                        cert.getSerialNumber(),
-                        cert.getSubjectDn());
-                indexContent.append(line).append("\n");
+                crlBuilder.addCRLEntry(serialNumber, revocationDate,
+                        org.bouncycastle.asn1.x509.CRLReason.privilegeWithdrawn);
+                revokedCount++;
             }
-            Files.writeString(indexTxtPath, indexContent.toString());
-
-            // Create config for CRL generation
-            Path configPath = createCrlConfig(caDbDir.toAbsolutePath().toString(), caKeyPath.toString());
-            Path crlOutputPath = caDbDir.resolve("crl.pem");
-
-            // Run OpenSSL to generate CRL
-            // openssl ca -gencrl -config ...
-            runProcess(new ProcessBuilder(
-                    "openssl", "ca", "-gencrl",
-                    "-config", configPath.toString(),
-                    "-out", crlOutputPath.toString()), "CRL Generation");
-
-            return Files.readString(crlOutputPath);
-
-        } finally {
-            // Cleanup temp dir (basic recursive delete ideally, or rely on OS temp cleanup)
-            // For now, delete known files
-            Files.deleteIfExists(indexTxtPath);
-            Files.deleteIfExists(crlnumberPath);
-            Files.deleteIfExists(caCertPath);
-            // Config and CRL cleaned up if needed or return content first
         }
+
+        // Add CRL Number extension
+        org.bouncycastle.asn1.x509.CRLNumber crlNumber = new org.bouncycastle.asn1.x509.CRLNumber(
+                java.math.BigInteger.valueOf(System.currentTimeMillis() / 1000));
+        crlBuilder.addExtension(org.bouncycastle.asn1.x509.Extension.cRLNumber, false, crlNumber);
+
+        // Sign CRL with CA private key
+        org.bouncycastle.operator.ContentSigner signer = new org.bouncycastle.operator.jcajce.JcaContentSignerBuilder(
+                ca.getAlgorithm().replace("ML-DSA-", "Dilithium").replace("-44", "2").replace("-65", "3").replace("-87",
+                        "5"))
+                .setProvider("BCPQC")
+                .build(caPrivateKey);
+
+        org.bouncycastle.cert.X509CRLHolder crlHolder = crlBuilder.build(signer);
+
+        // Convert to PEM format
+        java.io.StringWriter writer = new java.io.StringWriter();
+        try (org.bouncycastle.openssl.jcajce.JcaPEMWriter pemWriter = new org.bouncycastle.openssl.jcajce.JcaPEMWriter(
+                writer)) {
+            pemWriter.writeObject(crlHolder);
+        }
+
+        log.info("Generated CRL for CA '{}' with {} revoked certificates", ca.getName(), revokedCount);
+        return writer.toString();
     }
 
     // ============ User Certificate Request Workflow ============
