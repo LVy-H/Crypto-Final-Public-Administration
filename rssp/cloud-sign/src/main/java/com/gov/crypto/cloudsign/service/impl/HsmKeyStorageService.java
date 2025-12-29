@@ -4,6 +4,7 @@ import com.gov.crypto.service.KeyStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import javax.security.auth.callback.Callback;
@@ -22,10 +23,11 @@ import java.util.Base64;
  * SECURITY: Private keys never leave the HSM.
  * Only key handles (aliases) are stored in the database.
  * 
- * For development: Uses SoftHSM2
- * For production: Replace with real HSM (Thales, Utimaco, etc.)
+ * For development: Use SoftwareKeyStorageService with @Profile("dev")
+ * For production: This service with real HSM (Thales, Utimaco, etc.)
  */
-@Service
+@Service("hsmKeyStorage")
+@Profile("prod")
 public class HsmKeyStorageService implements KeyStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(HsmKeyStorageService.class);
@@ -35,27 +37,21 @@ public class HsmKeyStorageService implements KeyStorageService {
     private Provider pkcs11Provider;
     private KeyStore hsmKeyStore;
     private final char[] userPin;
-    private final boolean hsmEnabled;
 
     public HsmKeyStorageService(
-            @Value("${hsm.enabled:false}") boolean hsmEnabled,
             @Value("${hsm.library:/usr/lib/softhsm/libsofthsm2.so}") String hsmLibrary,
             @Value("${hsm.slot:0}") int hsmSlot,
             @Value("${hsm.user-pin:87654321}") String hsmUserPin,
             @Value("${hsm.token-label:gov-signing-token}") String tokenLabel) {
 
-        this.hsmEnabled = hsmEnabled;
         this.userPin = hsmUserPin.toCharArray();
 
-        if (hsmEnabled) {
-            try {
-                initializePkcs11(hsmLibrary, hsmSlot, tokenLabel);
-                log.info("HSM Key Storage initialized with PKCS#11 (SoftHSM)");
-            } catch (Exception e) {
-                log.error("Failed to initialize HSM, falling back to software mode: {}", e.getMessage());
-            }
-        } else {
-            log.warn("HSM disabled, using software-based key storage (NOT FOR PRODUCTION)");
+        try {
+            initializePkcs11(hsmLibrary, hsmSlot, tokenLabel);
+            log.info("HSM Key Storage initialized with PKCS#11");
+        } catch (Exception e) {
+            log.error("FAILED to initialize HSM - service will not function: {}", e.getMessage());
+            throw new IllegalStateException("HSM initialization failed - cannot start in prod mode", e);
         }
     }
 
@@ -88,13 +84,8 @@ public class HsmKeyStorageService implements KeyStorageService {
 
     @Override
     public String generateKeyPair(String alias, String algorithm) throws Exception {
-        log.info("Generating key pair: alias={}, algorithm={}", alias, algorithm);
-
-        if (hsmEnabled && hsmKeyStore != null) {
-            return generateKeyInHsm(alias, algorithm);
-        } else {
-            return generateKeyInSoftware(alias, algorithm);
-        }
+        log.info("Generating key pair in HSM: alias={}, algorithm={}", alias, algorithm);
+        return generateKeyInHsm(alias, algorithm);
     }
 
     private String generateKeyInHsm(String alias, String algorithm) throws Exception {
@@ -117,34 +108,11 @@ public class HsmKeyStorageService implements KeyStorageService {
         return publicKeyToPem(keyPair.getPublic());
     }
 
-    private String generateKeyInSoftware(String alias, String algorithm) throws Exception {
-        // Fallback: Generate in software (NOT FOR PRODUCTION)
-        log.warn("Generating key in software - NOT SECURE FOR PRODUCTION");
-
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance("EC", "BC");
-        kpg.initialize(new ECGenParameterSpec(EC_CURVE));
-        KeyPair keyPair = kpg.generateKeyPair();
-
-        // Store in in-memory map (would need proper persistence in real fallback)
-        softwareKeys.put(alias, keyPair);
-
-        return publicKeyToPem(keyPair.getPublic());
-    }
-
-    // In-memory fallback for software mode
-    private final java.util.Map<String, KeyPair> softwareKeys = new java.util.concurrent.ConcurrentHashMap<>();
-
     @Override
     public String signHash(String keyAlias, String dataHashBase64, String algorithm) throws Exception {
-        log.info("Signing with key: {}", keyAlias);
-
+        log.info("Signing with HSM key: {}", keyAlias);
         byte[] dataHash = Base64.getDecoder().decode(dataHashBase64);
-
-        if (hsmEnabled && hsmKeyStore != null) {
-            return signWithHsm(keyAlias, dataHash);
-        } else {
-            return signWithSoftware(keyAlias, dataHash);
-        }
+        return signWithHsm(keyAlias, dataHash);
     }
 
     private String signWithHsm(String alias, byte[] data) throws Exception {
