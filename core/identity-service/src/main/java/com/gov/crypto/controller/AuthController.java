@@ -4,7 +4,6 @@ import com.gov.crypto.model.User;
 import com.gov.crypto.model.BlacklistedToken;
 import com.gov.crypto.identityservice.service.AuthService;
 import com.gov.crypto.identityservice.service.TokenBlacklistService;
-import com.gov.crypto.identityservice.service.JwtService;
 import com.gov.crypto.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,20 +25,19 @@ public class AuthController {
     private final AuthService authService;
     private final AuthenticationManager authenticationManager;
     private final TokenBlacklistService tokenBlacklistService;
-    private final JwtService jwtService;
     private final UserRepository userRepository;
     private final com.gov.crypto.repository.RoleRepository roleRepository;
+
+    // JWT removed - using Redis session-based auth
 
     public AuthController(AuthService authService,
             AuthenticationManager authenticationManager,
             TokenBlacklistService tokenBlacklistService,
-            JwtService jwtService,
             UserRepository userRepository,
             com.gov.crypto.repository.RoleRepository roleRepository) {
         this.authService = authService;
         this.authenticationManager = authenticationManager;
         this.tokenBlacklistService = tokenBlacklistService;
-        this.jwtService = jwtService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
     }

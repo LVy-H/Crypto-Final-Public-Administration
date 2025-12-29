@@ -10,12 +10,12 @@ public class AuthService {
 
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
 
-    public AuthService(UserRepository repository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    // JWT removed - using Redis session-based auth
+
+    public AuthService(UserRepository repository, PasswordEncoder passwordEncoder) {
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
     }
 
     public String saveUser(User user) {
@@ -24,10 +24,5 @@ public class AuthService {
         return "User added to system";
     }
 
-    public String generateToken(String username) {
-        User user = repository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return jwtService.generateToken(username, user.getRole(),
-                user.getIdentityStatus() != null ? user.getIdentityStatus().name() : "UNVERIFIED");
-    }
+    // generateToken removed - sessions handle authentication
 }

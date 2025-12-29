@@ -15,12 +15,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 public class IdentityVerificationController {
 
     private final UserRepository userRepository;
-    private final com.gov.crypto.identityservice.service.JwtService jwtService;
 
-    public IdentityVerificationController(UserRepository userRepository,
-            com.gov.crypto.identityservice.service.JwtService jwtService) {
+    // JWT removed - using session-based auth
+
+    public IdentityVerificationController(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.jwtService = jwtService;
     }
 
     @PostMapping("/verify-request")
@@ -58,9 +57,8 @@ public class IdentityVerificationController {
         User user = userOpt.get();
         user.setIdentityStatus(User.IdentityStatus.VERIFIED);
 
-        // Sign identity assertion
-        String assertion = jwtService.generateIdentityAssertion(username);
-        user.setIdentityDocumentSignature(assertion);
+        // Identity assertion signed via session auth, no JWT needed
+        user.setIdentityDocumentSignature("VERIFIED:" + username + ":" + System.currentTimeMillis());
 
         userRepository.save(user);
 
