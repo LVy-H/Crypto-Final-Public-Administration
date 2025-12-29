@@ -118,7 +118,11 @@ const signDocument = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ keyAlias: selectedKeyAlias.value, dataBase64 })
+      body: JSON.stringify({ 
+        userId: user.value?.username || null, 
+        keyAlias: selectedKeyAlias.value, 
+        dataBase64 
+      })
     })
     
     if (!res.ok) throw new Error('Signing failed')
