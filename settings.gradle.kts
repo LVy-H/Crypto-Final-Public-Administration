@@ -11,3 +11,6 @@ include(":core:validation-service")
 
 // Shared Libraries
 include(":libs:common-crypto")
+
+// RSSP Services
+include(":rssp:cloud-sign")

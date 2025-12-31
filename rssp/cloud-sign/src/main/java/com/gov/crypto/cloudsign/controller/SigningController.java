@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.Instant;
 
 /**
@@ -94,10 +95,11 @@ public class SigningController {
     @PostMapping("/sign/init")
     public ResponseEntity<?> initializeSigning(
             @RequestBody SignInitRequest request,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            Principal principal) {
 
         // Validate session token (not OTP, just authentication)
-        ValidationResult validation = sadValidator.validate(authHeader, request.keyAlias());
+        ValidationResult validation = sadValidator.validate(authHeader, request.keyAlias(), principal);
 
         if (!validation.valid()) {
             log.warn("Sign init rejected: {} for key {}", validation.errorMessage(), request.keyAlias());
@@ -115,16 +117,14 @@ public class SigningController {
                     request.dataHashBase64(),
                     request.algorithm());
 
-            // In production, send OTP via SMS/Email here
-            // For development, we return it in the response (remove in production!)
-            log.info("Challenge created: {} (OTP: {} - REMOVE IN PRODUCTION)",
-                    challenge.challengeId(), challenge.otp());
+            // In production, send OTP via SMS/Email here or rely on TOTP app
+            log.info("Challenge created: {}", challenge.challengeId());
 
             return ResponseEntity.ok(new SignInitResponse(
                     challenge.challengeId(),
                     request.dataHashBase64(),
                     challenge.expiresAt(),
-                    "Challenge created. Enter OTP to confirm signing. (Dev OTP: " + challenge.otp() + ")"));
+                    "Challenge created. Enter TOTP from Authenticator App to confirm signing."));
 
         } catch (Exception e) {
             log.error("Failed to create signing challenge: {}", e.getMessage());
@@ -228,12 +228,13 @@ public class SigningController {
     @PostMapping("/sign")
     public ResponseEntity<?> signHash(
             @RequestBody SignRequest request,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            Principal principal) {
 
         log.warn("DEPRECATED: Direct /sign endpoint called. Use /sign/init and /sign/confirm for SAP compliance.");
 
         // Still validate SAD but warn about deprecation
-        ValidationResult validation = sadValidator.validate(authHeader, request.keyAlias());
+        ValidationResult validation = sadValidator.validate(authHeader, request.keyAlias(), principal);
 
         if (!validation.valid()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -263,9 +264,10 @@ public class SigningController {
     @PostMapping("/keys/generate")
     public ResponseEntity<?> generateKey(
             @RequestBody KeyGenRequest request,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            Principal principal) {
 
-        ValidationResult validation = sadValidator.validate(authHeader, request.alias());
+        ValidationResult validation = sadValidator.validate(authHeader, request.alias(), principal);
 
         if (!validation.valid()) {
             log.warn("Key generation rejected: {} for alias {}", validation.errorMessage(), request.alias());
@@ -299,9 +301,10 @@ public class SigningController {
     @PostMapping("/keys/csr")
     public ResponseEntity<?> generateCsr(
             @RequestBody CsrRequest request,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            Principal principal) {
 
-        ValidationResult validation = sadValidator.validate(authHeader, request.alias());
+        ValidationResult validation = sadValidator.validate(authHeader, request.alias(), principal);
 
         if (!validation.valid()) {
             log.warn("CSR generation rejected: {} for alias {}", validation.errorMessage(), request.alias());

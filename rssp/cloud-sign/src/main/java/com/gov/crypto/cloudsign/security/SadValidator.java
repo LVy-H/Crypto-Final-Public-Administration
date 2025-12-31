@@ -24,7 +24,17 @@ public class SadValidator {
      * @param keyAlias   The key alias being requested for signing
      * @return ValidationResult with status and user info
      */
-    public ValidationResult validate(String authHeader, String keyAlias) {
+    public ValidationResult validate(String authHeader, String keyAlias, java.security.Principal principal) {
+        // 1. Prefer Principal (Session/Security Context)
+        if (principal != null) {
+            String username = principal.getName();
+             if (!isUserAuthorizedForKey(username, keyAlias)) {
+                return ValidationResult.failure("User not authorized for key: " + keyAlias);
+            }
+            return ValidationResult.success(username);
+        }
+
+        // 2. Fallback to Header Checking (Legacy or Service-to-Service)
         if (authHeader == null || authHeader.isBlank()) {
             return ValidationResult.failure("Missing Authorization header");
         }

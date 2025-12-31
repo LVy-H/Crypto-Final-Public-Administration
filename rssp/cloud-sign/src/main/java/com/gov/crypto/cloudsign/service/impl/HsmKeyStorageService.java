@@ -133,19 +133,7 @@ public class HsmKeyStorageService implements KeyStorageService {
         return Base64.getEncoder().encodeToString(sig);
     }
 
-    private String signWithSoftware(String alias, byte[] data) throws Exception {
-        KeyPair keyPair = softwareKeys.get(alias);
-        if (keyPair == null) {
-            throw new IllegalArgumentException("Key not found: " + alias);
-        }
 
-        Signature signature = Signature.getInstance(ECDSA_ALGORITHM, "BC");
-        signature.initSign(keyPair.getPrivate());
-        signature.update(data);
-        byte[] sig = signature.sign();
-
-        return Base64.getEncoder().encodeToString(sig);
-    }
 
     @Override
     public String generateCsr(String alias, String subject) throws Exception {
@@ -154,17 +142,15 @@ public class HsmKeyStorageService implements KeyStorageService {
         PublicKey publicKey;
         PrivateKey privateKey;
 
-        if (hsmEnabled && hsmKeyStore != null) {
+        if (hsmKeyStore != null) {
             java.security.cert.Certificate cert = hsmKeyStore.getCertificate(alias);
+            if (cert == null) {
+                throw new IllegalArgumentException("Certificate not found for alias: " + alias);
+            }
             publicKey = cert.getPublicKey();
             privateKey = (PrivateKey) hsmKeyStore.getKey(alias, userPin);
         } else {
-            KeyPair keyPair = softwareKeys.get(alias);
-            if (keyPair == null) {
-                throw new IllegalArgumentException("Key not found: " + alias);
-            }
-            publicKey = keyPair.getPublic();
-            privateKey = keyPair.getPrivate();
+            throw new IllegalStateException("HSM KeyStore not initialized");
         }
 
         // Generate CSR using BouncyCastle
