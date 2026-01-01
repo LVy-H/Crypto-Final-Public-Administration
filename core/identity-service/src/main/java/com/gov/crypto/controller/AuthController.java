@@ -1,9 +1,7 @@
 package com.gov.crypto.controller;
 
 import com.gov.crypto.model.User;
-import com.gov.crypto.model.BlacklistedToken;
 import com.gov.crypto.identityservice.service.AuthService;
-import com.gov.crypto.identityservice.service.TokenBlacklistService;
 import com.gov.crypto.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,7 +14,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -24,20 +21,18 @@ public class AuthController {
 
     private final AuthService authService;
     private final AuthenticationManager authenticationManager;
-    private final TokenBlacklistService tokenBlacklistService;
     private final UserRepository userRepository;
     private final com.gov.crypto.repository.RoleRepository roleRepository;
 
-    // JWT removed - using Redis session-based auth
+    // TokenBlacklistService removed - using Spring Session native invalidation
+    // (2026 cleanup)
 
     public AuthController(AuthService authService,
             AuthenticationManager authenticationManager,
-            TokenBlacklistService tokenBlacklistService,
             UserRepository userRepository,
             com.gov.crypto.repository.RoleRepository roleRepository) {
         this.authService = authService;
         this.authenticationManager = authenticationManager;
-        this.tokenBlacklistService = tokenBlacklistService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
     }

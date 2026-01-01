@@ -13,4 +13,6 @@ include(":core:validation-service")
 include(":libs:common-crypto")
 
 // RSSP Services
-include(":rssp:cloud-sign")
+
+// Tools
+include(":tools:offline-ca")

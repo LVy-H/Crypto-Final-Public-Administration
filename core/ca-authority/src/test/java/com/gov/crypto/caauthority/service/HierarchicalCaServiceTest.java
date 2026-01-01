@@ -3,42 +3,36 @@ package com.gov.crypto.caauthority.service;
 import com.gov.crypto.caauthority.model.CertificateAuthority;
 import com.gov.crypto.caauthority.model.CertificateAuthority.CaType;
 import com.gov.crypto.caauthority.model.CertificateAuthority.CaStatus;
-import com.gov.crypto.caauthority.model.IssuedCertificate;
-import com.gov.crypto.caauthority.repository.CertificateAuthorityRepository;
-import com.gov.crypto.caauthority.repository.IssuedCertificateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for HierarchicalCaService.
- * Tests CA hierarchy operations, certificate chain validation, and revocation.
+ * Unit tests for HierarchicalCaService (Facade).
+ * Tests verify that facade correctly delegates to CaManagementService and
+ * CertificateIssuanceService.
  */
 @ExtendWith(MockitoExtension.class)
 class HierarchicalCaServiceTest {
 
     @Mock
-    private CertificateAuthorityRepository caRepository;
+    private CaManagementService caManagement;
 
     @Mock
-    private IssuedCertificateRepository certRepository;
+    private CertificateIssuanceService certIssuance;
 
-    @InjectMocks
     private HierarchicalCaService caService;
 
     private CertificateAuthority rootCa;
@@ -47,13 +41,8 @@ class HierarchicalCaServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Inject configuration values
-        ReflectionTestUtils.setField(caService, "caStoragePath", "build/tmp/unit-test/ca");
-        ReflectionTestUtils.setField(caService, "mtlsStoragePath", "build/tmp/unit-test/mtls");
-
-        // Ensure directories exist
-        new java.io.File("build/tmp/unit-test/ca").mkdirs();
-        new java.io.File("build/tmp/unit-test/mtls").mkdirs();
+        // Create facade with mocked services
+        caService = new HierarchicalCaService(caManagement, certIssuance);
 
         // Setup test CA hierarchy
         rootCa = createTestCa("National Root CA", CaType.ISSUING_CA, 0, "ML-DSA-87", null);
@@ -73,32 +62,11 @@ class HierarchicalCaServiceTest {
         ca.setStatus(CaStatus.ACTIVE);
         ca.setValidFrom(LocalDateTime.now());
         ca.setValidUntil(LocalDateTime.now().plusYears(10));
-        ca.setCertificate("-----BEGIN CERTIFICATE-----\nMIITestCert...\n-----END CERTIFICATE-----");
-        ca.setPrivateKeyPath("/secure/ca/" + name.toLowerCase().replace(" ", "-") + "-key.pem");
-        ca.setSubjectDn("/CN=" + name + "/O=PQC System/C=VN");
+        ca.setCertificate("MOCK_CERT_PEM");
+        ca.setPublicKey("MOCK_PUBLIC_KEY_PEM");
+        ca.setPrivateKeyPath("/mock/path/key.pem");
+        ca.setSubjectDn("CN=" + name);
         return ca;
-    }
-
-    @Nested
-    @DisplayName("Root CA Initialization Tests")
-    class RootCaTests {
-
-        @Test
-        @DisplayName("Should return existing root CA if already initialized")
-        void shouldReturnExistingRootCa() throws Exception {
-            // Given
-            when(caRepository.findByHierarchyLevelAndStatus(0, CaStatus.ACTIVE))
-                    .thenReturn(Optional.of(rootCa));
-
-            // When
-            CertificateAuthority result = caService.initializeRootCa("New Root CA");
-
-            // Then
-            assertNotNull(result);
-            assertEquals("National Root CA", result.getName());
-            assertEquals("ML-DSA-87", result.getAlgorithm());
-            verify(caRepository, never()).save(any());
-        }
     }
 
     @Nested
@@ -106,22 +74,26 @@ class HierarchicalCaServiceTest {
     class ProvincialCaTests {
 
         @Test
-        @DisplayName("Should throw when parent is not Root CA")
-        void shouldThrowWhenParentNotRoot() {
-            // Given
-            when(caRepository.findById(provincialCa.getId())).thenReturn(Optional.of(provincialCa));
+        @DisplayName("Should throw when parent is RA (not ISSUING_CA)")
+        void shouldThrowWhenParentNotIssuingCa() throws Exception {
+            // Given - CaManagementService throws when parent is RA
+            when(caManagement.createProvincialCa(districtRa.getId(), "Test Province"))
+                    .thenThrow(new IllegalArgumentException("Parent CA is not an ISSUING_CA"));
 
             // When/Then
-            assertThrows(RuntimeException.class,
-                    () -> caService.createProvincialCa(provincialCa.getId(), "Test Province"));
+            assertThrows(IllegalArgumentException.class,
+                    () -> caService.createProvincialCa(districtRa.getId(), "Test Province"));
+
+            verify(caManagement).createProvincialCa(districtRa.getId(), "Test Province");
         }
 
         @Test
         @DisplayName("Should throw when parent CA not found")
-        void shouldThrowWhenParentNotFound() {
+        void shouldThrowWhenParentNotFound() throws Exception {
             // Given
             UUID randomId = UUID.randomUUID();
-            when(caRepository.findById(randomId)).thenReturn(Optional.empty());
+            when(caManagement.createProvincialCa(randomId, "Test Province"))
+                    .thenThrow(new RuntimeException("Parent CA not found"));
 
             // When/Then
             assertThrows(RuntimeException.class, () -> caService.createProvincialCa(randomId, "Test Province"));
@@ -133,13 +105,15 @@ class HierarchicalCaServiceTest {
     class DistrictRaTests {
 
         @Test
-        @DisplayName("Should throw when parent is not Provincial CA")
-        void shouldThrowWhenParentNotProvincial() {
+        @DisplayName("Should throw when parent is RA (not ISSUING_CA)")
+        void shouldThrowWhenParentNotIssuingCa() throws Exception {
             // Given
-            when(caRepository.findById(rootCa.getId())).thenReturn(Optional.of(rootCa));
+            when(caManagement.createDistrictRa(districtRa.getId(), "Test District"))
+                    .thenThrow(new IllegalArgumentException("Parent CA is not an ISSUING_CA"));
 
             // When/Then
-            assertThrows(RuntimeException.class, () -> caService.createDistrictRa(rootCa.getId(), "Test District"));
+            assertThrows(IllegalArgumentException.class,
+                    () -> caService.createDistrictRa(districtRa.getId(), "Test District"));
         }
     }
 
@@ -151,21 +125,24 @@ class HierarchicalCaServiceTest {
         @DisplayName("Should return complete certificate chain from District to Root")
         void shouldReturnCompleteChain() {
             // Given
-            when(caRepository.findById(districtRa.getId())).thenReturn(Optional.of(districtRa));
+            when(caManagement.getCertificateChain(districtRa.getId()))
+                    .thenReturn(List.of("DISTRICT_CERT", "PROVINCIAL_CERT", "ROOT_CERT"));
 
             // When
             List<String> chain = caService.getCertificateChain(districtRa.getId());
 
             // Then
             assertNotNull(chain);
-            assertEquals(3, chain.size()); // District -> Provincial -> Root
+            assertEquals(3, chain.size());
+            verify(caManagement).getCertificateChain(districtRa.getId());
         }
 
         @Test
         @DisplayName("Should return single cert for Root CA")
         void shouldReturnSingleCertForRoot() {
             // Given
-            when(caRepository.findById(rootCa.getId())).thenReturn(Optional.of(rootCa));
+            when(caManagement.getCertificateChain(rootCa.getId()))
+                    .thenReturn(List.of("ROOT_CERT"));
 
             // When
             List<String> chain = caService.getCertificateChain(rootCa.getId());
@@ -178,10 +155,11 @@ class HierarchicalCaServiceTest {
         @DisplayName("Should return empty chain for non-existent CA")
         void shouldReturnEmptyForNonExistent() {
             // Given
-            when(caRepository.findById(any())).thenReturn(Optional.empty());
+            UUID randomId = UUID.randomUUID();
+            when(caManagement.getCertificateChain(randomId)).thenReturn(List.of());
 
             // When
-            List<String> chain = caService.getCertificateChain(UUID.randomUUID());
+            List<String> chain = caService.getCertificateChain(randomId);
 
             // Then
             assertTrue(chain.isEmpty());
@@ -195,21 +173,14 @@ class HierarchicalCaServiceTest {
         @Test
         @DisplayName("Should revoke CA and all subordinates")
         void shouldRevokeCaAndSubordinates() {
-            // Given - mock findById for ALL CAs that will be looked up (including recursive
-            // calls)
-            when(caRepository.findById(provincialCa.getId())).thenReturn(Optional.of(provincialCa));
-            when(caRepository.findById(districtRa.getId())).thenReturn(Optional.of(districtRa));
-            when(caRepository.findByParentCa(provincialCa)).thenReturn(List.of(districtRa));
-            when(caRepository.findByParentCa(districtRa)).thenReturn(List.of());
-            when(certRepository.findByIssuingCa(any())).thenReturn(List.of());
+            // Given - just verify delegation happens
+            doNothing().when(caManagement).revokeCa(provincialCa.getId(), "Security breach");
 
             // When
             caService.revokeCa(provincialCa.getId(), "Security breach");
 
             // Then
-            assertEquals(CaStatus.REVOKED, provincialCa.getStatus());
-            assertEquals(CaStatus.REVOKED, districtRa.getStatus());
-            verify(caRepository, times(2)).save(any()); // Provincial + District
+            verify(caManagement).revokeCa(provincialCa.getId(), "Security breach");
         }
 
         @Test
@@ -217,7 +188,7 @@ class HierarchicalCaServiceTest {
         void shouldThrowWhenCaNotFoundForRevocation() {
             // Given
             UUID randomId = UUID.randomUUID();
-            when(caRepository.findById(randomId)).thenReturn(Optional.empty());
+            doThrow(new RuntimeException("CA not found")).when(caManagement).revokeCa(randomId, "Test reason");
 
             // When/Then
             assertThrows(RuntimeException.class, () -> caService.revokeCa(randomId, "Test reason"));
@@ -232,25 +203,22 @@ class HierarchicalCaServiceTest {
         @DisplayName("Should return all subordinates recursively")
         void shouldReturnAllSubordinates() {
             // Given
-            when(caRepository.findById(rootCa.getId())).thenReturn(Optional.of(rootCa));
-            when(caRepository.findByParentCa(rootCa)).thenReturn(List.of(provincialCa));
-            when(caRepository.findByParentCa(provincialCa)).thenReturn(List.of(districtRa));
-            when(caRepository.findByParentCa(districtRa)).thenReturn(List.of());
+            when(caManagement.getAllSubordinates(rootCa.getId()))
+                    .thenReturn(List.of(provincialCa, districtRa));
 
             // When
             List<CertificateAuthority> subordinates = caService.getAllSubordinates(rootCa.getId());
 
             // Then
             assertEquals(2, subordinates.size());
-            assertTrue(subordinates.contains(provincialCa));
-            assertTrue(subordinates.contains(districtRa));
+            verify(caManagement).getAllSubordinates(rootCa.getId());
         }
 
         @Test
         @DisplayName("Should return CAs by level")
         void shouldReturnCasByLevel() {
             // Given
-            when(caRepository.findByHierarchyLevel(0)).thenReturn(List.of(rootCa));
+            when(caManagement.getCasByLevel(0)).thenReturn(List.of(rootCa));
 
             // When
             List<CertificateAuthority> roots = caService.getCasByLevel(0);

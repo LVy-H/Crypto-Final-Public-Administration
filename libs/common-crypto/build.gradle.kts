@@ -23,9 +23,10 @@ tasks.named<Jar>("jar") {
 
 dependencies {
     // Bouncy Castle with PQC support (ML-DSA/Dilithium, ML-KEM/Kyber, etc.)
-    api("org.bouncycastle:bcprov-jdk18on:1.78.1")
-    api("org.bouncycastle:bcpkix-jdk18on:1.78.1")
-    api("org.bouncycastle:bcutil-jdk18on:1.78.1")
+    // Updated to 1.83 for proper ML-DSA (FIPS 204) support
+    api("org.bouncycastle:bcprov-jdk18on:1.83")
+    api("org.bouncycastle:bcpkix-jdk18on:1.83")
+    api("org.bouncycastle:bcutil-jdk18on:1.83")
     
     // Spring Context for @Service annotation
     compileOnly("org.springframework:spring-context:6.2.1")

@@ -91,44 +91,6 @@ public class HierarchicalCaController {
     // ============ Subordinate CA Creation ============
 
     /**
-     * DEBUG: Initialize Root CA manually
-     * This is needed when bootstrapping a fresh system.
-     */
-    @PostMapping("/debug/init-root")
-    public ResponseEntity<Map<String, Object>> debugInitRootCa() {
-        try {
-            CertificateAuthority rootCa = caService.initializeRootCa("National Root CA");
-            return ResponseEntity.ok(Map.of(
-                    "id", rootCa.getId(),
-                    "name", rootCa.getName(),
-                    "algorithm", rootCa.getAlgorithm(),
-                    "status", rootCa.getStatus().name()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * Initialize Internal Services CA signed by Root CA (ML-DSA-65)
-     * Uses Bouncy Castle for pure Java PQC - no OpenSSL required.
-     */
-    @PostMapping("/internal/init")
-    public ResponseEntity<Map<String, Object>> initializeInternalCa() {
-        try {
-            CertificateAuthority internalCa = caService.initializeInternalCa();
-            return ResponseEntity.ok(Map.of(
-                    "id", internalCa.getId(),
-                    "name", internalCa.getName(),
-                    "algorithm", internalCa.getAlgorithm(),
-                    "parentCaId", internalCa.getParentCa().getId(),
-                    "validUntil", internalCa.getValidUntil().toString(),
-                    "status", internalCa.getStatus().name()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
      * Issue service certificate for mTLS (ML-DSA-65)
      */
     @PostMapping("/internal/issue")

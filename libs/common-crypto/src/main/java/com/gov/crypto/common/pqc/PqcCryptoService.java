@@ -2,7 +2,7 @@ package com.gov.crypto.common.pqc;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider;
-import org.bouncycastle.pqc.jcajce.spec.DilithiumParameterSpec;
+import org.bouncycastle.jcajce.spec.MLDSAParameterSpec;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AccessDescription;
 import org.bouncycastle.asn1.x509.AuthorityInformationAccess;
@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * Implements ML-DSA (FIPS 204) digital signature algorithm.
  * 
  * NAMING NOTE: Bouncy Castle uses "Dilithium" internally, which was the
- * competition name. The final NIST standard is "ML-DSA" (FIPS 204).
+ * competition name. The final NIST standard is level.getAlgorithmName() (FIPS 204).
  * 
  * Algorithm Mapping:
  * ML-DSA-44 (FIPS 204) = Dilithium2 (Bouncy Castle) = NIST Level 2
@@ -62,20 +62,20 @@ public class PqcCryptoService {
         /**
          * Supported ML-DSA (FIPS 204) algorithm levels.
          * 
-         * Maps FIPS 204 names to Bouncy Castle's internal Dilithium names.
+         * BC 1.79+ uses proper FIPS 204 ML-DSA naming.
          */
         public enum MlDsaLevel {
-                /** ML-DSA-44 = Dilithium2 (NIST Level 2, 128-bit security) */
-                ML_DSA_44("Dilithium2", DilithiumParameterSpec.dilithium2),
-                /** ML-DSA-65 = Dilithium3 (NIST Level 3, 192-bit security) */
-                ML_DSA_65("Dilithium3", DilithiumParameterSpec.dilithium3),
-                /** ML-DSA-87 = Dilithium5 (NIST Level 5, 256-bit security) */
-                ML_DSA_87("Dilithium5", DilithiumParameterSpec.dilithium5);
+                /** ML-DSA-44 (NIST Level 2, 128-bit security) */
+                ML_DSA_44("ML-DSA-44", MLDSAParameterSpec.ml_dsa_44),
+                /** ML-DSA-65 (NIST Level 3, 192-bit security) */
+                ML_DSA_65("ML-DSA-65", MLDSAParameterSpec.ml_dsa_65),
+                /** ML-DSA-87 (NIST Level 5, 256-bit security) */
+                ML_DSA_87("ML-DSA-87", MLDSAParameterSpec.ml_dsa_87);
 
                 private final String algorithmName;
-                private final DilithiumParameterSpec spec;
+                private final MLDSAParameterSpec spec;
 
-                MlDsaLevel(String algorithmName, DilithiumParameterSpec spec) {
+                MlDsaLevel(String algorithmName, MLDSAParameterSpec spec) {
                         this.algorithmName = algorithmName;
                         this.spec = spec;
                 }
@@ -84,7 +84,7 @@ public class PqcCryptoService {
                         return algorithmName;
                 }
 
-                public DilithiumParameterSpec getSpec() {
+                public MLDSAParameterSpec getSpec() {
                         return spec;
                 }
         }
@@ -95,7 +95,7 @@ public class PqcCryptoService {
         public KeyPair generateMlDsaKeyPair(MlDsaLevel level) throws Exception {
                 log.info("Generating ML-DSA key pair with level: {}", level);
 
-                KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Dilithium", "BCPQC");
+                KeyPairGenerator keyGen = KeyPairGenerator.getInstance(level.getAlgorithmName(), "BC");
                 keyGen.initialize(level.getSpec(), new SecureRandom());
 
                 KeyPair keyPair = keyGen.generateKeyPair();
@@ -143,7 +143,7 @@ public class PqcCryptoService {
                                                                 org.bouncycastle.asn1.x509.KeyUsage.cRLSign));
 
                 ContentSigner signer = new JcaContentSignerBuilder(level.getAlgorithmName())
-                                .setProvider("BCPQC")
+                                .setProvider("BC")
                                 .build(keyPair.getPrivate());
 
                 X509CertificateHolder certHolder = certBuilder.build(signer);
@@ -231,7 +231,7 @@ public class PqcCryptoService {
                 }
 
                 ContentSigner signer = new JcaContentSignerBuilder(level.getAlgorithmName())
-                                .setProvider("BCPQC")
+                                .setProvider("BC")
                                 .build(issuerPrivateKey);
 
                 X509CertificateHolder certHolder = certBuilder.build(signer);
@@ -317,7 +317,7 @@ public class PqcCryptoService {
                 }
 
                 ContentSigner signer = new JcaContentSignerBuilder(signingLevel.getAlgorithmName())
-                                .setProvider("BCPQC")
+                                .setProvider("BC")
                                 .build(issuerPrivateKey);
 
                 X509CertificateHolder certHolder = certBuilder.build(signer);
@@ -354,12 +354,12 @@ public class PqcCryptoService {
 
                 if (obj instanceof org.bouncycastle.openssl.PEMKeyPair keyPair) {
                         return new org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter()
-                                        .setProvider("BCPQC")
+                                        .setProvider("BC")
                                         .getKeyPair(keyPair)
                                         .getPrivate();
                 } else if (obj instanceof org.bouncycastle.asn1.pkcs.PrivateKeyInfo keyInfo) {
                         return new org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter()
-                                        .setProvider("BCPQC")
+                                        .setProvider("BC")
                                         .getPrivateKey(keyInfo);
                 }
                 throw new IllegalArgumentException("Not a valid private key PEM");
@@ -369,7 +369,7 @@ public class PqcCryptoService {
          * Sign data using ML-DSA private key
          */
         public byte[] sign(byte[] data, PrivateKey privateKey, MlDsaLevel level) throws Exception {
-                Signature signature = Signature.getInstance(level.getAlgorithmName(), "BCPQC");
+                Signature signature = Signature.getInstance(level.getAlgorithmName(), "BC");
                 signature.initSign(privateKey);
                 signature.update(data);
                 return signature.sign();
@@ -380,7 +380,7 @@ public class PqcCryptoService {
          */
         public boolean verify(byte[] data, byte[] signatureBytes, PublicKey publicKey, MlDsaLevel level)
                         throws Exception {
-                Signature signature = Signature.getInstance(level.getAlgorithmName(), "BCPQC");
+                Signature signature = Signature.getInstance(level.getAlgorithmName(), "BC");
                 signature.initVerify(publicKey);
                 signature.update(data);
                 return signature.verify(signatureBytes);
@@ -429,7 +429,7 @@ public class PqcCryptoService {
                                 subject, keyPair.getPublic());
 
                 ContentSigner signer = new JcaContentSignerBuilder(level.getAlgorithmName())
-                                .setProvider("BCPQC")
+                                .setProvider("BC")
                                 .build(keyPair.getPrivate());
 
                 return p10Builder.build(signer);
@@ -475,7 +475,7 @@ public class PqcCryptoService {
                 org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter converter = new org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter();
                 // Do not force provider, let JCA find the right one (BC for EC, BCPQC for
                 // Dilithium)
-                // .setProvider("BCPQC");
+                // .setProvider("BC");
                 return converter.getPublicKey(csr.getSubjectPublicKeyInfo());
         }
 
@@ -484,5 +484,28 @@ public class PqcCryptoService {
          */
         public String getSubjectDnFromCsr(PKCS10CertificationRequest csr) {
                 return csr.getSubject().toString();
+        }
+
+        /**
+         * Extract signature algorithm from CSR.
+         * Maps Bouncy Castle internal names to FIPS 204 standard names.
+         */
+        public String getAlgorithmFromCsr(PKCS10CertificationRequest csr) {
+                String algId = csr.getSignatureAlgorithm().getAlgorithm().getId();
+
+                // Map OIDs to standard FIPS 204 algorithm names
+                // Dilithium/ML-DSA OIDs from Bouncy Castle
+                return switch (algId) {
+                        case "1.3.6.1.4.1.2.267.7.4.4" -> "ML-DSA-44"; // Dilithium2
+                        case "1.3.6.1.4.1.2.267.7.6.5" -> "ML-DSA-65"; // Dilithium3
+                        case "1.3.6.1.4.1.2.267.7.8.7" -> "ML-DSA-87"; // Dilithium5
+                        case "1.2.840.10045.4.3.2" -> "SHA256withECDSA";
+                        case "1.2.840.10045.4.3.3" -> "SHA384withECDSA";
+                        case "1.2.840.10045.4.3.4" -> "SHA512withECDSA";
+                        default -> {
+                                log.warn("Unknown algorithm OID in CSR: {}", algId);
+                                yield null;
+                        }
+                };
         }
 }

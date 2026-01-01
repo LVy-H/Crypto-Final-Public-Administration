@@ -10,10 +10,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,8 +34,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * API/Controller tests for CA Authority endpoints.
  * Tests HTTP layer, request/response handling, and error responses.
+ * 
+ * Uses strict isolation via @ContextConfiguration to avoid loading the main
+ * app's broad ComponentScan.
  */
-@WebMvcTest(HierarchicalCaController.class)
+@WebMvcTest(controllers = HierarchicalCaController.class)
+@ContextConfiguration(classes = {
+        HierarchicalCaController.class,
+        HierarchicalCaControllerTest.TestConfig.class
+})
+@AutoConfigureMockMvc(addFilters = false)
 class HierarchicalCaControllerTest {
 
     @Autowired
@@ -38,8 +52,23 @@ class HierarchicalCaControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private HierarchicalCaService caService;
+
+    // With @ContextConfiguration isolating the context, we likely DON'T need to
+    // mock
+    // the transitive dependencies (TsaService, Repositories) because they won't be
+    // scanned!
+    // This is the cleanest solution.
+
+    @TestConfiguration
+    @EnableWebMvc
+    static class TestConfig {
+        @Bean
+        public ObjectMapper objectMapper() {
+            return new ObjectMapper();
+        }
+    }
 
     private CertificateAuthority rootCa;
     private CertificateAuthority provincialCa;
@@ -63,41 +92,6 @@ class HierarchicalCaControllerTest {
         ca.setValidFrom(LocalDateTime.now());
         ca.setValidUntil(LocalDateTime.now().plusYears(10));
         return ca;
-    }
-
-    @Nested
-    @DisplayName("POST /api/v1/ca/root/init - Initialize Root CA")
-    class InitRootCaTests {
-
-        @Test
-        @DisplayName("Should return 200 and root CA details on success")
-        void shouldInitRootCaSuccessfully() throws Exception {
-            // Given
-            when(caService.initializeRootCa(any())).thenReturn(rootCa);
-
-            // When/Then
-            mockMvc.perform(post("/api/v1/ca/root/init")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\": \"National PQC Root CA\"}"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.name").value("National Root CA"))
-                    .andExpect(jsonPath("$.algorithm").value("ML-DSA-87"))
-                    .andExpect(jsonPath("$.status").value("ACTIVE"));
-        }
-
-        @Test
-        @DisplayName("Should return 500 on service exception")
-        void shouldReturn500OnException() throws Exception {
-            // Given
-            when(caService.initializeRootCa(any())).thenThrow(new RuntimeException("OpenSSL not found"));
-
-            // When/Then
-            mockMvc.perform(post("/api/v1/ca/root/init")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"name\": \"Test CA\"}"))
-                    .andExpect(status().isInternalServerError())
-                    .andExpect(jsonPath("$.error").exists());
-        }
     }
 
     @Nested
