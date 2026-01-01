@@ -65,14 +65,20 @@ echo "Building container images..."
 
 # Build all service images
 # Build all service images
-SERVICES="api-gateway identity-service ca-authority cloud-sign validation-service public-portal signature-core admin-portal"
+SERVICES="api-gateway identity-service ca-authority cloud-sign validation-service public-portal signature-core"
 for svc in $SERVICES; do
     echo "  Building $svc..."
-    if [ -f "$SCRIPT_DIR/../services/$svc/Dockerfile" ]; then
-        docker build -f "$SCRIPT_DIR/../services/$svc/Dockerfile" -t "crypto-pqc/$svc:latest" "$SCRIPT_DIR/../services" || \
+    if [ -f "$SCRIPT_DIR/../../services/$svc/Dockerfile" ]; then
+        docker build -f "$SCRIPT_DIR/../../services/$svc/Dockerfile" -t "crypto-pqc/$svc:latest" "$SCRIPT_DIR/../../services" || \
         echo "    Warning: Build failed for $svc"
-    elif [ -f "$SCRIPT_DIR/../apps/$svc/Dockerfile" ]; then
-        docker build -t "crypto-pqc/$svc:latest" "$SCRIPT_DIR/../apps/$svc" || \
+    elif [ -f "$SCRIPT_DIR/../../core/$svc/Dockerfile" ]; then
+        docker build -t "crypto-pqc/$svc:latest" "$SCRIPT_DIR/../../core/$svc" || \
+        echo "    Warning: Build failed for $svc"
+    elif [ -f "$SCRIPT_DIR/../../rssp/$svc/Dockerfile" ]; then
+        docker build -t "crypto-pqc/$svc:latest" "$SCRIPT_DIR/../../rssp/$svc" || \
+        echo "    Warning: Build failed for $svc"
+    elif [ -f "$SCRIPT_DIR/../../apps/$svc/Dockerfile" ]; then
+        docker build -t "crypto-pqc/$svc:latest" "$SCRIPT_DIR/../../apps/$svc" || \
         echo "    Warning: Build failed for $svc"
     else
         echo "    Warning: Could not find Dockerfile for $svc"

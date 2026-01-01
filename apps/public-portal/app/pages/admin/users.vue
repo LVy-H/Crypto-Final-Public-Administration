@@ -52,7 +52,7 @@ const search = ref('')
 const users = ref([])
 const loading = ref(true)
 
-const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 const filteredUsers = computed(() => {
   if (!search.value) return users.value

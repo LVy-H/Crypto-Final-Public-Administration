@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 
 @RestController
-@RequestMapping("/credentials/totp")
+@RequestMapping("/api/v1/credentials/totp")
 public class TotpController {
 
     private final TotpService totpService;
@@ -40,6 +40,28 @@ public class TotpController {
         return ResponseEntity.ok(new TotpSetupResponse(secret, qrUri));
     }
 
-    // Helper record for response
-    public record TotpSetupResponse(String secret, String qrUri) {}
+    public record TotpSetupResponse(String secret, String qrUri) {
+    }
+
+    public record TotpVerifyRequest(String username, String code) {
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyTotp(@RequestBody TotpVerifyRequest request) {
+        return userTotpRepository.findByUsername(request.username())
+                .map(totp -> {
+                    try {
+                        int code = Integer.parseInt(request.code());
+                        boolean valid = totpService.verifyCode(totp.getSecretKey(), code);
+                        if (valid) {
+                            return ResponseEntity.ok().build();
+                        } else {
+                            return ResponseEntity.badRequest().body("Invalid Code");
+                        }
+                    } catch (NumberFormatException e) {
+                        return ResponseEntity.badRequest().body("Invalid Code Format");
+                    }
+                })
+                .orElse(ResponseEntity.status(404).body("TOTP not set up"));
+    }
 }

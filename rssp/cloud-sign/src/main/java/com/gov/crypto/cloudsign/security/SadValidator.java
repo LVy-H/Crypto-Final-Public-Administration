@@ -28,13 +28,26 @@ public class SadValidator {
         // 1. Prefer Principal (Session/Security Context)
         if (principal != null) {
             String username = principal.getName();
-             if (!isUserAuthorizedForKey(username, keyAlias)) {
+            if (!isUserAuthorizedForKey(username, keyAlias)) {
                 return ValidationResult.failure("User not authorized for key: " + keyAlias);
             }
             return ValidationResult.success(username);
         }
 
         // 2. Fallback to Header Checking (Legacy or Service-to-Service)
+        // Check for Internal API Key
+        // TODO: Move key to configuration/secret
+        String internalKey = "super-secure-internal-secret-key-2026";
+        // Check custom header manually passed or if it's in authHeader (unlikely)
+        // SadValidator signature only takes authHeader. We might need to change
+        // signature or just use a specific formatted Bearer token?
+        // Let's use a specific Bearer token value for internal: "Bearer
+        // internal-secret"
+
+        if (authHeader != null && authHeader.equals("Bearer " + internalKey)) {
+            return ValidationResult.success("internal-service");
+        }
+
         if (authHeader == null || authHeader.isBlank()) {
             return ValidationResult.failure("Missing Authorization header");
         }

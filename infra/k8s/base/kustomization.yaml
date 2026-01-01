@@ -30,9 +30,18 @@ labels:
 
 configMapGenerator:
   - name: crypto-config
-    behavior: merge
     literals:
       - SPRING_PROFILES_ACTIVE=kubernetes
+      - SERVICE_CA_AUTHORITY_URL=http://ca-authority:8082
+      - SERVICE_CLOUD_SIGN_URL=http://cloud-sign:8084
+      - SERVICE_RA_SERVICE_URL=http://ca-authority:8082
+      - SERVICE_VALIDATION_URL=http://validation-service:8085
+      - SERVICE_IDENTITY_URL=http://identity-service:8081
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=crypto_db
+      - LOGGING_LEVEL_ROOT=INFO
+      - LOGGING_LEVEL_COM_GOV_CRYPTO=DEBUG
 
 # Secrets managed via Kustomize (Audit 2.2)
 # Reads from .env file (gitignored) - copy .env.example to .env

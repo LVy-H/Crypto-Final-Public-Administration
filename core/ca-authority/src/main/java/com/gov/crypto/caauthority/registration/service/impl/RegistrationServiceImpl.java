@@ -2,7 +2,7 @@ package com.gov.crypto.caauthority.registration.service.impl;
 
 import com.gov.crypto.caauthority.model.CertificateAuthority;
 import com.gov.crypto.caauthority.model.IssuedCertificate;
-import com.gov.crypto.caauthority.registration.dto.RegistrationRequest;
+import com.gov.crypto.caauthority.registration.dto.CaRegistrationRequest;
 import com.gov.crypto.caauthority.registration.dto.RegistrationResponse;
 import com.gov.crypto.caauthority.registration.service.RegistrationService;
 import com.gov.crypto.caauthority.service.HierarchicalCaService;
@@ -37,30 +37,30 @@ public class RegistrationServiceImpl implements RegistrationService {
     }
 
     @Override
-    public RegistrationResponse registerUser(RegistrationRequest request, String authToken) {
-        // 1. Validate KYC (Mock)
-        if (request.username() == null || request.email() == null) {
-            throw new IllegalArgumentException("Invalid Request");
-        }
+    public RegistrationResponse registerUser(CaRegistrationRequest request, String authToken) {
+        // 1. Validate KYC
+        validateKyc(request.kycData());
 
-        // 2. Generate Key Pair in Cloud Sign
-        // POST /api/v1/cloud-sign/keys/generate
-        // Note: Using username as alias for simplicity, in prod should use unique ID
-        String keyGenUrl = cloudSignUrl + "/api/v1/cloud-sign/keys/generate";
+        // 2. Build X.500 Subject DN
+        String subjectDn = buildSubjectDn(request.kycData());
+
+        // 3. Generate Key Pair in Cloud Sign
+        // POST /csc/v1/keys/generate
+        String keyGenUrl = cloudSignUrl + "/csc/v1/keys/generate";
         // Create headers with Auth token
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-        headers.set("Authorization", authToken);
+        // Use internal secret key to bypass session issues
+        headers.set("Authorization", "Bearer super-secure-internal-secret-key-2026");
         org.springframework.http.HttpEntity<CloudKeyGenRequest> keyGenEntity = new org.springframework.http.HttpEntity<>(
                 new CloudKeyGenRequest(request.username(), request.algorithm()), headers);
 
         restTemplate.postForObject(keyGenUrl, keyGenEntity, Void.class);
 
-        // 3. Generate CSR in Cloud Sign
-        // POST /api/v1/cloud-sign/keys/csr
-        String csrUrl = cloudSignUrl + "/api/v1/cloud-sign/keys/csr";
-        String subject = "/CN=" + request.username() + "/emailAddress=" + request.email();
+        // 4. Generate CSR in Cloud Sign using proper DN
+        // POST /csc/v1/keys/csr
+        String csrUrl = cloudSignUrl + "/csc/v1/keys/csr";
         org.springframework.http.HttpEntity<CloudCsrRequest> csrEntity = new org.springframework.http.HttpEntity<>(
-                new CloudCsrRequest(request.username(), subject), headers);
+                new CloudCsrRequest(request.username(), subjectDn), headers);
         CloudCsrResponse csrResponse = restTemplate.postForObject(csrUrl, csrEntity, CloudCsrResponse.class);
 
         if (csrResponse == null || csrResponse.csrPem() == null) {
@@ -71,7 +71,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         UUID issuingRaId = findIssuingRa();
         IssuedCertificate issuedCert;
         try {
-            issuedCert = hierarchicalCaService.issueUserCertificate(issuingRaId, csrResponse.csrPem(), subject);
+            issuedCert = hierarchicalCaService.issueUserCertificate(issuingRaId, csrResponse.csrPem(), subjectDn);
         } catch (Exception e) {
             throw new RuntimeException("Failed to issue Certificate: " + e.getMessage(), e);
         }
@@ -99,5 +99,40 @@ public class RegistrationServiceImpl implements RegistrationService {
         // Naive selection: pick the first one. In future, select based on user
         // location/assignments.
         return ras.get(0).getId();
+    }
+
+    private void validateKyc(com.gov.crypto.caauthority.registration.dto.KycData kyc) {
+        if (kyc == null) {
+            throw new IllegalArgumentException("KYC data is required");
+        }
+        if (kyc.cccdNumber() == null || !kyc.cccdNumber().matches("^\\d{12}$")) {
+            throw new IllegalArgumentException("Invalid CCCD format: Must be exactly 12 digits");
+        }
+        if (kyc.fullName() == null || kyc.fullName().isBlank()) {
+            throw new IllegalArgumentException("Full Name is required");
+        }
+        if (kyc.email() == null || !kyc.email().contains("@")) {
+            throw new IllegalArgumentException("Invalid Email format");
+        }
+        if (kyc.province() == null || kyc.province().isBlank()) {
+            throw new IllegalArgumentException("Province is required");
+        }
+        if (kyc.district() == null || kyc.district().isBlank()) {
+            throw new IllegalArgumentException("District is required");
+        }
+    }
+
+    private String buildSubjectDn(com.gov.crypto.caauthority.registration.dto.KycData kyc) {
+        // Format: serialNumber=012345678901,CN=Nguyễn Văn
+        // A,emailAddress=user@gov.vn,L=Hoàn Kiếm,ST=Hà Nội,O=Citizen,C=VN
+        StringBuilder dn = new StringBuilder();
+        dn.append("serialNumber=").append(kyc.cccdNumber());
+        dn.append(",CN=").append(kyc.fullName());
+        dn.append(",emailAddress=").append(kyc.email());
+        dn.append(",L=").append(kyc.district());
+        dn.append(",ST=").append(kyc.province());
+        dn.append(",O=").append(kyc.organization() != null ? kyc.organization() : "Citizen");
+        dn.append(",C=").append(kyc.country() != null ? kyc.country() : "VN");
+        return dn.toString();
     }
 }

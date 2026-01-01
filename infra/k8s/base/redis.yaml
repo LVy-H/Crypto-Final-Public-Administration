@@ -79,6 +79,9 @@ spec:
         - podSelector:
             matchLabels:
               app: ca-authority
+        - podSelector:
+            matchLabels:
+              app: cloud-sign
       ports:
         - protocol: TCP
           port: 6379

@@ -1,0 +1,1000 @@
+      Did not match:
+         - @ConditionalOnAvailableEndpoint not exposed (OnAvailableEndpointCondition)
+
+   MailHealthContributorAutoConfiguration:
+      Did not match:
+         - @ConditionalOnBean (types: org.springframework.mail.javamail.JavaMailSenderImpl; SearchStrategy: all) did not find any beans of type org.springframework.mail.javamail.JavaMailSenderImpl (OnBeanCondition)
+      Matched:
+         - @ConditionalOnClass found required class 'org.springframework.mail.javamail.JavaMailSenderImpl' (OnClassCondition)
+         - @ConditionalOnEnabledHealthIndicator management.health.defaults.enabled is considered true (OnEnabledHealthIndicatorCondition)
+
+   MailSenderAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'jakarta.mail.internet.MimeMessage' (OnClassCondition)
+
+   MailSenderValidatorAutoConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.mail.test-connection) did not find property 'test-connection' (OnPropertyCondition)
+
+   ManagementContextAutoConfiguration.DifferentManagementContextConfiguration:
+      Did not match:
+         - Management Port actual port type (SAME) did not match required type (DIFFERENT) (OnManagementPortCondition)
+
+   ManagementWebSecurityAutoConfiguration:
+      Did not match:
+         - AllNestedConditions 1 matched 1 did not; NestedCondition on DefaultWebSecurityCondition.Beans @ConditionalOnMissingBean (types: org.springframework.security.web.SecurityFilterChain; SearchStrategy: all) found beans of type 'org.springframework.security.web.SecurityFilterChain' securityFilterChain; NestedCondition on DefaultWebSecurityCondition.Classes @ConditionalOnClass found required classes 'org.springframework.security.web.SecurityFilterChain', 'org.springframework.security.config.annotation.web.builders.HttpSecurity' (DefaultWebSecurityCondition)
+      Matched:
+         - found 'session' scope (OnWebApplicationCondition)
+
+   MappingsEndpointAutoConfiguration:
+      Did not match:
+         - @ConditionalOnAvailableEndpoint not exposed (OnAvailableEndpointCondition)
+
+   MessageSourceAutoConfiguration:
+      Did not match:
+         - ResourceBundle did not find bundle with basename messages (MessageSourceAutoConfiguration.ResourceBundleCondition)
+
+   MetricsAspectsAutoConfiguration:
+      Did not match:
+         - AnyNestedCondition 0 matched 2 did not; NestedCondition on MetricsAspectsAutoConfiguration.ObservationAnnotationsEnabledCondition.ManagementObservationsEnabledCondition @ConditionalOnProperty (management.observations.annotations.enabled=true) did not find property 'enabled'; NestedCondition on MetricsAspectsAutoConfiguration.ObservationAnnotationsEnabledCondition.MicrometerObservationsEnabledCondition @ConditionalOnProperty (micrometer.observations.annotations.enabled=true) did not find property 'enabled' (MetricsAspectsAutoConfiguration.ObservationAnnotationsEnabledCondition)
+      Matched:
+         - @ConditionalOnClass found required classes 'io.micrometer.core.instrument.MeterRegistry', 'org.aspectj.weaver.Advice' (OnClassCondition)
+
+   MetricsEndpointAutoConfiguration:
+      Did not match:
+         - @ConditionalOnAvailableEndpoint not exposed (OnAvailableEndpointCondition)
+      Matched:
+         - @ConditionalOnClass found required class 'io.micrometer.core.annotation.Timed' (OnClassCondition)
+
+   MicrometerTracingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.tracing.Tracer' (OnClassCondition)
+
+   MongoAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.client.MongoClient' (OnClassCondition)
+
+   MongoDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.client.MongoClient' (OnClassCondition)
+
+   MongoHealthContributorAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.mongodb.core.MongoTemplate' (OnClassCondition)
+
+   MongoMetricsAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.MongoClientSettings' (OnClassCondition)
+
+   MongoReactiveAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.reactivestreams.client.MongoClient' (OnClassCondition)
+
+   MongoReactiveDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.reactivestreams.client.MongoClient' (OnClassCondition)
+
+   MongoReactiveHealthContributorAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.mongodb.core.ReactiveMongoTemplate' (OnClassCondition)
+
+   MongoReactiveRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.reactivestreams.client.MongoClient' (OnClassCondition)
+
+   MongoRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.client.MongoClient' (OnClassCondition)
+
+   MongoSessionConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'org.springframework.data.mongodb.core.MongoOperations', 'org.springframework.session.data.mongo.MongoIndexedSessionRepository' (OnClassCondition)
+
+   MustacheAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.samskivert.mustache.Mustache' (OnClassCondition)
+
+   Neo4jAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   Neo4jDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   Neo4jHealthContributorAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   Neo4jReactiveDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   Neo4jReactiveRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   Neo4jRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   NewRelicMetricsExportAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.newrelic.NewRelicMeterRegistry' (OnClassCondition)
+
+   NoOpMeterRegistryConfiguration:
+      Did not match:
+         - @ConditionalOnMissingBean (types: io.micrometer.core.instrument.MeterRegistry; SearchStrategy: all) found beans of type 'io.micrometer.core.instrument.MeterRegistry' simpleMeterRegistry (OnBeanCondition)
+
+   NoopTracerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.tracing.Tracer' (OnClassCondition)
+
+   OAuth2AuthorizationServerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.oauth2.server.authorization.OAuth2Authorization' (OnClassCondition)
+
+   OAuth2AuthorizationServerJwtAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.oauth2.server.authorization.OAuth2Authorization' (OnClassCondition)
+
+   OAuth2ClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.oauth2.client.registration.ClientRegistration' (OnClassCondition)
+
+   OAuth2ResourceServerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken' (OnClassCondition)
+
+   ObservationAutoConfiguration.MeterObservationHandlerConfiguration.TracingAndMetricsObservationHandlerConfiguration:
+      Did not match:
+         - @ConditionalOnBean did not find required type 'io.micrometer.tracing.Tracer' (OnBeanCondition)
+         - @ConditionalOnBean (types: io.micrometer.tracing.Tracer; SearchStrategy: all) did not find any beans of type io.micrometer.tracing.Tracer (OnBeanCondition)
+
+   ObservationAutoConfiguration.MetricsWithTracingConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.tracing.Tracer' (OnClassCondition)
+
+   ObservationAutoConfiguration.OnlyTracingConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.tracing.Tracer' (OnClassCondition)
+
+   OpenTelemetryAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.opentelemetry.sdk.OpenTelemetrySdk' (OnClassCondition)
+
+   OpenTelemetryLoggingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.opentelemetry.api.OpenTelemetry' (OnClassCondition)
+
+   OpenTelemetryTracingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.tracing.otel.bridge.OtelTracer' (OnClassCondition)
+
+   OtlpLoggingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.opentelemetry.api.OpenTelemetry' (OnClassCondition)
+
+   OtlpMetricsExportAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.registry.otlp.OtlpMeterRegistry' (OnClassCondition)
+
+   OtlpTracingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.tracing.otel.bridge.OtelTracer' (OnClassCondition)
+
+   ProjectInfoAutoConfiguration#buildProperties:
+      Did not match:
+         - @ConditionalOnResource did not find resource '${spring.info.build.location:classpath:META-INF/build-info.properties}' (OnResourceCondition)
+
+   ProjectInfoAutoConfiguration#gitProperties:
+      Did not match:
+         - GitResource did not find git info at classpath:git.properties (ProjectInfoAutoConfiguration.GitResourceAvailableCondition)
+
+   PrometheusExemplarsAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.tracing.Tracer' (OnClassCondition)
+
+   PrometheusMetricsExportAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.prometheusmetrics.PrometheusMeterRegistry' (OnClassCondition)
+
+   PrometheusSimpleclientExemplarsAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.tracing.Tracer' (OnClassCondition)
+
+   PrometheusSimpleclientMetricsExportAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.prometheus.PrometheusMeterRegistry' (OnClassCondition)
+
+   PulsarAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.apache.pulsar.client.api.PulsarClient' (OnClassCondition)
+
+   PulsarReactiveAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.apache.pulsar.client.api.PulsarClient' (OnClassCondition)
+
+   QuartzAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.quartz.Scheduler' (OnClassCondition)
+
+   QuartzEndpointAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.quartz.Scheduler' (OnClassCondition)
+
+   R2dbcAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.r2dbc.spi.ConnectionFactory' (OnClassCondition)
+
+   R2dbcDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.r2dbc.core.R2dbcEntityTemplate' (OnClassCondition)
+
+   R2dbcInitializationConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'io.r2dbc.spi.ConnectionFactory', 'org.springframework.r2dbc.connection.init.DatabasePopulator' (OnClassCondition)
+
+   R2dbcObservationAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.r2dbc.proxy.ProxyConnectionFactory' (OnClassCondition)
+
+   R2dbcProxyAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.r2dbc.proxy.ProxyConnectionFactory' (OnClassCondition)
+
+   R2dbcRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.r2dbc.spi.ConnectionFactory' (OnClassCondition)
+
+   R2dbcTransactionManagerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.r2dbc.connection.R2dbcTransactionManager' (OnClassCondition)
+
+   RSocketGraphQlClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   RSocketMessagingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.rsocket.RSocket' (OnClassCondition)
+
+   RSocketRequesterAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.rsocket.RSocket' (OnClassCondition)
+
+   RSocketSecurityAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.rsocket.core.SecuritySocketAcceptorInterceptor' (OnClassCondition)
+
+   RSocketServerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.rsocket.core.RSocketServer' (OnClassCondition)
+
+   RSocketStrategiesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.rsocket.RSocket' (OnClassCondition)
+
+   RabbitAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.rabbitmq.client.Channel' (OnClassCondition)
+
+   RabbitHealthContributorAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.amqp.rabbit.core.RabbitTemplate' (OnClassCondition)
+
+   RabbitMetricsAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.rabbitmq.client.ConnectionFactory' (OnClassCondition)
+
+   ReactiveCloudFoundryActuatorAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   ReactiveElasticsearchClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'co.elastic.clients.transport.ElasticsearchTransport' (OnClassCondition)
+
+   ReactiveElasticsearchRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.elasticsearch.client.elc.ReactiveElasticsearchClient' (OnClassCondition)
+
+   ReactiveManagementContextAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   ReactiveManagementWebSecurityAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   ReactiveMultipartAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFluxConfigurer' (OnClassCondition)
+
+   ReactiveOAuth2ClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.oauth2.client.registration.ClientRegistration' (OnClassCondition)
+
+   ReactiveOAuth2ResourceServerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   ReactiveSecurityAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFluxConfigurer' (OnClassCondition)
+
+   ReactiveUserDetailsServiceAutoConfiguration:
+      Did not match:
+         - AnyNestedCondition 0 matched 2 did not; NestedCondition on ReactiveUserDetailsServiceAutoConfiguration.RSocketEnabledOrReactiveWebApplication.ReactiveWebApplicationCondition did not find reactive web application classes; NestedCondition on ReactiveUserDetailsServiceAutoConfiguration.RSocketEnabledOrReactiveWebApplication.RSocketSecurityEnabledCondition @ConditionalOnBean (types: org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler; SearchStrategy: all) did not find any beans of type org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler (ReactiveUserDetailsServiceAutoConfiguration.RSocketEnabledOrReactiveWebApplication)
+      Matched:
+         - @ConditionalOnClass found required class 'org.springframework.security.authentication.ReactiveAuthenticationManager' (OnClassCondition)
+         - AnyNestedCondition 1 matched 2 did not; NestedCondition on ReactiveUserDetailsServiceAutoConfiguration.MissingAlternativeOrUserPropertiesConfigured.PasswordConfigured @ConditionalOnProperty (spring.security.user.password) did not find property 'password'; NestedCondition on ReactiveUserDetailsServiceAutoConfiguration.MissingAlternativeOrUserPropertiesConfigured.NameConfigured @ConditionalOnProperty (spring.security.user.name) did not find property 'name'; NestedCondition on ReactiveUserDetailsServiceAutoConfiguration.MissingAlternativeOrUserPropertiesConfigured.MissingAlternative @ConditionalOnMissingClass did not find unwanted classes 'org.springframework.security.oauth2.client.registration.ClientRegistrationRepository', 'org.springframework.security.oauth2.server.resource.introspection.ReactiveOpaqueTokenIntrospector' (ReactiveUserDetailsServiceAutoConfiguration.MissingAlternativeOrUserPropertiesConfigured)
+
+   ReactiveWebServerFactoryAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   RedisHealthContributorAutoConfiguration#redisHealthContributor:
+      Did not match:
+         - @ConditionalOnMissingBean (names: redisHealthIndicator,redisHealthContributor; SearchStrategy: all) found beans named redisHealthContributor (OnBeanCondition)
+
+   RedisSessionConfiguration.IndexedRedisSessionConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.session.redis.repository-type=indexed) did not find property 'repository-type' (OnPropertyCondition)
+
+   RepositoryRestMvcAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration' (OnClassCondition)
+
+   Saml2RelyingPartyAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository' (OnClassCondition)
+
+   SbomEndpointAutoConfiguration:
+      Did not match:
+         - @ConditionalOnAvailableEndpoint not exposed (OnAvailableEndpointCondition)
+
+   ScheduledTasksEndpointAutoConfiguration:
+      Did not match:
+         - @ConditionalOnAvailableEndpoint not exposed (OnAvailableEndpointCondition)
+
+   SecurityDataConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.data.repository.query.SecurityEvaluationContextExtension' (OnClassCondition)
+
+   SecurityRequestMatchersManagementContextConfiguration.JerseyRequestMatcherConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.glassfish.jersey.server.ResourceConfig' (OnClassCondition)
+
+   SendGridAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.sendgrid.SendGrid' (OnClassCondition)
+
+   ServletEndpointManagementContextConfiguration.JerseyServletEndpointManagementContextConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.glassfish.jersey.server.ResourceConfig' (OnClassCondition)
+
+   ServletManagementContextAutoConfiguration.ApplicationContextFilterConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (management.server.add-application-context-header=true) did not find property 'add-application-context-header' (OnPropertyCondition)
+
+   ServletWebServerFactoryAutoConfiguration.ForwardedHeaderFilterConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (server.forward-headers-strategy=framework) did not find property 'server.forward-headers-strategy' (OnPropertyCondition)
+
+   ServletWebServerFactoryConfiguration.EmbeddedJetty:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'org.eclipse.jetty.server.Server', 'org.eclipse.jetty.util.Loader', 'org.eclipse.jetty.ee10.webapp.WebAppContext' (OnClassCondition)
+
+   ServletWebServerFactoryConfiguration.EmbeddedUndertow:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'io.undertow.Undertow', 'org.xnio.SslClientAuthMode' (OnClassCondition)
+
+   SessionAutoConfiguration.ReactiveSessionConfiguration:
+      Did not match:
+         - did not find reactive web application classes (OnWebApplicationCondition)
+
+   SessionAutoConfiguration.ServletSessionConfiguration.ServletSessionRepositoryConfiguration:
+      Did not match:
+         - @ConditionalOnMissingBean (types: org.springframework.session.SessionRepository; SearchStrategy: all) found beans of type 'org.springframework.session.SessionRepository' sessionRepository (OnBeanCondition)
+
+   SessionsEndpointAutoConfiguration:
+      Did not match:
+         - @ConditionalOnAvailableEndpoint not exposed (OnAvailableEndpointCondition)
+      Matched:
+         - @ConditionalOnClass found required class 'org.springframework.session.Session' (OnClassCondition)
+
+   ShutdownEndpointAutoConfiguration:
+      Did not match:
+         - @ConditionalOnAvailableEndpoint the configured access for endpoint 'shutdown' is NONE (OnAvailableEndpointCondition)
+
+   SignalFxMetricsExportAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.signalfx.SignalFxMeterRegistry' (OnClassCondition)
+
+   SpringApplicationAdminJmxAutoConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.application.admin.enabled=true) did not find property 'enabled' (OnPropertyCondition)
+
+   SpringBootWebSecurityConfiguration.SecurityFilterChainConfiguration:
+      Did not match:
+         - AllNestedConditions 1 matched 1 did not; NestedCondition on DefaultWebSecurityCondition.Beans @ConditionalOnMissingBean (types: org.springframework.security.web.SecurityFilterChain; SearchStrategy: all) found beans of type 'org.springframework.security.web.SecurityFilterChain' securityFilterChain; NestedCondition on DefaultWebSecurityCondition.Classes @ConditionalOnClass found required classes 'org.springframework.security.web.SecurityFilterChain', 'org.springframework.security.config.annotation.web.builders.HttpSecurity' (DefaultWebSecurityCondition)
+
+   SpringBootWebSecurityConfiguration.WebSecurityEnablerConfiguration:
+      Did not match:
+         - @ConditionalOnMissingBean (names: springSecurityFilterChain; SearchStrategy: all) found beans named springSecurityFilterChain (OnBeanCondition)
+      Matched:
+         - @ConditionalOnClass found required class 'org.springframework.security.config.annotation.web.configuration.EnableWebSecurity' (OnClassCondition)
+
+   StackdriverMetricsExportAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.stackdriver.StackdriverMeterRegistry' (OnClassCondition)
+
+   StartupEndpointAutoConfiguration:
+      Did not match:
+         - ApplicationStartup configured applicationStartup is of type class org.springframework.core.metrics.DefaultApplicationStartup, expected BufferingApplicationStartup. (StartupEndpointAutoConfiguration.ApplicationStartupCondition)
+
+   StatsdMetricsExportAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.micrometer.statsd.StatsdMeterRegistry' (OnClassCondition)
+
+   TaskExecutorConfigurations.SimpleAsyncTaskExecutorBuilderConfiguration#simpleAsyncTaskExecutorBuilderVirtualThreads:
+      Did not match:
+         - @ConditionalOnMissingBean (types: org.springframework.boot.task.SimpleAsyncTaskExecutorBuilder; SearchStrategy: all) found beans of type 'org.springframework.boot.task.SimpleAsyncTaskExecutorBuilder' simpleAsyncTaskExecutorBuilder (OnBeanCondition)
+
+   TaskExecutorConfigurations.TaskExecutorConfiguration#applicationTaskExecutorVirtualThreads:
+      Did not match:
+         - @ConditionalOnThreading did not find VIRTUAL (OnThreadingCondition)
+
+   TaskSchedulingAutoConfiguration#scheduledBeanLazyInitializationExcludeFilter:
+      Did not match:
+         - @ConditionalOnBean (names: org.springframework.context.annotation.internalScheduledAnnotationProcessor; SearchStrategy: all) did not find any beans named org.springframework.context.annotation.internalScheduledAnnotationProcessor (OnBeanCondition)
+
+   TaskSchedulingConfigurations.SimpleAsyncTaskSchedulerBuilderConfiguration#simpleAsyncTaskSchedulerBuilderVirtualThreads:
+      Did not match:
+         - @ConditionalOnMissingBean (types: org.springframework.boot.task.SimpleAsyncTaskSchedulerBuilder; SearchStrategy: all) found beans of type 'org.springframework.boot.task.SimpleAsyncTaskSchedulerBuilder' simpleAsyncTaskSchedulerBuilder (OnBeanCondition)
+
+   TaskSchedulingConfigurations.TaskSchedulerConfiguration:
+      Did not match:
+         - @ConditionalOnBean (names: org.springframework.context.annotation.internalScheduledAnnotationProcessor; SearchStrategy: all) did not find any beans named org.springframework.context.annotation.internalScheduledAnnotationProcessor (OnBeanCondition)
+
+   ThreadDumpEndpointAutoConfiguration:
+      Did not match:
+         - @ConditionalOnAvailableEndpoint not exposed (OnAvailableEndpointCondition)
+
+   ThymeleafAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.thymeleaf.spring6.SpringTemplateEngine' (OnClassCondition)
+
+   TransactionAutoConfiguration#transactionalOperator:
+      Did not match:
+         - @ConditionalOnSingleCandidate (types: org.springframework.transaction.ReactiveTransactionManager; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TransactionAutoConfiguration.AspectJTransactionManagementConfiguration:
+      Did not match:
+         - @ConditionalOnBean (types: org.springframework.transaction.aspectj.AbstractTransactionAspect; SearchStrategy: all) did not find any beans of type org.springframework.transaction.aspectj.AbstractTransactionAspect (OnBeanCondition)
+
+   TransactionAutoConfiguration.EnableTransactionManagementConfiguration.JdkDynamicAutoProxyConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.aop.proxy-target-class=false) did not find property 'proxy-target-class' (OnPropertyCondition)
+
+   ValidationAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'jakarta.validation.executable.ExecutableValidator' (OnClassCondition)
+
+   WavefrontAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.wavefront.sdk.common.application.ApplicationTags' (OnClassCondition)
+
+   WavefrontMetricsExportAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.wavefront.sdk.common.WavefrontSender' (OnClassCondition)
+
+   WavefrontTracingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.wavefront.sdk.common.WavefrontSender' (OnClassCondition)
+
+   WebClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.function.client.WebClient' (OnClassCondition)
+
+   WebClientObservationConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.function.client.WebClient' (OnClassCondition)
+
+   WebFluxAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFluxConfigurer' (OnClassCondition)
+
+   WebFluxEndpointManagementContextConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.DispatcherHandler' (OnClassCondition)
+
+   WebFluxObservationAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   WebMvcAutoConfiguration#hiddenHttpMethodFilter:
+      Did not match:
+         - @ConditionalOnProperty (spring.mvc.hiddenmethod.filter.enabled) did not find property 'enabled' (OnPropertyCondition)
+
+   WebMvcAutoConfiguration.ProblemDetailsErrorHandlingConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.mvc.problemdetails.enabled=true) did not find property 'enabled' (OnPropertyCondition)
+
+   WebMvcAutoConfiguration.ResourceChainCustomizerConfiguration:
+      Did not match:
+         - @ConditionalOnEnabledResourceChain did not find class org.webjars.WebJarVersionLocator (OnEnabledResourceChainCondition)
+
+   WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter#beanNameViewResolver:
+      Did not match:
+         - @ConditionalOnMissingBean (types: org.springframework.web.servlet.view.BeanNameViewResolver; SearchStrategy: all) found beans of type 'org.springframework.web.servlet.view.BeanNameViewResolver' beanNameViewResolver (OnBeanCondition)
+
+   WebMvcEndpointManagementContextConfiguration#managementHealthEndpointWebMvcHandlerMapping:
+      Did not match:
+         - Management Port actual port type (SAME) did not match required type (DIFFERENT) (OnManagementPortCondition)
+
+   WebServiceTemplateAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.ws.client.core.WebServiceTemplate' (OnClassCondition)
+
+   WebServicesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.ws.transport.http.MessageDispatcherServlet' (OnClassCondition)
+
+   WebSessionIdResolverAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   WebSocketMessagingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer' (OnClassCondition)
+
+   WebSocketReactiveAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   WebSocketServletAutoConfiguration.JettyWebSocketConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer' (OnClassCondition)
+
+   WebSocketServletAutoConfiguration.UndertowWebSocketConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.undertow.websockets.jsr.Bootstrap' (OnClassCondition)
+
+   XADataSourceAutoConfiguration:
+      Did not match:
+         - @ConditionalOnBean (types: org.springframework.boot.jdbc.XADataSourceWrapper; SearchStrategy: all) did not find any beans of type org.springframework.boot.jdbc.XADataSourceWrapper (OnBeanCondition)
+      Matched:
+         - @ConditionalOnClass found required classes 'javax.sql.DataSource', 'jakarta.transaction.TransactionManager', 'org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType' (OnClassCondition)
+
+   ZipkinAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'zipkin2.reporter.Encoding' (OnClassCondition)
+
+
+Exclusions:
+-----------
+
+    None
+
+
+Unconditional classes:
+----------------------
+
+    org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration
+
+    org.springframework.boot.actuate.autoconfigure.availability.AvailabilityHealthContributorAutoConfiguration
+
+    org.springframework.boot.autoconfigure.ssl.SslAutoConfiguration
+
+    org.springframework.boot.actuate.autoconfigure.info.InfoContributorAutoConfiguration
+
+    org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration
+
+    org.springframework.boot.autoconfigure.context.LifecycleAutoConfiguration
+
+    org.springframework.boot.actuate.autoconfigure.metrics.integration.IntegrationMetricsAutoConfiguration
+
+    org.springframework.boot.actuate.autoconfigure.endpoint.EndpointAutoConfiguration
+
+    org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration
+
+    org.springframework.boot.actuate.autoconfigure.health.HealthContributorAutoConfiguration
+
+    org.springframework.boot.actuate.autoconfigure.endpoint.jackson.JacksonEndpointAutoConfiguration
+
+    org.springframework.boot.autoconfigure.availability.ApplicationAvailabilityAutoConfiguration
+
+    org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration
+
+
+
+2026-01-01T04:23:18.882Z  INFO 1 --- [ca-authority] [           main] com.gov.crypto.CaAuthorityApplication    : Started CaAuthorityApplication in 31.65 seconds (process running for 34.011)
+2026-01-01T04:23:19.130Z DEBUG 1 --- [ca-authority] [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state LivenessState changed to CORRECT
+2026-01-01T04:23:19.133Z DEBUG 1 --- [ca-authority] [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state ReadinessState changed to ACCEPTING_TRAFFIC
+2026-01-01T04:23:36.984Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.a.c.a.jaspic.AuthConfigFactoryImpl     : Loading persistent provider registrations from [/tmp/tomcat.8082.14144692706677657666/conf/jaspic-providers.xml]
+2026-01-01T04:23:36.985Z  INFO 1 --- [ca-authority] [nio-8082-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-01-01T04:23:36.985Z  INFO 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-01-01T04:23:36.985Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Detected StandardServletMultipartResolver
+2026-01-01T04:23:36.985Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Detected AcceptHeaderLocaleResolver
+2026-01-01T04:23:36.985Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Detected FixedThemeResolver
+2026-01-01T04:23:36.987Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Detected org.springframework.web.servlet.view.DefaultRequestToViewNameTranslator@7f15639c
+2026-01-01T04:23:36.987Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Detected org.springframework.web.servlet.support.SessionFlashMapManager@3e216fc9
+2026-01-01T04:23:36.987Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : enableLoggingRequestDetails='false': request parameters and headers will be masked to prevent unsafe logging of potentially sensitive data
+2026-01-01T04:23:36.987Z  INFO 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2026-01-01T04:23:37.004Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.security.web.FilterChainProxy        : Securing GET /actuator/health/readiness
+2026-01-01T04:23:37.039Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.security.web.FilterChainProxy        : Secured GET /actuator/health/readiness
+2026-01-01T04:23:37.043Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : GET "/actuator/health/readiness", parameters={}
+2026-01-01T04:23:37.044Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:37.045Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] s.b.a.e.w.s.WebMvcEndpointHandlerMapping : Mapped to Actuator web endpoint 'health-path'
+2026-01-01T04:23:37.130Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] m.m.a.RequestResponseBodyMethodProcessor : Read "application/octet-stream" to []
+2026-01-01T04:23:37.186Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/vnd.spring-boot.actuator.v3+json', given [*/*] and supported [application/vnd.spring-boot.actuator.v3+json, application/vnd.spring-boot.actuator.v2+json, application/json]
+2026-01-01T04:23:37.444Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [org.springframework.boot.actuate.health.CompositeHealth@6c5892d1]
+2026-01-01T04:23:37.533Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-01-01T04:23:37.533Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:37.533Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:37.534Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:37.534Z DEBUG 1 --- [ca-authority] [nio-8082-exec-1] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:23:39.130Z DEBUG 1 --- [ca-authority] [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2026-01-01T04:23:39.130Z DEBUG 1 --- [ca-authority] [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled.
+2026-01-01T04:23:46.847Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.security.web.FilterChainProxy        : Securing GET /actuator/health/readiness
+2026-01-01T04:23:46.848Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.security.web.FilterChainProxy        : Secured GET /actuator/health/readiness
+2026-01-01T04:23:46.848Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.web.servlet.DispatcherServlet        : GET "/actuator/health/readiness", parameters={}
+2026-01-01T04:23:46.848Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:46.848Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] s.b.a.e.w.s.WebMvcEndpointHandlerMapping : Mapped to Actuator web endpoint 'health-path'
+2026-01-01T04:23:46.849Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] m.m.a.RequestResponseBodyMethodProcessor : Read "application/octet-stream" to []
+2026-01-01T04:23:46.849Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/vnd.spring-boot.actuator.v3+json', given [*/*] and supported [application/vnd.spring-boot.actuator.v3+json, application/vnd.spring-boot.actuator.v2+json, application/json]
+2026-01-01T04:23:46.849Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [org.springframework.boot.actuate.health.CompositeHealth@3dc8a919]
+2026-01-01T04:23:46.850Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-01-01T04:23:46.850Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:46.850Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:46.850Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:46.850Z DEBUG 1 --- [ca-authority] [nio-8082-exec-2] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:23:47.699Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.apache.catalina.valves.RemoteIpValve   : Host value [api-gateway:8080] in HTTP header [X-Forwarded-Host] included a port number which will be ignored
+2026-01-01T04:23:47.703Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/ra/request
+2026-01-01T04:23:47.705Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/ra/request
+2026-01-01T04:23:47.705Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.web.servlet.DispatcherServlet        : POST "/api/v1/ra/request", parameters={}
+2026-01-01T04:23:47.705Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:47.705Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.gov.crypto.caauthority.registration.controller.RegistrationController#submitRequest(RegistrationRequest)
+2026-01-01T04:23:47.706Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.j.s.OpenEntityManagerInViewInterceptor : Opening JPA EntityManager in OpenEntityManagerInViewInterceptor
+2026-01-01T04:23:47.739Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] m.m.a.RequestResponseBodyMethodProcessor : Read "application/json;charset=UTF-8" to [RegistrationRequest[username=admin_capture, email=admin@test.com, algorithm=ML-DSA-44, kycData=null]]
+2026-01-01T04:23:47.739Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:47.739Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:47.739Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:23:47.740Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'text/plain', given [*/*] and supported [text/plain, */*, application/json, application/*+json]
+2026-01-01T04:23:47.740Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing ["Authentication required"]
+2026-01-01T04:23:47.741Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.j.s.OpenEntityManagerInViewInterceptor : Closing JPA EntityManager in OpenEntityManagerInViewInterceptor
+2026-01-01T04:23:47.741Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.web.servlet.DispatcherServlet        : Completed 401 UNAUTHORIZED
+2026-01-01T04:23:47.741Z DEBUG 1 --- [ca-authority] [nio-8082-exec-3] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:48.237Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.apache.catalina.valves.RemoteIpValve   : Host value [api-gateway:8080] in HTTP header [X-Forwarded-Host] included a port number which will be ignored
+2026-01-01T04:23:48.239Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/ra/request
+2026-01-01T04:23:48.240Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/ra/request
+2026-01-01T04:23:48.240Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.web.servlet.DispatcherServlet        : POST "/api/v1/ra/request", parameters={}
+2026-01-01T04:23:48.240Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:48.240Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.gov.crypto.caauthority.registration.controller.RegistrationController#submitRequest(RegistrationRequest)
+2026-01-01T04:23:48.240Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.j.s.OpenEntityManagerInViewInterceptor : Opening JPA EntityManager in OpenEntityManagerInViewInterceptor
+2026-01-01T04:23:48.243Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.web.method.HandlerMethod             : Could not resolve parameter [0] in public org.springframework.http.ResponseEntity<?> com.gov.crypto.caauthority.registration.controller.RegistrationController.submitRequest(com.gov.crypto.caauthority.registration.dto.RegistrationRequest): JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)
+2026-01-01T04:23:48.247Z  WARN 1 --- [ca-authority] [nio-8082-exec-4] .w.s.m.s.DefaultHandlerExceptionResolver : Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)]
+2026-01-01T04:23:48.247Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.j.s.OpenEntityManagerInViewInterceptor : Closing JPA EntityManager in OpenEntityManagerInViewInterceptor
+2026-01-01T04:23:48.247Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.web.servlet.DispatcherServlet        : Completed 400 BAD_REQUEST
+2026-01-01T04:23:48.247Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:48.247Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:48.247Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:48.247Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:23:48.255Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.security.web.FilterChainProxy        : Securing POST /error
+2026-01-01T04:23:48.256Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.security.web.FilterChainProxy        : Secured POST /error
+2026-01-01T04:23:48.256Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.web.servlet.DispatcherServlet        : "ERROR" dispatch for POST "/error", parameters={}
+2026-01-01T04:23:48.256Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:48.257Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#error(HttpServletRequest)
+2026-01-01T04:23:48.257Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.j.s.OpenEntityManagerInViewInterceptor : Opening JPA EntityManager in OpenEntityManagerInViewInterceptor
+2026-01-01T04:23:48.260Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-01-01T04:23:48.261Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [{timestamp=Thu Jan 01 04:23:48 UTC 2026, status=400, error=Bad Request, path=/api/v1/ra/request}]
+2026-01-01T04:23:48.267Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.j.s.OpenEntityManagerInViewInterceptor : Closing JPA EntityManager in OpenEntityManagerInViewInterceptor
+2026-01-01T04:23:48.270Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.web.servlet.DispatcherServlet        : Exiting from "ERROR" dispatch, status 400
+2026-01-01T04:23:48.270Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:48.270Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:48.270Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:48.270Z DEBUG 1 --- [ca-authority] [nio-8082-exec-4] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:23:50.042Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.apache.catalina.valves.RemoteIpValve   : Host value [api-gateway:8080] in HTTP header [X-Forwarded-Host] included a port number which will be ignored
+2026-01-01T04:23:50.044Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/certificates/123e4567-e89b-12d3-a456-426614174000/approve
+2026-01-01T04:23:50.045Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:50.045Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:50.045Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:23:50.051Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:50.051Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.s.w.h.S.SESSION_LOGGER               : A new session was created. To help you troubleshoot where the session was created we provided a StackTrace (this is not an error). You can prevent this from appearing by disabling DEBUG logging for org.springframework.session.web.http.SessionRepositoryFilter.SESSION_LOGGER
+
+java.lang.RuntimeException: For debugging purposes only (not an error)
+	at org.springframework.session.web.http.SessionRepositoryFilter$SessionRepositoryRequestWrapper.getSession(SessionRepositoryFilter.java:314) ~[spring-session-core-3.4.1.jar!/:3.4.1]
+	at org.springframework.session.web.http.SessionRepositoryFilter$SessionRepositoryRequestWrapper.getSession(SessionRepositoryFilter.java:328) ~[spring-session-core-3.4.1.jar!/:3.4.1]
+	at org.springframework.session.web.http.SessionRepositoryFilter$SessionRepositoryRequestWrapper.getSession(SessionRepositoryFilter.java:193) ~[spring-session-core-3.4.1.jar!/:3.4.1]
+	at jakarta.servlet.http.HttpServletRequestWrapper.getSession(HttpServletRequestWrapper.java:229) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at jakarta.servlet.http.HttpServletRequestWrapper.getSession(HttpServletRequestWrapper.java:229) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at jakarta.servlet.http.HttpServletRequestWrapper.getSession(HttpServletRequestWrapper.java:229) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.springframework.security.web.savedrequest.HttpSessionRequestCache.saveRequest(HttpSessionRequestCache.java:78) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.access.ExceptionTranslationFilter.sendStartAuthentication(ExceptionTranslationFilter.java:218) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.access.ExceptionTranslationFilter.handleAccessDeniedException(ExceptionTranslationFilter.java:197) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.access.ExceptionTranslationFilter.handleSpringSecurityException(ExceptionTranslationFilter.java:178) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:147) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.access.ExceptionTranslationFilter.doFilter(ExceptionTranslationFilter.java:120) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.authentication.AnonymousAuthenticationFilter.doFilter(AnonymousAuthenticationFilter.java:100) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter.doFilter(SecurityContextHolderAwareRequestFilter.java:179) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.savedrequest.RequestCacheAwareFilter.doFilter(RequestCacheAwareFilter.java:63) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:107) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:93) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:82) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.context.SecurityContextHolderFilter.doFilter(SecurityContextHolderFilter.java:69) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:62) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:227) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.wrapFilter(ObservationFilterChainDecorator.java:240) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$AroundFilterObservation$SimpleAroundFilterObservation.lambda$wrap$0(ObservationFilterChainDecorator.java:323) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$ObservationFilter.doFilter(ObservationFilterChainDecorator.java:224) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.ObservationFilterChainDecorator$VirtualFilterChain.doFilter(ObservationFilterChainDecorator.java:137) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:233) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:191) ~[spring-security-web-6.4.2.jar!/:6.4.2]
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.web.servlet.handler.HandlerMappingIntrospector.lambda$createCacheFilter$3(HandlerMappingIntrospector.java:243) ~[spring-webmvc-6.2.1.jar!/:6.2.1]
+	at org.springframework.web.filter.CompositeFilter$VirtualFilterChain.doFilter(CompositeFilter.java:113) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.web.filter.CompositeFilter.doFilter(CompositeFilter.java:74) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.security.config.annotation.web.configuration.WebMvcSecurityConfiguration$CompositeFilterChainProxy.doFilter(WebMvcSecurityConfiguration.java:238) ~[spring-security-config-6.4.2.jar!/:6.4.2]
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:362) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:278) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.springframework.session.web.http.SessionRepositoryFilter.doFilterInternal(SessionRepositoryFilter.java:142) ~[spring-session-core-3.4.1.jar!/:3.4.1]
+	at org.springframework.session.web.http.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:82) ~[spring-session-core-3.4.1.jar!/:3.4.1]
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:362) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:278) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:114) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.1.jar!/:6.2.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.valves.RemoteIpValve.invoke(RemoteIpValve.java:731) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:397) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:905) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1741) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1190) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63) ~[tomcat-embed-core-10.1.34.jar!/:na]
+	at java.base/java.lang.Thread.run(Unknown Source) ~[na:na]
+
+2026-01-01T04:23:50.055Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.s.w.s.HttpSessionRequestCache        : Saved request https://api-gateway:8443/api/v1/certificates/123e4567-e89b-12d3-a456-426614174000/approve?continue to session
+2026-01-01T04:23:50.055Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.s.w.a.Http403ForbiddenEntryPoint     : Pre-authenticated entry point called. Rejecting access
+2026-01-01T04:23:50.067Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Fetching Redis Connection from RedisConnectionFactory
+2026-01-01T04:23:50.068Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.lettuce.core.RedisClient              : Trying to get a Redis connection for: redis://redis
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.numHeapArenas: 24
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.numDirectArenas: 24
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.pageSize: 8192
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.maxOrder: 9
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.chunkSize: 4194304
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.smallCacheSize: 256
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.normalCacheSize: 64
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.maxCachedBufferCapacity: 32768
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.cacheTrimInterval: 8192
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.cacheTrimIntervalMillis: 0
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.useCacheForAllThreads: false
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.maxCachedByteBuffersPerChunk: 1023
+2026-01-01T04:23:50.545Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.PooledByteBufAllocator   : -Dio.netty.allocator.disableCacheFinalizersForFastThreadLocalThreads: false
+2026-01-01T04:23:50.627Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.ByteBufUtil              : -Dio.netty.allocator.type: pooled
+2026-01-01T04:23:50.628Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.ByteBufUtil              : -Dio.netty.threadLocalDirectBufferSize: 0
+2026-01-01T04:23:50.628Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.buffer.ByteBufUtil              : -Dio.netty.maxThreadLocalCharBufferSize: 16384
+2026-01-01T04:23:50.633Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.resource.KqueueProvider   : Starting without optional kqueue library
+2026-01-01T04:23:50.635Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.resource.IOUringProvider  : Starting without optional io_uring library
+2026-01-01T04:23:50.636Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.lettuce.core.resource.EpollProvider   : Starting without optional epoll library
+2026-01-01T04:23:50.642Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.l.c.r.DefaultEventLoopGroupProvider    : Allocating executor io.netty.channel.nio.NioEventLoopGroup
+2026-01-01T04:23:50.642Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.l.c.r.DefaultEventLoopGroupProvider    : Creating executor io.netty.channel.nio.NioEventLoopGroup
+2026-01-01T04:23:50.643Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.n.channel.MultithreadEventLoopGroup    : -Dio.netty.eventLoopThreads: 24
+2026-01-01T04:23:50.646Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.channel.nio.NioEventLoop        : -Dio.netty.noKeySetOptimization: false
+2026-01-01T04:23:50.647Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.channel.nio.NioEventLoop        : -Dio.netty.selectorAutoRebuildThreshold: 512
+2026-01-01T04:23:50.649Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.l.c.r.DefaultEventLoopGroupProvider    : Adding reference to io.netty.channel.nio.NioEventLoopGroup@7574cde0, existing ref count 0
+2026-01-01T04:23:50.939Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.lettuce.core.RedisClient              : Resolved SocketAddress redis/<unresolved>:6379 using redis://redis
+2026-01-01T04:23:50.940Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.lettuce.core.AbstractRedisClient      : Connecting to Redis at redis/<unresolved>:6379
+2026-01-01T04:23:50.946Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.channel.DefaultChannelId        : -Dio.netty.processId: 1 (auto-detected)
+2026-01-01T04:23:50.947Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.util.NetUtil                    : -Djava.net.preferIPv4Stack: false
+2026-01-01T04:23:50.947Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.util.NetUtil                    : -Djava.net.preferIPv6Addresses: false
+2026-01-01T04:23:50.949Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.util.NetUtilInitializations     : Loopback interface: lo (lo, 0:0:0:0:0:0:0:1%lo)
+2026-01-01T04:23:50.950Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.util.NetUtil                    : /proc/sys/net/core/somaxconn: 4096
+2026-01-01T04:23:50.950Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.netty.channel.DefaultChannelId        : -Dio.netty.machineId: 6a:ae:02:ff:fe:76:21:db (auto-detected)
+2026-01-01T04:23:50.963Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.n.b.ChannelInitializerExtensions       : -Dio.netty.bootstrap.extensions: null
+2026-01-01T04:23:50.980Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, [id: 0x2182b314] (inactive), epid=0x1, chid=0x1] channelRegistered()
+2026-01-01T04:23:51.030Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] io.netty.util.Recycler                   : -Dio.netty.recycler.maxCapacityPerThread: 4096
+2026-01-01T04:23:51.030Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] io.netty.util.Recycler                   : -Dio.netty.recycler.ratio: 8
+2026-01-01T04:23:51.031Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] io.netty.util.Recycler                   : -Dio.netty.recycler.chunkSize: 32
+2026-01-01T04:23:51.031Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] io.netty.util.Recycler                   : -Dio.netty.recycler.blocking: false
+2026-01-01T04:23:51.031Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] io.netty.util.Recycler                   : -Dio.netty.recycler.batchFastThreadLocalOnly: true
+2026-01-01T04:23:51.042Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] io.netty.buffer.AbstractByteBuf          : -Dio.netty.buffer.checkAccessible: true
+2026-01-01T04:23:51.042Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] io.netty.buffer.AbstractByteBuf          : -Dio.netty.buffer.checkBounds: true
+2026-01-01T04:23:51.042Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.n.util.ResourceLeakDetectorFactory     : Loaded default ResourceLeakDetector: io.netty.util.ResourceLeakDetector@4b847e1d
+2026-01-01T04:23:51.058Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] write(ctx, AsyncCommand [type=HELLO, output=GenericMapOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command], promise)
+2026-01-01T04:23:51.060Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandEncoder   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379] writing command AsyncCommand [type=HELLO, output=GenericMapOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.063Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] write(ctx, [AsyncCommand [type=CLIENT, output=StatusOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command], AsyncCommand [type=CLIENT, output=StatusOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]], promise)
+2026-01-01T04:23:51.063Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandEncoder   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379] writing command AsyncCommand [type=CLIENT, output=StatusOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.064Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandEncoder   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379] writing command AsyncCommand [type=CLIENT, output=StatusOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.066Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Received: 155 bytes, 3 commands in the stack
+2026-01-01T04:23:51.066Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Stack contains: 3 commands
+2026-01-01T04:23:51.071Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.l.core.protocol.RedisStateMachine      : Decode done, empty stack: true
+2026-01-01T04:23:51.072Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Completing command LatencyMeteredCommand [type=HELLO, output=GenericMapOutput [output={server=redis, version=7.4.7, proto=3, id=25, mode=standalone, role=master}, error='null'], commandType=io.lettuce.core.protocol.AsyncCommand]
+2026-01-01T04:23:51.072Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Stack contains: 2 commands
+2026-01-01T04:23:51.072Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.l.core.protocol.RedisStateMachine      : Decode done, empty stack: true
+2026-01-01T04:23:51.072Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Completing command LatencyMeteredCommand [type=CLIENT, output=StatusOutput [output=OK, error='null'], commandType=io.lettuce.core.protocol.AsyncCommand]
+2026-01-01T04:23:51.072Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Stack contains: 1 commands
+2026-01-01T04:23:51.072Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.l.core.protocol.RedisStateMachine      : Decode done, empty stack: true
+2026-01-01T04:23:51.072Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Completing command LatencyMeteredCommand [type=CLIENT, output=StatusOutput [output=OK, error='null'], commandType=io.lettuce.core.protocol.AsyncCommand]
+2026-01-01T04:23:51.072Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] channelActive()
+2026-01-01T04:23:51.073Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] activateEndpointAndExecuteBufferedCommands 0 command(s) buffered
+2026-01-01T04:23:51.073Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] activating endpoint
+2026-01-01T04:23:51.073Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] flushCommands()
+2026-01-01T04:23:51.073Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] flushCommands() Flushing 0 commands
+2026-01-01T04:23:51.074Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.l.core.protocol.ConnectionWatchdog     : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, last known addr=redis/10.96.98.75:6379] channelActive()
+2026-01-01T04:23:51.074Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] channelActive() done
+2026-01-01T04:23:51.074Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] io.lettuce.core.AbstractRedisClient      : Connecting to Redis at redis/<unresolved>:6379: Success
+2026-01-01T04:23:51.081Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.lettuce.core.RedisChannelHandler      : dispatching command AsyncCommand [type=HMSET, output=StatusOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.082Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() writeAndFlush command AsyncCommand [type=HMSET, output=StatusOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.083Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] write(ctx, AsyncCommand [type=HMSET, output=StatusOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command], promise)
+2026-01-01T04:23:51.083Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() done
+2026-01-01T04:23:51.084Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandEncoder   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379] writing command AsyncCommand [type=HMSET, output=StatusOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.084Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Received: 5 bytes, 1 commands in the stack
+2026-01-01T04:23:51.084Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Stack contains: 1 commands
+2026-01-01T04:23:51.084Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.l.core.protocol.RedisStateMachine      : Decode done, empty stack: true
+2026-01-01T04:23:51.084Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Completing command LatencyMeteredCommand [type=HMSET, output=StatusOutput [output=OK, error='null'], commandType=io.lettuce.core.protocol.AsyncCommand]
+2026-01-01T04:23:51.085Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Closing Redis Connection
+2026-01-01T04:23:51.085Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Fetching Redis Connection from RedisConnectionFactory
+2026-01-01T04:23:51.085Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.lettuce.core.RedisChannelHandler      : dispatching command AsyncCommand [type=PEXPIREAT, output=BooleanOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.085Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() writeAndFlush command AsyncCommand [type=PEXPIREAT, output=BooleanOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.085Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() done
+2026-01-01T04:23:51.085Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] write(ctx, AsyncCommand [type=PEXPIREAT, output=BooleanOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command], promise)
+2026-01-01T04:23:51.086Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandEncoder   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379] writing command AsyncCommand [type=PEXPIREAT, output=BooleanOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.086Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Received: 4 bytes, 1 commands in the stack
+2026-01-01T04:23:51.086Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Stack contains: 1 commands
+2026-01-01T04:23:51.086Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.l.core.protocol.RedisStateMachine      : Decode done, empty stack: true
+2026-01-01T04:23:51.086Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Completing command LatencyMeteredCommand [type=PEXPIREAT, output=BooleanOutput [output=true, error='null'], commandType=io.lettuce.core.protocol.AsyncCommand]
+2026-01-01T04:23:51.087Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Closing Redis Connection
+2026-01-01T04:23:51.087Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Fetching Redis Connection from RedisConnectionFactory
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.lettuce.core.RedisChannelHandler      : dispatching command AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() writeAndFlush command AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() done
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] write(ctx, AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command], promise)
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandEncoder   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379] writing command AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Received: 4 bytes, 1 commands in the stack
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Stack contains: 1 commands
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.l.core.protocol.RedisStateMachine      : Decode done, empty stack: true
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Completing command LatencyMeteredCommand [type=EXISTS, output=IntegerOutput [output=1, error='null'], commandType=io.lettuce.core.protocol.AsyncCommand]
+2026-01-01T04:23:51.090Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Closing Redis Connection
+2026-01-01T04:23:51.091Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.security.web.FilterChainProxy        : Securing POST /error
+2026-01-01T04:23:51.092Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.security.web.FilterChainProxy        : Secured POST /error
+2026-01-01T04:23:51.092Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.web.servlet.DispatcherServlet        : "ERROR" dispatch for POST "/error", parameters={}
+2026-01-01T04:23:51.092Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController#error(HttpServletRequest)
+2026-01-01T04:23:51.092Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.j.s.OpenEntityManagerInViewInterceptor : Opening JPA EntityManager in OpenEntityManagerInViewInterceptor
+2026-01-01T04:23:51.093Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-01-01T04:23:51.093Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [{timestamp=Thu Jan 01 04:23:51 UTC 2026, status=403, error=Forbidden, path=/api/v1/certificates/123e (truncated)...]
+2026-01-01T04:23:51.093Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Fetching Redis Connection from RedisConnectionFactory
+2026-01-01T04:23:51.093Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.lettuce.core.RedisChannelHandler      : dispatching command AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.093Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() writeAndFlush command AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.093Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() done
+2026-01-01T04:23:51.093Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] write(ctx, AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command], promise)
+2026-01-01T04:23:51.093Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandEncoder   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379] writing command AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.094Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Received: 4 bytes, 1 commands in the stack
+2026-01-01T04:23:51.094Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Stack contains: 1 commands
+2026-01-01T04:23:51.094Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.l.core.protocol.RedisStateMachine      : Decode done, empty stack: true
+2026-01-01T04:23:51.094Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Completing command LatencyMeteredCommand [type=EXISTS, output=IntegerOutput [output=1, error='null'], commandType=io.lettuce.core.protocol.AsyncCommand]
+2026-01-01T04:23:51.094Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Closing Redis Connection
+2026-01-01T04:23:51.127Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.j.s.OpenEntityManagerInViewInterceptor : Closing JPA EntityManager in OpenEntityManagerInViewInterceptor
+2026-01-01T04:23:51.128Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.web.servlet.DispatcherServlet        : Exiting from "ERROR" dispatch, status 403
+2026-01-01T04:23:51.128Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:23:51.128Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Fetching Redis Connection from RedisConnectionFactory
+2026-01-01T04:23:51.129Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] io.lettuce.core.RedisChannelHandler      : dispatching command AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.129Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() writeAndFlush command AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.129Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] i.lettuce.core.protocol.DefaultEndpoint  : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1] write() done
+2026-01-01T04:23:51.129Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] write(ctx, AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command], promise)
+2026-01-01T04:23:51.129Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandEncoder   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379] writing command AsyncCommand [type=EXISTS, output=IntegerOutput [output=null, error='null'], commandType=io.lettuce.core.protocol.Command]
+2026-01-01T04:23:51.130Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Received: 4 bytes, 1 commands in the stack
+2026-01-01T04:23:51.130Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Stack contains: 1 commands
+2026-01-01T04:23:51.130Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.l.core.protocol.RedisStateMachine      : Decode done, empty stack: true
+2026-01-01T04:23:51.130Z DEBUG 1 --- [ca-authority] [ioEventLoop-4-1] i.lettuce.core.protocol.CommandHandler   : [channel=0xfcba43a2, /10.244.0.54:58210 -> redis/10.96.98.75:6379, epid=0x1, chid=0x1] Completing command LatencyMeteredCommand [type=EXISTS, output=IntegerOutput [output=1, error='null'], commandType=io.lettuce.core.protocol.AsyncCommand]
+2026-01-01T04:23:51.130Z DEBUG 1 --- [ca-authority] [nio-8082-exec-5] o.s.d.redis.core.RedisConnectionUtils    : Closing Redis Connection
+2026-01-01T04:23:56.850Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.security.web.FilterChainProxy        : Securing GET /actuator/health/readiness
+2026-01-01T04:23:56.851Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.security.web.FilterChainProxy        : Secured GET /actuator/health/readiness
+2026-01-01T04:23:56.851Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.web.servlet.DispatcherServlet        : GET "/actuator/health/readiness", parameters={}
+2026-01-01T04:23:56.851Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:56.852Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] s.b.a.e.w.s.WebMvcEndpointHandlerMapping : Mapped to Actuator web endpoint 'health-path'
+2026-01-01T04:23:56.852Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] m.m.a.RequestResponseBodyMethodProcessor : Read "application/octet-stream" to []
+2026-01-01T04:23:56.853Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/vnd.spring-boot.actuator.v3+json', given [*/*] and supported [application/vnd.spring-boot.actuator.v3+json, application/vnd.spring-boot.actuator.v2+json, application/json]
+2026-01-01T04:23:56.853Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [org.springframework.boot.actuate.health.CompositeHealth@4d82e864]
+2026-01-01T04:23:56.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-01-01T04:23:56.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:56.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:56.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:23:56.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-6] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:24:06.850Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.security.web.FilterChainProxy        : Securing GET /actuator/health/readiness
+2026-01-01T04:24:06.851Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.security.web.FilterChainProxy        : Secured GET /actuator/health/readiness
+2026-01-01T04:24:06.851Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.web.servlet.DispatcherServlet        : GET "/actuator/health/readiness", parameters={}
+2026-01-01T04:24:06.851Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:06.852Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] s.b.a.e.w.s.WebMvcEndpointHandlerMapping : Mapped to Actuator web endpoint 'health-path'
+2026-01-01T04:24:06.853Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] m.m.a.RequestResponseBodyMethodProcessor : Read "application/octet-stream" to []
+2026-01-01T04:24:06.853Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/vnd.spring-boot.actuator.v3+json', given [*/*] and supported [application/vnd.spring-boot.actuator.v3+json, application/vnd.spring-boot.actuator.v2+json, application/json]
+2026-01-01T04:24:06.853Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [org.springframework.boot.actuate.health.CompositeHealth@3beb243c]
+2026-01-01T04:24:06.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-01-01T04:24:06.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:06.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:06.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:06.854Z DEBUG 1 --- [ca-authority] [nio-8082-exec-7] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:24:09.130Z DEBUG 1 --- [ca-authority] [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Pool stats (total=10, active=0, idle=10, waiting=0)
+2026-01-01T04:24:09.131Z DEBUG 1 --- [ca-authority] [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool has sufficient level or currently being filled.
+2026-01-01T04:24:14.567Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.security.web.FilterChainProxy        : Securing GET /actuator/health/liveness
+2026-01-01T04:24:14.568Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.security.web.FilterChainProxy        : Secured GET /actuator/health/liveness
+2026-01-01T04:24:14.569Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.web.servlet.DispatcherServlet        : GET "/actuator/health/liveness", parameters={}
+2026-01-01T04:24:14.569Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:14.569Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] s.b.a.e.w.s.WebMvcEndpointHandlerMapping : Mapped to Actuator web endpoint 'health-path'
+2026-01-01T04:24:14.569Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] m.m.a.RequestResponseBodyMethodProcessor : Read "application/octet-stream" to []
+2026-01-01T04:24:14.570Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/vnd.spring-boot.actuator.v3+json', given [*/*] and supported [application/vnd.spring-boot.actuator.v3+json, application/vnd.spring-boot.actuator.v2+json, application/json]
+2026-01-01T04:24:14.570Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [org.springframework.boot.actuate.health.CompositeHealth@2d6454e3]
+2026-01-01T04:24:14.571Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-01-01T04:24:14.571Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:14.571Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:14.571Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:14.571Z DEBUG 1 --- [ca-authority] [nio-8082-exec-8] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+2026-01-01T04:24:16.848Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.security.web.FilterChainProxy        : Securing GET /actuator/health/readiness
+2026-01-01T04:24:16.849Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.security.web.FilterChainProxy        : Secured GET /actuator/health/readiness
+2026-01-01T04:24:16.849Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.web.servlet.DispatcherServlet        : GET "/actuator/health/readiness", parameters={}
+2026-01-01T04:24:16.849Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:16.850Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] s.b.a.e.w.s.WebMvcEndpointHandlerMapping : Mapped to Actuator web endpoint 'health-path'
+2026-01-01T04:24:16.850Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] m.m.a.RequestResponseBodyMethodProcessor : Read "application/octet-stream" to []
+2026-01-01T04:24:16.851Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/vnd.spring-boot.actuator.v3+json', given [*/*] and supported [application/vnd.spring-boot.actuator.v3+json, application/vnd.spring-boot.actuator.v2+json, application/json]
+2026-01-01T04:24:16.851Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [org.springframework.boot.actuate.health.CompositeHealth@7df44ce7]
+2026-01-01T04:24:16.852Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-01-01T04:24:16.852Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:16.852Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:16.852Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.s.w.h.S.SESSION_LOGGER               : No session found by id: Caching result for getSession(false) for this HttpServletRequest.
+2026-01-01T04:24:16.852Z DEBUG 1 --- [ca-authority] [nio-8082-exec-9] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext

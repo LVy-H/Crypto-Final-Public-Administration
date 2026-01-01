@@ -5,6 +5,8 @@ server:
       cookie:
         domain: gov-id.lvh.id.vn
         path: /
+  error:
+    include-message: always
 
 spring:
   application:

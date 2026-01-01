@@ -472,8 +472,10 @@ public class PqcCryptoService {
          * Extract Public Key from CSR
          */
         public PublicKey getPublicKeyFromCsr(PKCS10CertificationRequest csr) throws Exception {
-                org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter converter = new org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter()
-                                .setProvider("BCPQC");
+                org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter converter = new org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter();
+                // Do not force provider, let JCA find the right one (BC for EC, BCPQC for
+                // Dilithium)
+                // .setProvider("BCPQC");
                 return converter.getPublicKey(csr.getSubjectPublicKeyInfo());
         }
 

@@ -13,6 +13,19 @@ A compliance-ready digital signature platform for Vietnam's government agencies,
 | **Long-Term Validation** | ✅ Compliant | RFC 3161 timestamping (TSA integration) |
 | **Network Segmentation** | ✅ Compliant | K8s NetworkPolicies with 3 security zones |
 
+## 📸 Features & Screenshots
+
+See **[docs/FEATURES.md](docs/FEATURES.md)** for a complete visual tour of all features.
+
+| Feature | Screenshot |
+|---------|------------|
+| Dashboard | ![Dashboard](docs/screenshots/dashboard.png) |
+| Login | ![Login](docs/screenshots/login.png) |
+| Certificates | ![Certificates](docs/screenshots/certificates.png) |
+| Document Signing | ![Signing](docs/screenshots/sign.png) |
+| Signature Verification | ![Verify](docs/screenshots/verify.png) |
+| Admin Dashboard | ![Admin](docs/screenshots/admin_dashboard.png) |
+
 ## 🏗️ Architecture
 
 ```

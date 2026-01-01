@@ -1,104 +1,111 @@
-import { ref, computed } from 'vue'
-
-interface User {
+/**
+ * Authentication actions composable
+ * Provides login, register, and logout functionality
+ */
+export interface User {
     username: string
     email?: string
     role: 'CITIZEN' | 'ADMIN' | 'OFFICER'
     fullName?: string
 }
 
-const user = ref<User | null>(null)
-const token = ref<string | null>(null)
+interface LoginResponse {
+    sessionId?: string
+    token?: string
+    username: string
+    message: string
+    user?: User
+}
 
-export function useAuth() {
-    const isAuthenticated = computed(() => !!token.value)
-    const isAdmin = computed(() => user.value?.role === 'ADMIN')
-    const isCitizen = computed(() => user.value?.role === 'CITIZEN')
-    const isOfficer = computed(() => user.value?.role === 'OFFICER')
-    const hasAdminAccess = computed(() => isAdmin.value || isOfficer.value)
+interface RegisterForm {
+    username: string
+    email: string
+    password: string
+    role?: string
+}
 
-    const config = useRuntimeConfig()
-    const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+export const useAuth = () => {
+    const { post } = useApi()
+    const authState = useAuthState()
 
+    /**
+     * Login with username and password
+     */
     const login = async (username: string, password: string) => {
-        const response = await $fetch<{ sessionId?: string; username: string; message: string; token?: string; user?: User }>(`${apiBase.value}/auth/login`, {
-            method: 'POST',
-            body: { username, password },
-            credentials: 'include' // Include cookies for session-based auth
-        })
+        const response = await post<LoginResponse>('/auth/login', { username, password })
 
-        // Handle both session-based and JWT-based responses
+        // Determine token (session-based or JWT)
+        const token = response.sessionId || response.token
+        if (!token) {
+            throw new Error('Invalid login response: no token received')
+        }
+
+        // Build user object
+        let user: User
         if (response.token) {
-            // JWT-based auth
-            token.value = response.token
+            // JWT-based auth - decode payload
             try {
                 const payload = JSON.parse(atob(response.token.split('.')[1]))
-                user.value = {
+                user = {
                     ...response.user,
+                    username: response.username,
                     role: payload.role || 'CITIZEN'
                 } as User
             } catch {
-                user.value = response.user || { username: response.username, role: 'CITIZEN' }
-            }
-            if (import.meta.client) {
-                localStorage.setItem('token', response.token)
-                localStorage.setItem('user', JSON.stringify(user.value))
-            }
-        } else if (response.sessionId) {
-            // Session-based auth (cookie-managed)
-            user.value = {
-                username: response.username,
-                role: 'CITIZEN' // Default role, can be fetched separately
-            }
-            token.value = response.sessionId // Use sessionId as token identifier
-            if (import.meta.client) {
-                localStorage.setItem('sessionId', response.sessionId)
-                localStorage.setItem('user', JSON.stringify(user.value))
+                user = response.user || { username: response.username, role: 'CITIZEN' }
             }
         } else {
-            throw new Error('Invalid login response')
+            // Session-based auth
+            user = {
+                ...response.user,
+                username: response.username,
+                role: response.user?.role || 'CITIZEN'
+            } as User
         }
 
+        authState.setAuth(token, user)
         return response
     }
 
-    const logout = () => {
-        token.value = null
-        user.value = null
-        if (import.meta.client) {
-            localStorage.removeItem('token')
-            localStorage.removeItem('sessionId')
-            localStorage.removeItem('user')
-        }
+    /**
+     * Register a new user and auto-login
+     */
+    const register = async (form: RegisterForm) => {
+        await post('/auth/register', {
+            username: form.username,
+            email: form.email,
+            password: form.password,
+            role: form.role || 'USER'
+        })
+
+        // Auto-login after registration
+        return login(form.username, form.password)
     }
 
+    /**
+     * Check if user is authenticated (for middleware compatibility)
+     */
     const checkAuth = () => {
-        if (import.meta.client) {
-            const storedToken = localStorage.getItem('token') || localStorage.getItem('sessionId')
-            const storedUser = localStorage.getItem('user')
-
-            if (storedToken && storedUser) {
-                token.value = storedToken
-                try {
-                    user.value = JSON.parse(storedUser)
-                } catch {
-                    logout()
-                }
-            }
+        // On client, try to restore from storage if not already authenticated
+        if (import.meta.client && !authState.isAuthenticated.value) {
+            authState.restoreFromStorage()
         }
-        return isAuthenticated.value
+        return authState.isAuthenticated.value
     }
 
     return {
-        user,
-        token,
-        isAuthenticated,
-        isAdmin,
-        isCitizen,
-        isOfficer,
-        hasAdminAccess,
+        // Re-export state
+        user: authState.user,
+        token: authState.token,
+        isAuthenticated: authState.isAuthenticated,
+        isAdmin: authState.isAdmin,
+        isOfficer: authState.isOfficer,
+        isCitizen: authState.isCitizen,
+        hasAdminAccess: authState.hasAdminAccess,
+        // Actions
         login,
-        logout,
+        register,
+        logout: authState.logout,
         checkAuth
     }
 }

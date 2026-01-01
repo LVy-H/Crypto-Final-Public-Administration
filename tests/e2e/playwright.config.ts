@@ -10,7 +10,7 @@ export default defineConfig({
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
     workers: 1,  // Single worker for deterministic order
-    reporter: 'html',
+    reporter: 'list',  // Changed from 'html' to prevent test hanging on report server
     timeout: 60000,
 
     use: {
@@ -30,7 +30,7 @@ export default defineConfig({
         },
         {
             name: 'portal',
-            testMatch: ['**/public-portal.spec.ts', '**/admin-portal.spec.ts', '**/ui-user-journey.spec.ts', '**/full-journey.spec.ts', '**/mock-ui-screenshots.spec.ts', '**/sign-verify-ui.spec.ts', '**/auth-features.spec.ts', '**/real-api-tests.spec.ts'],
+            testMatch: ['**/public-portal.spec.ts', '**/admin-portal.spec.ts', '**/ui-user-journey.spec.ts', '**/full-journey.spec.ts', '**/sign-verify-ui.spec.ts', '**/auth-features.spec.ts', '**/real-api-tests.spec.ts', '**/totp-signing.spec.ts', '**/totp-real-flow.spec.ts', '**/production-readiness.spec.ts', '**/kyc-totp-flows.spec.ts'],
             use: {
                 ...devices['Desktop Chrome'],
                 baseURL: PORTAL_BASE,

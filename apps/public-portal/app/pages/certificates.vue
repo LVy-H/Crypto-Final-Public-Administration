@@ -12,10 +12,12 @@
             <span class="status-badge" :class="cert.status?.toLowerCase()">{{ cert.statusText }}</span>
           </div>
           <table class="info-table">
-            <tr><th>Thuật toán</th><td>{{ cert.algorithm }}</td></tr>
-            <tr><th>Ngày cấp</th><td>{{ cert.issuedAt }}</td></tr>
-            <tr><th>Ngày hết hạn</th><td>{{ cert.expiresAt }}</td></tr>
-            <tr><th>Số serial</th><td class="mono">{{ cert.serialNumber }}</td></tr>
+            <tbody>
+              <tr><th>Thuật toán</th><td>{{ cert.algorithm }}</td></tr>
+              <tr><th>Ngày cấp</th><td>{{ cert.issuedAt }}</td></tr>
+              <tr><th>Ngày hết hạn</th><td>{{ cert.expiresAt }}</td></tr>
+              <tr><th>Số serial</th><td class="mono">{{ cert.serialNumber }}</td></tr>
+            </tbody>
           </table>
           <div class="cert-actions">
             <button @click="downloadCert(cert)" class="btn">📥 Tải xuống</button>
@@ -55,7 +57,7 @@ const certificates = ref([])
 const newCertAlgorithm = ref('ML-DSA-44')
 const requesting = ref(false)
 
-const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 async function loadCertificates() {
   loading.value = true

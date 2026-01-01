@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 import java.io.StringWriter;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
@@ -41,6 +43,7 @@ public class SoftwareKeyStorageService implements KeyStorageService {
     private final Map<String, KeyPair> keys = new ConcurrentHashMap<>();
 
     public SoftwareKeyStorageService() {
+        Security.addProvider(new BouncyCastleProvider());
         log.warn("============================================================");
         log.warn("  SOFTWARE KEY STORAGE ACTIVE - DEVELOPMENT MODE ONLY");
         log.warn("  Keys are stored in memory and will be lost on restart.");

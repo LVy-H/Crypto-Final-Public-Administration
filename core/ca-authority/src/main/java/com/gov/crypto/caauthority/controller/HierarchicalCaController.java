@@ -88,35 +88,25 @@ public class HierarchicalCaController {
         }
     }
 
-    // ============ Self-Signed Root (DEPRECATED - Development Only) ============
+    // ============ Subordinate CA Creation ============
 
     /**
-     * Initialize Root CA (ML-DSA-87)
-     * 
-     * @deprecated Use /init-csr and /upload-cert for proper subordinate CA setup.
-     *             This endpoint creates a SELF-SIGNED root which is NOT compliant
-     *             with Government PKI requirements (Decree 23/2025).
-     *             Retained only for development/testing environments.
+     * DEBUG: Initialize Root CA manually
+     * This is needed when bootstrapping a fresh system.
      */
-    @Deprecated
-    @PostMapping("/root/init")
-    public ResponseEntity<Map<String, Object>> initializeRootCa(@RequestBody Map<String, String> request) {
+    @PostMapping("/debug/init-root")
+    public ResponseEntity<Map<String, Object>> debugInitRootCa() {
         try {
-            String name = request.getOrDefault("name", "National Root CA");
-            CertificateAuthority rootCa = caService.initializeRootCa(name);
+            CertificateAuthority rootCa = caService.initializeRootCa("National Root CA");
             return ResponseEntity.ok(Map.of(
                     "id", rootCa.getId(),
                     "name", rootCa.getName(),
                     "algorithm", rootCa.getAlgorithm(),
-                    "validUntil", rootCa.getValidUntil().toString(),
-                    "status", rootCa.getStatus().name(),
-                    "warning", "DEPRECATED: This is a self-signed root. Use /init-csr for production."));
+                    "status", rootCa.getStatus().name()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
-
-    // ============ Subordinate CA Creation ============
 
     /**
      * Initialize Internal Services CA signed by Root CA (ML-DSA-65)

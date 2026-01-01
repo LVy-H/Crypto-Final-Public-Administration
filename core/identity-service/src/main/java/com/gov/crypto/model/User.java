@@ -29,6 +29,13 @@ public class User {
 
     private String identityDocumentSignature; // Signature of the verified identity document
 
+    // ABAC Jurisdiction Fields
+    @Column(name = "ra_id")
+    private UUID raId; // For RA_OPERATOR, restricts scope to this RA
+
+    @Column(name = "org_id")
+    private UUID orgId; // For ORGANIZATION, restricts scope to this Org
+
     // Getters and Setters
     public UUID getId() {
         return id;
@@ -88,5 +95,21 @@ public class User {
 
     public enum IdentityStatus {
         UNVERIFIED, PENDING, VERIFIED, REJECTED
+    }
+
+    public UUID getRaId() {
+        return raId;
+    }
+
+    public void setRaId(UUID raId) {
+        this.raId = raId;
+    }
+
+    public UUID getOrgId() {
+        return orgId;
+    }
+
+    public void setOrgId(UUID orgId) {
+        this.orgId = orgId;
     }
 }

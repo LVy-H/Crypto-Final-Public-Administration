@@ -65,10 +65,19 @@ public class AuthController {
             HttpSession session = httpRequest.getSession(true);
             session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
+            User user = userRepository.findByUsername(request.username())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            Map<String, Object> userMap = Map.of(
+                    "username", user.getUsername(),
+                    "email", user.getEmail(),
+                    "role", user.getRole().getName());
+
             Map<String, Object> response = Map.of(
                     "message", "Login successful",
                     "sessionId", session.getId(),
-                    "username", request.username());
+                    "username", request.username(),
+                    "user", userMap);
             return ResponseEntity.ok(response);
         } else {
             throw new RuntimeException("invalid access");

@@ -82,7 +82,7 @@ const stats = ref({ totalUsers: 0, activeCerts: 0, pendingRequests: 0, todaySign
 const pendingRequests = ref([])
 const services = ref([])
 
-const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''

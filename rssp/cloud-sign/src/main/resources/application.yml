@@ -11,9 +11,13 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  session:
+    store-type: redis
+    redis:
+      namespace: crypto-session
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: ${REDIS_HOST:redis}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
 server:
   port: 8084

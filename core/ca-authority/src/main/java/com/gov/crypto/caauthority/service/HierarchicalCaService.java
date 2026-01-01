@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.util.List;
+import java.util.Map;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
@@ -1027,5 +1029,21 @@ public class HierarchicalCaService {
         Path configPath = Files.createTempFile("openssl_config", ".cnf");
         Files.writeString(configPath, configContent);
         return configPath;
+    }
+
+    public List<IssuedCertificate> getAllIssuedCertificates() {
+        return certRepository.findAll();
+    }
+
+    public List<IssuedCertificate> getCertificatesByStatus(CertStatus status) {
+        return certRepository.findByStatus(status);
+    }
+
+    public Map<String, Long> getCertificateStats() {
+        long total = certRepository.count();
+        long active = certRepository.findByStatus(CertStatus.ACTIVE).size();
+        long revoked = certRepository.findByStatus(CertStatus.REVOKED).size();
+        long pending = certRepository.findByStatus(CertStatus.PENDING).size();
+        return Map.of("total", total, "active", active, "revoked", revoked, "pending", pending);
     }
 }

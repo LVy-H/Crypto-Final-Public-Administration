@@ -21,48 +21,75 @@
         </div>
       </div>
 
-      <div class="section" v-if="file && !signResult">
+      <div class="section" v-if="file && !signResult && !showTotpModal">
         <h3>Tùy chọn chữ ký</h3>
         <table class="info-table">
-          <tr>
-            <th>Lý do ký</th>
-            <td>
-              <select v-model="options.reason" class="select">
-                <option value="approval">Phê duyệt văn bản</option>
-                <option value="review">Đã xem xét</option>
-                <option value="authorization">Ủy quyền</option>
-              </select>
-            </td>
-          </tr>
-          <tr>
-            <th>Địa điểm</th>
-            <td><input v-model="options.location" type="text" class="input" placeholder="VD: Hà Nội" /></td>
-          </tr>
-          <tr>
-            <th>Khóa ký</th>
-            <td>
-              <select v-model="selectedKeyAlias" class="select">
-                <option v-for="key in userKeys" :key="key.alias" :value="key.alias">
-                  {{ key.alias }} ({{ key.algorithm }})
-                </option>
-              </select>
-            </td>
-          </tr>
-          <tr><th>Thuật toán</th><td>{{ selectedKeyAlgorithm }}</td></tr>
-          <tr><th>Thời gian</th><td>{{ new Date().toLocaleString('vi-VN') }}</td></tr>
+          <tbody>
+            <tr>
+              <th>Lý do ký</th>
+              <td>
+                <select v-model="options.reason" class="select">
+                  <option value="approval">Phê duyệt văn bản</option>
+                  <option value="review">Đã xem xét</option>
+                  <option value="authorization">Ủy quyền</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <th>Địa điểm</th>
+              <td><input v-model="options.location" type="text" class="input" placeholder="VD: Hà Nội" /></td>
+            </tr>
+            <tr>
+              <th>Khóa ký</th>
+              <td>
+                <select v-model="selectedKeyAlias" class="select">
+                  <option v-for="key in userKeys" :key="key.alias" :value="key.alias">
+                    {{ key.alias }} ({{ key.algorithm }})
+                  </option>
+                </select>
+              </td>
+            </tr>
+            <tr><th>Thuật toán</th><td>{{ selectedKeyAlgorithm }}</td></tr>
+            <tr><th>Thời gian</th><td>{{ new Date().toLocaleString('vi-VN') }}</td></tr>
+          </tbody>
         </table>
-        <button @click="signDocument" class="btn-primary" :disabled="signing">
-          {{ signing ? 'Đang ký...' : '✍️ Ký văn bản' }}
+        <button @click="initSigning" class="btn-primary" :disabled="signing">
+          {{ signing ? 'Đang khởi tạo...' : '✍️ Ký văn bản' }}
         </button>
+      </div>
+
+      <!-- TOTP Modal -->
+      <div class="modal-overlay" v-if="showTotpModal">
+        <div class="modal">
+          <h3>Xác thực TOTP</h3>
+          <p>Nhập mã xác thực từ ứng dụng Authenticator của bạn:</p>
+          <input 
+            v-model="totpCode" 
+            type="text" 
+            class="input totp-input" 
+            placeholder="000000" 
+            maxlength="6"
+            @keyup.enter="confirmSigning"
+          />
+          <div class="modal-actions">
+            <button @click="cancelSigning" class="btn">Hủy</button>
+            <button @click="confirmSigning" class="btn-primary" :disabled="signing || totpCode.length !== 6">
+              {{ signing ? 'Đang ký...' : 'Xác nhận' }}
+            </button>
+          </div>
+          <p class="hint" v-if="errorMessage">{{ errorMessage }}</p>
+        </div>
       </div>
 
       <div class="section result-section" v-if="signResult">
         <h3>✓ Ký văn bản thành công!</h3>
         <table class="info-table">
-          <tr><th>Mã chữ ký</th><td class="mono">{{ signResult.signatureId }}</td></tr>
-          <tr><th>Thuật toán</th><td>{{ signResult.algorithm }}</td></tr>
-          <tr><th>Thời gian</th><td>{{ signResult.timestamp }}</td></tr>
-          <tr><th>Chữ ký (đầu)</th><td class="mono" style="word-break: break-all; font-size: 0.7rem;">{{ signResult.signatureBase64?.substring(0, 80) }}...</td></tr>
+          <tbody>
+            <tr><th>Mã chữ ký</th><td class="mono">{{ signResult.signatureId }}</td></tr>
+            <tr><th>Thuật toán</th><td>{{ signResult.algorithm }}</td></tr>
+            <tr><th>Thời gian</th><td>{{ signResult.timestamp }}</td></tr>
+            <tr><th>Chữ ký (đầu)</th><td class="mono" style="word-break: break-all; font-size: 0.7rem;">{{ signResult.signatureBase64?.substring(0, 80) }}...</td></tr>
+          </tbody>
         </table>
         <div class="result-actions">
           <button class="btn-primary">📥 Tải văn bản đã ký</button>
@@ -85,62 +112,115 @@ const signing = ref(false)
 const signResult = ref(null)
 const options = ref({ reason: 'approval', location: '' })
 
-// User signing keys - mock data for now, can be fetched from API
+// TOTP flow state
+const showTotpModal = ref(false)
+const totpCode = ref('')
+const challengeId = ref('')
+const errorMessage = ref('')
+
+// User signing keys - use username as key alias
 const userKeys = ref([
-  { alias: 'default', algorithm: 'ML-DSA-44' },
-  { alias: user.value?.username || 'user_key', algorithm: 'ML-DSA-44' }
+  { alias: user.value?.username || 'default', algorithm: 'ML-DSA-65' }
 ])
-const selectedKeyAlias = ref(userKeys.value[0]?.alias || 'default')
+const selectedKeyAlias = ref(user.value?.username || 'default')
 
 const selectedKeyAlgorithm = computed(() => {
   const key = userKeys.value.find(k => k.alias === selectedKeyAlias.value)
-  return key?.algorithm || 'ML-DSA-44'
+  return key?.algorithm || 'ML-DSA-65'
 })
 
-const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 const handleDrop = (e) => { isDragging.value = false; const f = e.dataTransfer.files[0]; if (f) file.value = f }
 const handleFileSelect = (e) => { const f = e.target.files[0]; if (f) file.value = f }
 const removeFile = () => { file.value = null; signResult.value = null }
 const formatSize = (bytes) => bytes < 1024 ? bytes + ' B' : bytes < 1024*1024 ? (bytes/1024).toFixed(1) + ' KB' : (bytes/(1024*1024)).toFixed(1) + ' MB'
 
-const signDocument = async () => {
+// Step 1: Initialize signing challenge
+const initSigning = async () => {
   signing.value = true
+  errorMessage.value = ''
   try {
-    // Convert file content to Base64
+    // Convert file content to Base64 hash
     const arrayBuffer = await file.value.arrayBuffer()
-    const bytes = new Uint8Array(arrayBuffer)
-    let binary = ''
-    bytes.forEach(byte => binary += String.fromCharCode(byte))
-    const dataBase64 = btoa(binary)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer)
+    const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
     
-    const res = await fetch(`${apiBase.value}/sign/remote`, {
+    const res = await fetch(`/csc/v1/sign/init`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token.value || localStorage.getItem('sessionId')}`
+      },
       credentials: 'include',
       body: JSON.stringify({ 
-        userId: user.value?.username || null, 
         keyAlias: selectedKeyAlias.value, 
-        dataBase64 
+        documentHash: hashBase64,
+        algorithm: selectedKeyAlgorithm.value
       })
     })
     
-    if (!res.ok) throw new Error('Signing failed')
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || 'Failed to initialize signing')
+    }
+    
+    const data = await res.json()
+    challengeId.value = data.challengeId
+    showTotpModal.value = true
+  } catch (e) {
+    console.error('Sign init error:', e)
+    errorMessage.value = 'Lỗi khởi tạo: ' + e.message
+  }
+  signing.value = false
+}
+
+// Step 2: Confirm signing with TOTP
+const confirmSigning = async () => {
+  if (totpCode.value.length !== 6) return
+  
+  signing.value = true
+  errorMessage.value = ''
+  try {
+    const res = await fetch(`/csc/v1/sign/confirm`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token.value || localStorage.getItem('sessionId')}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({ 
+        challengeId: challengeId.value,
+        otp: totpCode.value
+      })
+    })
+    
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || 'Mã TOTP không hợp lệ')
+    }
     
     const data = await res.json()
     signResult.value = { 
       signatureId: 'SIG-' + Date.now().toString(36).toUpperCase(), 
       timestamp: new Date().toLocaleString('vi-VN'),
-      algorithm: data.algorithm || 'ML-DSA-44',
+      algorithm: data.algorithm || selectedKeyAlgorithm.value,
       signatureBase64: data.signatureBase64
     }
+    showTotpModal.value = false
+    totpCode.value = ''
   } catch (e) {
-    console.error('Signing error:', e)
-    alert('Ký văn bản thất bại: ' + e.message)
-    signing.value = false
-    return
+    console.error('Sign confirm error:', e)
+    errorMessage.value = e.message
   }
   signing.value = false
+}
+
+const cancelSigning = () => {
+  showTotpModal.value = false
+  totpCode.value = ''
+  challengeId.value = ''
+  errorMessage.value = ''
 }
 </script>
 
@@ -178,4 +258,14 @@ const signDocument = async () => {
 
 .result-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
 .result-actions .btn-primary, .result-actions .btn { width: auto; padding: 0.6rem 1rem; }
+
+/* TOTP Modal */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal { background: white; padding: 2rem; border-radius: 8px; max-width: 400px; width: 90%; }
+.modal h3 { margin-bottom: 1rem; color: #1a4d8c; }
+.modal p { margin-bottom: 1rem; font-size: 0.9rem; }
+.totp-input { text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem; font-family: monospace; }
+.modal-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+.modal-actions .btn, .modal-actions .btn-primary { flex: 1; }
+.hint { color: #c41e3a; font-size: 0.8rem; margin-top: 0.5rem; }
 </style>

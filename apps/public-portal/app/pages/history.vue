@@ -50,7 +50,7 @@ const loading = ref(true)
 const filter = ref('all')
 const activities = ref([])
 
-const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 const filteredActivities = computed(() => {
   if (filter.value === 'all') return activities.value

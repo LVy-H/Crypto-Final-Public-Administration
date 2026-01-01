@@ -15,9 +15,15 @@ import java.util.Map;
 public class CertificateController {
 
     private final HierarchicalCaService caService;
+    private final org.springframework.web.client.RestTemplate restTemplate;
 
-    public CertificateController(HierarchicalCaService caService) {
+    @org.springframework.beans.factory.annotation.Value("${service.cloud-sign.url:http://cloud-sign:8084}")
+    private String cloudSignUrl;
+
+    public CertificateController(HierarchicalCaService caService,
+            org.springframework.web.client.RestTemplate restTemplate) {
         this.caService = caService;
+        this.restTemplate = restTemplate;
     }
 
     /**
@@ -50,10 +56,26 @@ public class CertificateController {
 
     /**
      * Approve a certificate request (Admin/Debug only)
+     * Requires TOTP verification
      */
     @PostMapping("/{id}/approve")
-    public ResponseEntity<Map<String, Object>> approveCertificate(@PathVariable java.util.UUID id) {
+    public ResponseEntity<Map<String, Object>> approveCertificate(
+            @PathVariable java.util.UUID id,
+            @RequestBody Map<String, String> request) {
         try {
+            String otpCode = request.get("otpCode");
+            String username = getCurrentUsername();
+
+            if (username == null) {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            }
+
+            // 1. Verify TOTP
+            if (!verifyTotp(username, otpCode)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid or missing TOTP code"));
+            }
+
+            // 2. Approve
             IssuedCertificate cert = caService.approveCertificate(id);
             return ResponseEntity.ok(Map.of(
                     "id", cert.getId(),
@@ -64,27 +86,53 @@ public class CertificateController {
         }
     }
 
+    private boolean verifyTotp(String username, String code) {
+        if (code == null || code.isBlank())
+            return false;
+        try {
+            String verifyUrl = cloudSignUrl + "/api/v1/credentials/totp/verify";
+            record VerifyRequest(String username, String code) {
+            }
+
+            restTemplate.postForEntity(verifyUrl, new VerifyRequest(username, code), Void.class);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /**
      * Download certificate PEM (User facing)
      */
     @GetMapping("/{id}/download")
-    public ResponseEntity<Map<String, String>> downloadCertificate(@PathVariable java.util.UUID id) {
+    public ResponseEntity<org.springframework.core.io.Resource> downloadCertificate(@PathVariable java.util.UUID id) {
         try {
             String username = getCurrentUsername();
             if (username == null) {
                 return ResponseEntity.status(401).build();
             }
 
-            // In production, verify ownership!
-            // For now, allow download if authenticated
+            // Allow download if authenticated (ownership check can be stricter)
             IssuedCertificate cert = caService.getUserCertificates(username).stream()
                     .filter(c -> c.getId().equals(id))
                     .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Certificate not found or acess denied"));
+                    .orElseThrow(() -> new RuntimeException("Certificate not found or access denied"));
 
-            return ResponseEntity.ok(Map.of("certificate", cert.getCertificate()));
+            if (cert.getCertificate() == null) {
+                return ResponseEntity.status(500).body(null);
+            }
+            byte[] certBytes = cert.getCertificate().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(
+                    certBytes);
+
+            return ResponseEntity.ok()
+                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"cert_" + id + ".crt\"")
+                    .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "application/x-x509-ca-cert")
+                    .body(resource);
         } catch (Exception e) {
-            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(404).build();
         }
     }
 

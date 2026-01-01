@@ -32,11 +32,6 @@ spec:
           ports:
             - containerPort: 8084
           env:
-            - name: SPRING_PROFILES_ACTIVE
-              valueFrom:
-                configMapKeyRef:
-                  name: crypto-config
-                  key: SPRING_PROFILES_ACTIVE
             - name: KEYSTORAGE_PATH
               value: "/secure/keys"
             # HSM Configuration - connects to user signing HSM
@@ -48,11 +43,28 @@ spec:
               value: "2345"
             - name: HSM_TOKEN_LABEL
               value: "user-signing-token"
+            - name: DB_HOST
+              value: "postgres"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: crypto-secrets
+                  key: postgres-username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: crypto-secrets
+                  key: postgres-password
             - name: HSM_USER_PIN
               valueFrom:
                 secretKeyRef:
                   name: hsm-user-secrets
                   key: user-pin
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: crypto-secrets
+                  key: jwt-secret
             - name: SERVER_PORT
               value: "8084"
             - name: MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED

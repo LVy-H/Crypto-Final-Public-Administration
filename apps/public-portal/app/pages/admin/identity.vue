@@ -50,7 +50,7 @@ const pendingUsers = ref([])
 const loading = ref(true)
 const error = ref(null)
 
-const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 const loadData = async () => {
   try {

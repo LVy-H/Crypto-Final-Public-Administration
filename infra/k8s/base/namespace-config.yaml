@@ -7,33 +7,6 @@ metadata:
     app.kubernetes.io/part-of: pqc-digital-signature
 
 ---
-# ConfigMap for shared configuration
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: crypto-config
-  namespace: crypto-pqc
-data:
-  # Service URLs (internal)
-  SERVICE_CA_AUTHORITY_URL: "http://ca-authority:8082"
-  SERVICE_CLOUD_SIGN_URL: "http://cloud-sign:8084"
-  SERVICE_RA_SERVICE_URL: "http://ra-service:8083"
-  SERVICE_VALIDATION_URL: "http://validation-service:8085"
-  SERVICE_IDENTITY_URL: "http://identity-service:8081"
-
-  # Database configuration
-  POSTGRES_HOST: "postgres"
-  POSTGRES_PORT: "5432"
-  POSTGRES_DB: "crypto_db"
-
-  # Spring profiles
-  SPRING_PROFILES_ACTIVE: "kubernetes"
-
-  # Logging
-  LOGGING_LEVEL_ROOT: "INFO"
-  LOGGING_LEVEL_COM_GOV_CRYPTO: "DEBUG"
-
----
 # PostgreSQL ConfigMap
 apiVersion: v1
 kind: ConfigMap

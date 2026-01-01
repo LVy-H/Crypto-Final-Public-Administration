@@ -39,24 +39,30 @@
               <span class="icon">📋</span>
               <span>Lịch sử</span>
             </NuxtLink>
+            <NuxtLink to="/settings/security" class="action-btn">
+              <span class="icon">🔐</span>
+              <span>Bảo mật</span>
+            </NuxtLink>
           </div>
         </div>
 
         <div v-if="certInfo" class="section">
           <h3>Chứng chỉ</h3>
           <table class="info-table">
-            <tr>
-              <th>Thuật toán</th>
-              <td>{{ certInfo.algorithm || 'ML-DSA-44' }}</td>
-            </tr>
-            <tr>
-              <th>Trạng thái</th>
-              <td><span class="badge badge-active">{{ certInfo.status || 'Hoạt động' }}</span></td>
-            </tr>
-            <tr>
-              <th>Hết hạn</th>
-              <td>{{ certInfo.expiresAt || 'N/A' }}</td>
-            </tr>
+            <tbody>
+              <tr>
+                <th>Thuật toán</th>
+                <td>{{ certInfo.algorithm || 'ML-DSA-44' }}</td>
+              </tr>
+              <tr>
+                <th>Trạng thái</th>
+                <td><span class="badge badge-active">{{ certInfo.status || 'Hoạt động' }}</span></td>
+              </tr>
+              <tr>
+                <th>Hết hạn</th>
+                <td>{{ certInfo.expiresAt || 'N/A' }}</td>
+              </tr>
+            </tbody>
           </table>
         </div>
 
@@ -100,39 +106,33 @@ const stats = ref({ totalSigned: 0, verified: 0, pending: 0 })
 const certInfo = ref(null)
 const recentActivity = ref([])
 
-const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleString('vi-VN')
 }
 
+const { get } = useApi()
+
 const loadDashboard = async () => {
   try {
     loading.value = true
-    const authToken = token.value || localStorage.getItem('token')
-    
-    const headers = { 'Authorization': `Bearer ${authToken}` }
     
     // Load stats
     try {
-      const statsRes = await fetch(`${apiBase.value}/user/stats`, { headers })
-      if (statsRes.ok) stats.value = await statsRes.json()
+      stats.value = await get('/user/stats')
     } catch (e) { console.warn('Stats not available') }
     
     // Load certificate info
     try {
-      const certRes = await fetch(`${apiBase.value}/certificates/my`, { headers })
-      if (certRes.ok) {
-        const certs = await certRes.json()
-        certInfo.value = certs[0] || null
-      }
+      const certs = await get('/certificates/my')
+      certInfo.value = certs[0] || null
     } catch (e) { console.warn('Certs not available') }
     
     // Load recent activity
     try {
-      const actRes = await fetch(`${apiBase.value}/user/activity?limit=5`, { headers })
-      if (actRes.ok) recentActivity.value = await actRes.json()
+      recentActivity.value = await get('/user/activity?limit=5')
     } catch (e) { console.warn('Activity not available') }
     
   } catch (e) {

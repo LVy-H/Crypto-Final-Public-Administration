@@ -55,7 +55,7 @@ const filter = ref('')
 const logs = ref([])
 const loading = ref(true)
 
-const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''

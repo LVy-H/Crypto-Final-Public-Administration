@@ -50,7 +50,8 @@
                 <td><span :class="['badge', 'badge-' + getStatus(cert)]">{{ getStatusText(cert) }}</span></td>
                 <td>
                   <button class="btn btn-sm">Chi tiết</button>
-                  <button v-if="!cert.revoked" @click="revokeCert(cert.serialNumber)" class="btn btn-sm btn-danger">Thu hồi</button>
+                  <button v-if="getStatus(cert) === 'pending'" @click="approveCert(cert.id)" class="btn btn-sm btn-success">Duyệt</button>
+                  <button v-if="getStatus(cert) !== 'pending' && !cert.revoked" @click="revokeCert(cert.serialNumber)" class="btn btn-sm btn-danger">Thu hồi</button>
                 </td>
               </tr>
             </tbody>
@@ -73,7 +74,7 @@ const loading = ref(true)
 const stats = ref({ total: 0, active: 0, revoked: 0, expiring: 0 })
 const certs = ref([])
 
-const apiBase = computed(() => config.public.apiBase || 'http://localhost:8080/api/v1')
+const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 const formatDate = (dateStr) => {
   if (!dateStr) return 'N/A'
@@ -81,8 +82,10 @@ const formatDate = (dateStr) => {
 }
 
 const getStatus = (cert) => {
-  if (cert.revoked) return 'revoked'
+  if (cert.status === 'PENDING') return 'pending' // Check status field directly
+  if (cert.revoked || cert.status === 'REVOKED') return 'revoked'
   const expiry = new Date(cert.notAfter)
+  if (isNaN(expiry.getTime())) return 'pending' // Fallback if no date
   const now = new Date()
   const daysLeft = (expiry - now) / (1000 * 60 * 60 * 24)
   if (daysLeft < 30) return 'expiring'
@@ -91,26 +94,27 @@ const getStatus = (cert) => {
 
 const getStatusText = (cert) => {
   const status = getStatus(cert)
-  return { active: 'Hoạt động', expiring: 'Sắp hết hạn', revoked: 'Thu hồi' }[status]
+  return { active: 'Hoạt động', expiring: 'Sắp hết hạn', revoked: 'Thu hồi', pending: 'Chờ duyệt' }[status]
 }
+
+const { get, post } = useApi()
 
 const loadData = async () => {
   try {
     loading.value = true
-    const authToken = token.value || localStorage.getItem('token')
-    const headers = { 'Authorization': `Bearer ${authToken}` }
     
     // Load stats
     try {
-      const res = await fetch(`${apiBase.value}/admin/certificates/stats`, { headers })
-      if (res.ok) stats.value = await res.json()
+      stats.value = await get('/admin/certificates/stats')
     } catch (e) { console.warn('Cert stats not available') }
     
     // Load certificates
     try {
-      const res = await fetch(`${apiBase.value}/admin/certificates`, { headers })
-      if (res.ok) certs.value = await res.json()
+      certs.value = await get('/admin/certificates')
     } catch (e) { console.warn('Certs not available') }
+    
+    // Debug
+    console.log('Certs loaded:', certs.value)
     
   } catch (e) {
     console.error('Error loading certificates:', e)
@@ -119,26 +123,30 @@ const loadData = async () => {
   }
 }
 
+const approveCert = async (id) => {
+  if (!confirm('Duyệt yêu cầu cấp chứng thư số này?')) return
+  
+  try {
+    await post(`/certificates/${id}/approve`)
+    alert('Đã duyệt thành công')
+    loadData()
+  } catch (e) {
+    alert('Lỗi khi duyệt: ' + e.message)
+  }
+}
+
 const revokeCert = async (serial) => {
   if (!confirm('Xác nhận thu hồi chứng chỉ?')) return
   
   try {
-    const authToken = token.value || localStorage.getItem('token')
-    const res = await fetch(`${apiBase.value}/certificates/${serial}/revoke`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${authToken}` }
-    })
-    
-    if (res.ok) {
-      alert('Đã thu hồi')
-      loadData()
-    } else {
-      alert('Lỗi khi thu hồi')
-    }
+    await post(`/certificates/${serial}/revoke`)
+    alert('Đã thu hồi')
+    loadData()
   } catch (e) {
-    alert('Lỗi kết nối')
+    alert('Lỗi khi thu hồi: ' + e.message)
   }
 }
+
 
 onMounted(() => {
   loadData()
@@ -165,11 +173,13 @@ onMounted(() => {
 
 .btn { padding: 0.25rem 0.5rem; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 0.75rem; margin-right: 0.25rem; }
 .btn-danger { background: #dc3545; color: white; border-color: #dc3545; }
+.btn-success { background: #28a745; color: white; border-color: #28a745; }
 
 .badge { padding: 0.2rem 0.5rem; font-size: 0.7rem; border-radius: 3px; }
 .badge-active { background: #d4edda; color: #155724; }
 .badge-expiring { background: #ffc107; color: #333; }
 .badge-revoked { background: #f8d7da; color: #721c24; }
+.badge-pending { background: #cce5ff; color: #004085; }
 
 .text-center { text-align: center; color: #999; }
 </style>

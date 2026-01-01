@@ -1,6 +1,6 @@
 package com.gov.crypto.caauthority.registration.controller;
 
-import com.gov.crypto.caauthority.registration.dto.RegistrationRequest;
+import com.gov.crypto.caauthority.registration.dto.CaRegistrationRequest;
 import com.gov.crypto.caauthority.registration.service.RegistrationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,9 +18,14 @@ public class RegistrationController {
     }
 
     @PostMapping("/request")
-    public ResponseEntity<?> submitRequest(@RequestBody RegistrationRequest request) {
+    public ResponseEntity<?> submitRequest(@RequestBody CaRegistrationRequest request) {
         // Get username from Spring Security context (session-based auth)
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("Processing RA Request. Auth: " + auth);
+        if (auth != null) {
+            System.out.println("Principal: " + auth.getPrincipal());
+            System.out.println("Authorities: " + auth.getAuthorities());
+        }
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
             return ResponseEntity.status(401).body("Authentication required");
         }
