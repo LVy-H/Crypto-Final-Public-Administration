@@ -11,6 +11,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
   session:
     store-type: redis
     redis:
@@ -21,3 +22,23 @@ spring:
       port: ${SPRING_DATA_REDIS_PORT:6379}
 server:
   port: 8084
+
+logging:
+  level:
+    root: INFO
+    com.gov.crypto: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+
+# HSM Configuration (SoftHSM2)
+hsm:
+  library: ${HSM_LIBRARY:/usr/lib/softhsm/libsofthsm2.so}
+  slot: ${HSM_SLOT:0}
+  user-pin: ${HSM_USER_PIN:1234}
+  so-pin: ${HSM_SO_PIN:12345678}
+  token-label: ${HSM_TOKEN_LABEL:user-signing-token}
+tsa:
+  url: ${TSA_URL:http://tsa-mock:8080/tsa}
+  username: ${TSA_USERNAME:tsa_user}
+  password: ${TSA_PASSWORD:tsa_password}
+  timeout: 5000

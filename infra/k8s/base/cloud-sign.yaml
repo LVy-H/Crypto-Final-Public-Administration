@@ -60,6 +60,13 @@ spec:
                 secretKeyRef:
                   name: hsm-user-secrets
                   key: user-pin
+            - name: HSM_SO_PIN
+              valueFrom:
+                secretKeyRef:
+                  name: hsm-user-secrets
+                  key: so-pin
+            - name: HSM_LIBRARY
+              value: "/usr/lib/softhsm/libsofthsm2.so"
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -79,6 +86,8 @@ spec:
           volumeMounts:
             - name: key-storage
               mountPath: /secure/keys
+            - name: softhsm-tokens
+              mountPath: /var/lib/softhsm/tokens
           resources:
             requests:
               memory: "256Mi"
@@ -107,6 +116,8 @@ spec:
         - name: key-storage
           persistentVolumeClaim:
             claimName: cloud-sign-keys-pvc
+        - name: softhsm-tokens
+          emptyDir: {} # Ephemeral for dev, use PVC for production
 
 ---
 apiVersion: v1

@@ -6,6 +6,8 @@ import com.gov.crypto.cloudsign.service.SigningChallengeService;
 import com.gov.crypto.cloudsign.service.SigningChallengeService.ChallengeCreatedResult;
 import com.gov.crypto.cloudsign.service.SigningChallengeService.SigningChallenge;
 import com.gov.crypto.cloudsign.service.SigningChallengeService.VerificationResult;
+import com.gov.crypto.cloudsign.service.SigningChallengeService.VerificationResult;
+import com.gov.crypto.common.tsa.TsaClient;
 import com.gov.crypto.service.KeyStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,14 +38,17 @@ public class SigningController {
     private final KeyStorageService keyStorageService;
     private final SadValidator sadValidator;
     private final SigningChallengeService signingChallengeService;
+    private final TsaClient tsaClient;
 
     public SigningController(
             KeyStorageService keyStorageService,
             SadValidator sadValidator,
-            SigningChallengeService signingChallengeService) {
+            SigningChallengeService signingChallengeService,
+            TsaClient tsaClient) {
         this.keyStorageService = keyStorageService;
         this.sadValidator = sadValidator;
         this.signingChallengeService = signingChallengeService;
+        this.tsaClient = tsaClient;
     }
 
     // ============ Request/Response Records ============
@@ -61,7 +66,7 @@ public class SigningController {
     record SignConfirmRequest(String challengeId, String otp) {
     }
 
-    record SignConfirmResponse(String signatureBase64, String keyAlias, String algorithm) {
+    record SignConfirmResponse(String signatureBase64, String timestampBase64, String keyAlias, String algorithm) {
     }
 
     record ErrorResponse(String error, String code, Instant timestamp) {
@@ -176,8 +181,21 @@ public class SigningController {
             log.info("Signature created successfully for user {} on key {}",
                     challenge.username(), challenge.keyAlias());
 
+            // Add RFC 3161 Timestamp (PAdES-LTV compliance)
+            String timestampBase64 = null;
+            try {
+                // Decode from Base64 to byte[] for timestamping
+                byte[] signatureBytes = java.util.Base64.getDecoder().decode(signature);
+                timestampBase64 = tsaClient.timestamp(signatureBytes).getBase64Token();
+                log.info("Timestamp obtained for signature");
+            } catch (Exception e) {
+                log.warn("Failed to timestamp signature: {}", e.getMessage());
+                // In production, you might want to fail the whole operation or flag it
+            }
+
             return ResponseEntity.ok(new SignConfirmResponse(
                     signature,
+                    timestampBase64,
                     challenge.keyAlias(),
                     challenge.algorithm()));
 
@@ -276,9 +294,15 @@ public class SigningController {
         }
 
         try {
-            log.info("Generating key pair for user {} with alias {}", validation.username(), request.alias());
+            // Auto-generate alias if not provided
+            String keyAlias = request.alias();
+            if (keyAlias == null || keyAlias.isBlank()) {
+                keyAlias = validation.username() + "-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+            }
 
-            String publicKey = keyStorageService.generateKeyPair(request.alias(), request.algorithm());
+            log.info("Generating key pair for user {} with alias {}", validation.username(), keyAlias);
+
+            String publicKey = keyStorageService.generateKeyPair(keyAlias, request.algorithm());
 
             log.info("Key pair generated successfully for user {}", validation.username());
 

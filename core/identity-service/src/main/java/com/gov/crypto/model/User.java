@@ -105,6 +105,28 @@ public class User {
         this.raId = raId;
     }
 
+    @Column(name = "assigned_ca_id")
+    private UUID assignedCaId;
+
+    @Column(name = "province")
+    private String province; // For ABAC scoping
+
+    public UUID getAssignedCaId() {
+        return assignedCaId;
+    }
+
+    public void setAssignedCaId(UUID assignedCaId) {
+        this.assignedCaId = assignedCaId;
+    }
+
+    public String getProvince() {
+        return province;
+    }
+
+    public void setProvince(String province) {
+        this.province = province;
+    }
+
     public UUID getOrgId() {
         return orgId;
     }

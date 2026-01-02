@@ -15,79 +15,83 @@ import java.util.Set;
 @Configuration
 public class DataInitializer {
 
-    @Bean
-    CommandLineRunner initDatabase(RoleRepository roleRepository, PermissionRepository permissionRepository) {
-        return args -> {
-            seedData(roleRepository, permissionRepository);
-        };
-    }
+        @Bean
+        CommandLineRunner initDatabase(RoleRepository roleRepository, PermissionRepository permissionRepository) {
+                return args -> {
+                        seedData(roleRepository, permissionRepository);
+                };
+        }
 
-    @Transactional
-    public void seedData(RoleRepository roleRepository, PermissionRepository permissionRepository) {
-        // Permissions
-        Permission userRead = createPermissionIfNotFound(permissionRepository, "USER_READ", "Read user details");
-        Permission userWrite = createPermissionIfNotFound(permissionRepository, "USER_WRITE", "Modify user details");
-        Permission adminAccess = createPermissionIfNotFound(permissionRepository, "ADMIN_ACCESS",
-                "Access admin features");
-        Permission verifyIdentity = createPermissionIfNotFound(permissionRepository, "VERIFY_IDENTITY",
-                "Verify user identity");
+        @Transactional
+        public void seedData(RoleRepository roleRepository, PermissionRepository permissionRepository) {
+                // Permissions
+                Permission userRead = createPermissionIfNotFound(permissionRepository, "USER_READ",
+                                "Read user details");
+                Permission userWrite = createPermissionIfNotFound(permissionRepository, "USER_WRITE",
+                                "Modify user details");
+                Permission adminAccess = createPermissionIfNotFound(permissionRepository, "ADMIN_ACCESS",
+                                "Access admin features");
+                Permission verifyIdentity = createPermissionIfNotFound(permissionRepository, "VERIFY_IDENTITY",
+                                "Verify user identity");
 
-        // New officer permissions
-        Permission manageCA = createPermissionIfNotFound(permissionRepository, "MANAGE_CA",
-                "Create and manage Certificate Authorities");
-        Permission manageRA = createPermissionIfNotFound(permissionRepository, "MANAGE_RA",
-                "Create and manage Registration Authorities");
-        Permission issueCert = createPermissionIfNotFound(permissionRepository, "ISSUE_CERT",
-                "Issue certificates to users");
-        Permission applyStamp = createPermissionIfNotFound(permissionRepository, "APPLY_STAMP",
-                "Apply countersignature/stamp to documents");
-        Permission assignOfficer = createPermissionIfNotFound(permissionRepository, "ASSIGN_OFFICER",
-                "Assign officer roles to users");
+                // New officer permissions
+                Permission manageCA = createPermissionIfNotFound(permissionRepository, "MANAGE_CA",
+                                "Create and manage Certificate Authorities");
+                Permission manageRA = createPermissionIfNotFound(permissionRepository, "MANAGE_RA",
+                                "Create and manage Registration Authorities");
+                Permission issueCert = createPermissionIfNotFound(permissionRepository, "ISSUE_CERT",
+                                "Issue certificates to users");
+                Permission applyStamp = createPermissionIfNotFound(permissionRepository, "APPLY_STAMP",
+                                "Apply countersignature/stamp to documents");
+                Permission assignOfficer = createPermissionIfNotFound(permissionRepository, "ASSIGN_OFFICER",
+                                "Assign officer roles to users");
 
-        // Non-officer roles
-        createRoleIfNotFound(roleRepository, "ADMIN",
-                Set.of(userRead, userWrite, adminAccess, verifyIdentity),
-                null, false);
-        createRoleIfNotFound(roleRepository, "OFFICIAL",
-                Set.of(userRead, verifyIdentity),
-                null, false);
-        createRoleIfNotFound(roleRepository, "CITIZEN",
-                Set.of(userRead),
-                null, false);
+                // Non-officer roles
+                createOrUpdateRole(roleRepository, "ADMIN",
+                                Set.of(userRead, userWrite, adminAccess, verifyIdentity, manageCA, manageRA, issueCert,
+                                                applyStamp, assignOfficer),
+                                null, false);
+                createOrUpdateRole(roleRepository, "OFFICIAL",
+                                Set.of(userRead, verifyIdentity),
+                                null, false);
+                createOrUpdateRole(roleRepository, "CITIZEN",
+                                Set.of(userRead),
+                                null, false);
 
-        // Officer roles (with hierarchy)
-        // Level 0 = highest authority (POLICY_OFFICER)
-        createRoleIfNotFound(roleRepository, "POLICY_OFFICER",
-                Set.of(userRead, userWrite, adminAccess, verifyIdentity, manageCA, manageRA, issueCert, applyStamp,
-                        assignOfficer),
-                0, true);
+                // Officer roles (with hierarchy)
+                // Level 0 = highest authority (POLICY_OFFICER)
+                createOrUpdateRole(roleRepository, "POLICY_OFFICER",
+                                Set.of(userRead, userWrite, adminAccess, verifyIdentity, manageCA, manageRA, issueCert,
+                                                applyStamp,
+                                                assignOfficer),
+                                0, true);
 
-        // Level 1 = mid-level (ISSUING_OFFICER)
-        createRoleIfNotFound(roleRepository, "ISSUING_OFFICER",
-                Set.of(userRead, userWrite, verifyIdentity, manageRA, issueCert, applyStamp, assignOfficer),
-                1, true);
+                // Level 1 = mid-level (ISSUING_OFFICER)
+                createOrUpdateRole(roleRepository, "ISSUING_OFFICER",
+                                Set.of(userRead, userWrite, verifyIdentity, manageRA, issueCert, applyStamp,
+                                                assignOfficer),
+                                1, true);
 
-        // Level 2 = lowest officer (RA_OFFICER)
-        createRoleIfNotFound(roleRepository, "RA_OFFICER",
-                Set.of(userRead, verifyIdentity, issueCert, applyStamp),
-                2, true);
-    }
+                // Level 2 = lowest officer (RA_OFFICER)
+                createOrUpdateRole(roleRepository, "RA_OFFICER",
+                                Set.of(userRead, verifyIdentity, issueCert, applyStamp),
+                                2, true);
+        }
 
-    private Permission createPermissionIfNotFound(PermissionRepository repository, String name, String description) {
-        return repository.findByName(name).orElseGet(() -> {
-            Permission permission = new Permission(name, description);
-            return repository.save(permission);
-        });
-    }
+        private Permission createPermissionIfNotFound(PermissionRepository repository, String name,
+                        String description) {
+                return repository.findByName(name).orElseGet(() -> {
+                        Permission permission = new Permission(name, description);
+                        return repository.save(permission);
+                });
+        }
 
-    private Role createRoleIfNotFound(RoleRepository repository, String name, Set<Permission> permissions,
-            Integer hierarchyLevel, boolean isOfficerRole) {
-        return repository.findByName(name).orElseGet(() -> {
-            Role role = new Role(name);
-            role.setPermissions(permissions);
-            role.setHierarchyLevel(hierarchyLevel);
-            role.setOfficerRole(isOfficerRole);
-            return repository.save(role);
-        });
-    }
+        private Role createOrUpdateRole(RoleRepository repository, String name, Set<Permission> permissions,
+                        Integer hierarchyLevel, boolean isOfficerRole) {
+                Role role = repository.findByName(name).orElseGet(() -> new Role(name));
+                role.setPermissions(permissions);
+                role.setHierarchyLevel(hierarchyLevel);
+                role.setOfficerRole(isOfficerRole);
+                return repository.save(role);
+        }
 }

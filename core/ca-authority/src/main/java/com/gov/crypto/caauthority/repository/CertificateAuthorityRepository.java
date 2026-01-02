@@ -22,7 +22,5 @@ public interface CertificateAuthorityRepository extends JpaRepository<Certificat
 
     List<CertificateAuthority> findByLabel(String label);
 
-    Optional<CertificateAuthority> findByOrganizationId(UUID organizationId);
-
     List<CertificateAuthority> findByStatus(CertificateAuthority.CaStatus status);
 }

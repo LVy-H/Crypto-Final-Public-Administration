@@ -1,7 +1,7 @@
 package com.gov.crypto.caauthority.controller;
 
 import com.gov.crypto.caauthority.model.IssuedCertificate;
-import com.gov.crypto.caauthority.service.HierarchicalCaService;
+import com.gov.crypto.caauthority.service.CaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -10,17 +10,19 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import com.gov.crypto.common.security.UserPrincipal;
+
 @RestController
 @RequestMapping("/api/v1/certificates")
 public class CertificateController {
 
-    private final HierarchicalCaService caService;
+    private final CaService caService;
     private final org.springframework.web.client.RestTemplate restTemplate;
 
     @org.springframework.beans.factory.annotation.Value("${service.cloud-sign.url:http://cloud-sign:8084}")
     private String cloudSignUrl;
 
-    public CertificateController(HierarchicalCaService caService,
+    public CertificateController(CaService caService,
             org.springframework.web.client.RestTemplate restTemplate) {
         this.caService = caService;
         this.restTemplate = restTemplate;
@@ -34,9 +36,19 @@ public class CertificateController {
     public ResponseEntity<Map<String, Object>> requestCertificate(
             @RequestBody Map<String, String> request) {
         try {
-            String username = getCurrentUsername();
-            if (username == null) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()
+                    || !(auth.getPrincipal() instanceof UserPrincipal)) {
                 return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+            }
+            UserPrincipal user = (UserPrincipal) auth
+                    .getPrincipal();
+            String username = user.getUsername();
+
+            // KYC Check
+            if (!"VERIFIED".equals(user.getIdentityStatus())) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("error", "Identity not verified. Please complete KYC first."));
             }
 
             String algorithm = request.getOrDefault("algorithm", "ML-DSA-44");

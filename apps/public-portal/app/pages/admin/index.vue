@@ -71,18 +71,15 @@
 
 <script setup>
 definePageMeta({
+  layout: 'admin',
   middleware: 'auth'
 })
 
-const config = useRuntimeConfig()
-const { token } = useAuth()
-
+const { get, post } = useApi()
 const loading = ref(true)
 const stats = ref({ totalUsers: 0, activeCerts: 0, pendingRequests: 0, todaySignatures: 0 })
 const pendingRequests = ref([])
 const services = ref([])
-
-const apiBase = computed(() => config.public.apiBase || '/api/v1')
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
@@ -92,43 +89,34 @@ const formatDate = (dateStr) => {
 const loadData = async () => {
   try {
     loading.value = true
-    const authToken = token.value || localStorage.getItem('token')
-    const headers = { 'Authorization': `Bearer ${authToken}` }
     
     // Load admin stats
     try {
-      const res = await fetch(`${apiBase.value}/admin/stats`, { headers })
-      if (res.ok) stats.value = await res.json()
-    } catch (e) { console.warn('Admin stats not available') }
+      const statsData = await get('/admin/certificates/stats')
+      if (statsData) stats.value = {
+        totalUsers: 0, // Not available yet
+        activeCerts: statsData.active || 0,
+        pendingRequests: statsData.pending || 0,
+        todaySignatures: 0
+      }
+    } catch (e) {
+      console.warn('Admin stats not available', e)
+    }
     
     // Load pending requests
     try {
-      const res = await fetch(`${apiBase.value}/admin/requests/pending`, { headers })
-      if (res.ok) pendingRequests.value = await res.json()
-    } catch (e) { console.warn('Pending requests not available') }
-    
-    // Load service health
-    try {
-      const res = await fetch(`${apiBase.value}/health/services`, { headers })
-      if (res.ok) {
-        services.value = await res.json()
-      } else {
-        // Default services list
-        services.value = [
-          { name: 'API Gateway', status: 'online' },
-          { name: 'Identity Service', status: 'online' },
-          { name: 'Cloud Sign', status: 'online' },
-          { name: 'CA Authority', status: 'online' },
-        ]
-      }
+      pendingRequests.value = await get('/admin/certificates/requests/pending')
     } catch (e) {
-      services.value = [
-        { name: 'API Gateway', status: 'unknown' },
-        { name: 'Identity Service', status: 'unknown' },
-        { name: 'Cloud Sign', status: 'unknown' },
-        { name: 'CA Authority', status: 'unknown' },
-      ]
+      console.warn('Pending requests not available', e)
     }
+    
+    // Load service health (Mock for now or use Actuator if available)
+    services.value = [
+      { name: 'API Gateway', status: 'online' },
+      { name: 'Identity Service', status: 'online' },
+      { name: 'Cloud Sign', status: 'online' },
+      { name: 'CA Authority', status: 'online' },
+    ]
     
   } catch (e) {
     console.error('Admin dashboard error:', e)
@@ -139,29 +127,23 @@ const loadData = async () => {
 
 const approve = async (id) => {
   if (!confirm('Xác nhận duyệt?')) return
-  const authToken = token.value || localStorage.getItem('token')
   try {
-    await fetch(`${apiBase.value}/admin/requests/${id}/approve`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${authToken}` }
-    })
-    loadData()
+    await post(`/admin/certificates/requests/${id}/approve`)
+    await loadData() // Reload
   } catch (e) {
-    alert('Lỗi khi duyệt')
+    alert('Lỗi khi duyệt: ' + (e.message || 'Unknown error'))
   }
 }
 
 const reject = async (id) => {
-  if (!confirm('Xác nhận từ chối?')) return
-  const authToken = token.value || localStorage.getItem('token')
+  const reason = prompt('Nhập lý do từ chối:', 'Admin rejected')
+  if (reason === null) return // Cancelled
+
   try {
-    await fetch(`${apiBase.value}/admin/requests/${id}/reject`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${authToken}` }
-    })
-    loadData()
+    await post(`/admin/certificates/requests/${id}/reject`, { reason })
+    await loadData()
   } catch (e) {
-    alert('Lỗi khi từ chối')
+    alert('Lỗi khi từ chối: ' + e.message)
   }
 }
 

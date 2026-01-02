@@ -2,21 +2,25 @@ package com.gov.crypto.caauthority.controller;
 
 import com.gov.crypto.caauthority.model.CertificateAuthority;
 import com.gov.crypto.caauthority.model.IssuedCertificate;
-import com.gov.crypto.caauthority.service.HierarchicalCaService;
+import com.gov.crypto.caauthority.service.CaService;
+import com.gov.crypto.caauthority.service.CaService.CsrResult;
+import com.gov.crypto.caauthority.service.CaService.ServiceCertificateResult;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.gov.crypto.caauthority.security.RequiresTotp;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/ca")
-public class HierarchicalCaController {
+public class CaManagementController {
 
-    private final HierarchicalCaService caService;
+    private final CaService caService;
 
-    public HierarchicalCaController(HierarchicalCaService caService) {
+    public CaManagementController(CaService caService) {
         this.caService = caService;
     }
 
@@ -35,12 +39,14 @@ public class HierarchicalCaController {
      * @return CSR in PEM format for submission to National Root
      */
     @PostMapping("/init-csr")
+    @PreAuthorize("hasAuthority('MANAGE_CA')")
+    @RequiresTotp
     public ResponseEntity<Map<String, Object>> generateCaCsr(@RequestBody Map<String, String> request) {
         try {
             String name = request.getOrDefault("name", "Ministry Subordinate CA");
             String algorithm = request.getOrDefault("algorithm", "mldsa87");
 
-            var result = caService.generateCaCsr(name, algorithm);
+            CsrResult result = caService.generateCaCsr(name, algorithm);
 
             return ResponseEntity.ok(Map.of(
                     "pendingCaId", result.pendingCaId(),
@@ -62,6 +68,8 @@ public class HierarchicalCaController {
      * @return Activated CA details
      */
     @PostMapping("/upload-cert")
+    @PreAuthorize("hasAuthority('MANAGE_CA')")
+    @RequiresTotp
     public ResponseEntity<Map<String, Object>> uploadSignedCertificate(@RequestBody Map<String, String> request) {
         try {
             String pendingCaId = request.get("pendingCaId");
@@ -94,6 +102,7 @@ public class HierarchicalCaController {
      * Issue service certificate for mTLS (ML-DSA-65)
      */
     @PostMapping("/internal/issue")
+    @PreAuthorize("hasAuthority('MANAGE_CA')")
     public ResponseEntity<Map<String, Object>> issueServiceCertificate(@RequestBody Map<String, Object> request) {
         try {
             String serviceName = (String) request.get("serviceName");
@@ -101,7 +110,7 @@ public class HierarchicalCaController {
             List<String> dnsNames = (List<String>) request.getOrDefault("dnsNames", List.of());
             int validDays = (Integer) request.getOrDefault("validDays", 365);
 
-            var result = caService.issueServiceCertificate(serviceName, dnsNames, validDays);
+            ServiceCertificateResult result = caService.issueServiceCertificate(serviceName, dnsNames, validDays);
             return ResponseEntity.ok(Map.of(
                     "certificate", result.certificate(),
                     "privateKey", result.privateKey(),
@@ -111,13 +120,106 @@ public class HierarchicalCaController {
         }
     }
 
+    // ============ Subordinate CA Workflow (CSR-Based) ============
+
     /**
-     * Create Generic Subordinate CA
+     * Submit request for new Subordinate CA.
+     * Generates keys and CSR on server (for now), stores as PENDING.
+     */
+    @PostMapping("/{parentId}/request")
+    @PreAuthorize("hasAnyAuthority('MANAGE_CA', 'MANAGE_RA')")
+    public ResponseEntity<Map<String, Object>> submitCaRequest(
+            @PathVariable UUID parentId,
+            @RequestBody Map<String, Object> request) {
+        try {
+            String name = (String) request.get("name");
+            String algo = (String) request.getOrDefault("algorithm", "mldsa65");
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext()
+                    .getAuthentication().getName();
+
+            CsrResult result = caService.submitCaRequest(parentId, name, algo, username);
+
+            return ResponseEntity.ok(Map.of(
+                    "pendingRequestId", result.pendingCaId(),
+                    "csrPem", result.csrPem(),
+                    "message", "Request submitted for approval"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get pending Subordinate CA requests.
+     */
+    @GetMapping("/requests/pending")
+    @PreAuthorize("hasAuthority('MANAGE_CA')")
+    public ResponseEntity<List<Map<String, Object>>> getPendingCaRequests() {
+        var requests = caService.getPendingCaRequests();
+        var result = requests.stream().map(r -> {
+            Map<String, Object> map = new java.util.HashMap<>();
+            map.put("id", r.getId());
+            map.put("name", r.getName());
+            map.put("algorithm", r.getAlgorithm());
+            map.put("parentCaName", r.getParentCa() != null ? r.getParentCa().getName() : "ROOT");
+            map.put("requestedBy", r.getRequestedBy());
+            map.put("requestedAt", r.getRequestedAt() != null ? r.getRequestedAt().toString() : null);
+            return map;
+        }).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Approve a Subordinate CA request.
+     */
+    @PostMapping("/requests/{requestId}/approve")
+    @PreAuthorize("hasAuthority('MANAGE_CA')")
+    @RequiresTotp
+    public ResponseEntity<Map<String, Object>> approveCaRequest(@PathVariable UUID requestId) {
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext()
+                    .getAuthentication().getName();
+
+            CertificateAuthority ca = caService.approveCaRequest(requestId, username);
+
+            return ResponseEntity.ok(Map.of(
+                    "id", ca.getId(),
+                    "name", ca.getName(),
+                    "status", "ACTIVE",
+                    "message", "CA Request Approved and Activated"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/requests/{requestId}/reject")
+    @PreAuthorize("hasAuthority('MANAGE_CA')")
+    public ResponseEntity<Map<String, String>> rejectCaRequest(
+            @PathVariable UUID requestId,
+            @RequestBody Map<String, String> body) {
+        try {
+            String username = org.springframework.security.core.context.SecurityContextHolder.getContext()
+                    .getAuthentication().getName();
+            String reason = body.getOrDefault("reason", "Admin Rejected");
+
+            caService.rejectCaRequest(requestId, reason, username);
+
+            return ResponseEntity.ok(Map.of("status", "REJECTED"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Create Generic Subordinate CA (Legacy/Direct Mode)
+     * 
+     * @deprecated Use /request workflow instead
      */
     @PostMapping("/{parentId}/subordinate")
+    @PreAuthorize("hasAnyAuthority('MANAGE_CA', 'MANAGE_RA')")
     public ResponseEntity<Map<String, Object>> createSubordinate(
             @PathVariable UUID parentId,
             @RequestBody Map<String, Object> request) {
+        // Direct creation - kept for backward compatibility but discouraged
         try {
             String name = (String) request.get("name");
             String label = (String) request.getOrDefault("label", "Subordinate CA");
@@ -145,6 +247,7 @@ public class HierarchicalCaController {
      * Create Provincial CA (ML-DSA-87) - Legacy Wrapper
      */
     @PostMapping("/provincial")
+    @PreAuthorize("hasAuthority('MANAGE_CA')")
     public ResponseEntity<Map<String, Object>> createProvincialCa(@RequestBody Map<String, String> request) {
         try {
             UUID parentId = UUID.fromString(request.get("parentCaId"));
@@ -165,6 +268,7 @@ public class HierarchicalCaController {
      * Create District RA (ML-DSA-65) - Legacy Wrapper
      */
     @PostMapping("/district")
+    @PreAuthorize("hasAuthority('MANAGE_RA')")
     public ResponseEntity<Map<String, Object>> createDistrictRa(@RequestBody Map<String, String> request) {
         try {
             UUID parentId = UUID.fromString(request.get("parentCaId"));
@@ -185,6 +289,7 @@ public class HierarchicalCaController {
      * Register Third-Party RA (External Keys)
      */
     @PostMapping("/{parentId}/external-ra")
+    @PreAuthorize("hasAuthority('MANAGE_CA')")
     public ResponseEntity<Map<String, Object>> registerExternalRa(
             @PathVariable UUID parentId,
             @RequestBody Map<String, Object> request) {
@@ -214,6 +319,8 @@ public class HierarchicalCaController {
      * Issue user certificate
      */
     @PostMapping("/issue")
+    @PreAuthorize("hasAnyAuthority('ISSUE_CERT', 'MANAGE_CA')")
+    @RequiresTotp
     public ResponseEntity<Map<String, Object>> issueCertificate(@RequestBody Map<String, String> request) {
         try {
             UUID issuingRaId = UUID.fromString(request.get("issuingRaId"));
@@ -235,6 +342,7 @@ public class HierarchicalCaController {
      * Get certificate chain
      */
     @GetMapping("/chain/{caId}")
+    @PreAuthorize("permitAll()") // Certificate chains are public
     public ResponseEntity<List<String>> getCertificateChain(@PathVariable UUID caId) {
         List<String> chain = caService.getCertificateChain(caId);
         return ResponseEntity.ok(chain);
@@ -244,6 +352,7 @@ public class HierarchicalCaController {
      * Revoke certificate
      */
     @PostMapping("/revoke/{certId}")
+    @PreAuthorize("hasAnyAuthority('ISSUE_CERT', 'MANAGE_CA')")
     public ResponseEntity<Map<String, String>> revokeCertificate(
             @PathVariable UUID certId,
             @RequestBody Map<String, String> request) {
@@ -260,6 +369,7 @@ public class HierarchicalCaController {
      * Get CRL for a CA
      */
     @GetMapping(value = "/crl/{caId}", produces = "text/plain")
+    @PreAuthorize("permitAll()") // CRLs are public
     public ResponseEntity<String> getCrl(@PathVariable UUID caId) {
         try {
             String crlPem = caService.generateCrl(caId);
@@ -273,6 +383,8 @@ public class HierarchicalCaController {
      * Revoke a CA/RA and all its subordinates (cascade)
      */
     @PostMapping("/revoke-ca/{caId}")
+    @PreAuthorize("hasAuthority('MANAGE_CA')")
+    @RequiresTotp
     public ResponseEntity<Map<String, String>> revokeCa(
             @PathVariable UUID caId,
             @RequestBody Map<String, String> request) {
@@ -289,6 +401,7 @@ public class HierarchicalCaController {
      * Get all subordinate CAs under a given CA
      */
     @GetMapping("/subordinates/{caId}")
+    @PreAuthorize("isAuthenticated()") // Any authenticated user can view hierarchy
     public ResponseEntity<List<Map<String, Object>>> getSubordinates(@PathVariable UUID caId) {
         var subordinates = caService.getAllSubordinates(caId);
         var result = subordinates.stream().map(ca -> Map.<String, Object>of(
@@ -305,6 +418,7 @@ public class HierarchicalCaController {
      * Get all CAs at a specific hierarchy level
      */
     @GetMapping("/level/{level}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Map<String, Object>>> getCasByLevel(@PathVariable int level) {
         try {
             var cas = caService.getCasByLevel(level);
@@ -325,6 +439,7 @@ public class HierarchicalCaController {
      * Get all CAs (flat list, for tree building)
      */
     @GetMapping("/all")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Map<String, Object>>> listAllCas() {
         var cas = caService.getAllCas();
         var result = cas.stream().map(ca -> Map.<String, Object>of(
@@ -333,66 +448,8 @@ public class HierarchicalCaController {
                 "algorithm", ca.getAlgorithm(),
                 "type", ca.getType() != null ? ca.getType().name() : "UNKNOWN",
                 "parentCaId", ca.getParentCa() != null ? ca.getParentCa().getId() : "",
-                "organizationId", ca.getOrganizationId() != null ? ca.getOrganizationId() : "",
                 "status", ca.getStatus().name(),
                 "level", ca.getHierarchyLevel())).toList();
         return ResponseEntity.ok(result);
-    }
-
-    /**
-     * Create subordinate CA for a specific organization.
-     * The CA is linked to the org and can issue certs for that org's members.
-     */
-    @PostMapping("/org/{orgId}")
-    public ResponseEntity<Map<String, Object>> createCaForOrganization(
-            @PathVariable UUID orgId,
-            @RequestBody Map<String, Object> request) {
-        try {
-            UUID parentCaId = UUID.fromString((String) request.get("parentCaId"));
-            String name = (String) request.get("name");
-            String label = (String) request.getOrDefault("label", "Organization CA");
-            String algo = (String) request.getOrDefault("algorithm", "mldsa65");
-            int validDays = request.containsKey("validDays") ? (Integer) request.get("validDays") : 1825;
-
-            CertificateAuthority subCa = caService.createSubordinate(
-                    parentCaId, name, CertificateAuthority.CaType.RA, algo, label, validDays);
-
-            // Link CA to organization
-            subCa.setOrganizationId(orgId);
-            caService.saveCa(subCa);
-
-            return ResponseEntity.ok(Map.of(
-                    "id", subCa.getId(),
-                    "name", subCa.getName(),
-                    "organizationId", orgId,
-                    "algorithm", subCa.getAlgorithm(),
-                    "parentCaId", subCa.getParentCa().getId(),
-                    "validUntil", subCa.getValidUntil().toString(),
-                    "level", subCa.getHierarchyLevel()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * Get CA linked to a specific organization
-     */
-    @GetMapping("/org/{orgId}")
-    public ResponseEntity<Map<String, Object>> getCaByOrganization(@PathVariable UUID orgId) {
-        try {
-            var ca = caService.getCaByOrganizationId(orgId);
-            if (ca == null) {
-                return ResponseEntity.notFound().build();
-            }
-            return ResponseEntity.ok(Map.of(
-                    "id", ca.getId(),
-                    "name", ca.getName(),
-                    "organizationId", ca.getOrganizationId(),
-                    "algorithm", ca.getAlgorithm(),
-                    "status", ca.getStatus().name(),
-                    "level", ca.getHierarchyLevel()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-        }
     }
 }

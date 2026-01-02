@@ -5,7 +5,7 @@ import com.gov.crypto.caauthority.model.IssuedCertificate;
 import com.gov.crypto.caauthority.registration.dto.CaRegistrationRequest;
 import com.gov.crypto.caauthority.registration.dto.RegistrationResponse;
 import com.gov.crypto.caauthority.registration.service.RegistrationService;
-import com.gov.crypto.caauthority.service.HierarchicalCaService;
+import com.gov.crypto.caauthority.service.CaService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -17,14 +17,14 @@ import java.util.UUID;
 public class RegistrationServiceImpl implements RegistrationService {
 
     private final RestTemplate restTemplate;
-    private final HierarchicalCaService hierarchicalCaService;
+    private final CaService caService;
 
     @Value("${service.cloud-sign.url:http://cloud-sign:8084}")
     private String cloudSignUrl;
 
-    public RegistrationServiceImpl(RestTemplate restTemplate, HierarchicalCaService hierarchicalCaService) {
+    public RegistrationServiceImpl(RestTemplate restTemplate, CaService caService) {
         this.restTemplate = restTemplate;
-        this.hierarchicalCaService = hierarchicalCaService;
+        this.caService = caService;
     }
 
     record CloudKeyGenRequest(String alias, String algorithm) {
@@ -71,7 +71,7 @@ public class RegistrationServiceImpl implements RegistrationService {
         UUID issuingRaId = findIssuingRa();
         IssuedCertificate issuedCert;
         try {
-            issuedCert = hierarchicalCaService.issueUserCertificate(issuingRaId, csrResponse.csrPem(), subjectDn);
+            issuedCert = caService.issueUserCertificate(issuingRaId, csrResponse.csrPem(), subjectDn);
         } catch (Exception e) {
             throw new RuntimeException("Failed to issue Certificate: " + e.getMessage(), e);
         }
@@ -82,15 +82,15 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     private UUID findIssuingRa() {
         // Find a District RA to issue the certificate (Level 2)
-        List<CertificateAuthority> ras = hierarchicalCaService.getCasByLevel(2);
+        List<CertificateAuthority> ras = caService.getCasByLevel(2);
         if (ras.isEmpty()) {
             // Fallback: Check for Provincial if no District (Level 1)
-            List<CertificateAuthority> provCas = hierarchicalCaService.getCasByLevel(1);
+            List<CertificateAuthority> provCas = caService.getCasByLevel(1);
             if (!provCas.isEmpty()) {
                 return provCas.get(0).getId();
             }
             // Fallback: Check for Root if nothing else (Level 0)
-            List<CertificateAuthority> rootCas = hierarchicalCaService.getCasByLevel(0);
+            List<CertificateAuthority> rootCas = caService.getCasByLevel(0);
             if (!rootCas.isEmpty()) {
                 return rootCas.get(0).getId();
             }
@@ -125,14 +125,17 @@ public class RegistrationServiceImpl implements RegistrationService {
     private String buildSubjectDn(com.gov.crypto.caauthority.registration.dto.KycData kyc) {
         // Format: serialNumber=012345678901,CN=Nguyễn Văn
         // A,emailAddress=user@gov.vn,L=Hoàn Kiếm,ST=Hà Nội,O=Citizen,C=VN
-        StringBuilder dn = new StringBuilder();
-        dn.append("serialNumber=").append(kyc.cccdNumber());
-        dn.append(",CN=").append(kyc.fullName());
-        dn.append(",emailAddress=").append(kyc.email());
-        dn.append(",L=").append(kyc.district());
-        dn.append(",ST=").append(kyc.province());
-        dn.append(",O=").append(kyc.organization() != null ? kyc.organization() : "Citizen");
-        dn.append(",C=").append(kyc.country() != null ? kyc.country() : "VN");
-        return dn.toString();
+        if (kyc == null) {
+            throw new IllegalArgumentException("KYC data cannot be null");
+        }
+
+        return com.gov.crypto.common.util.DnUtils.buildSubjectDn(
+                kyc.cccdNumber(),
+                kyc.fullName(),
+                kyc.email(),
+                kyc.district(),
+                kyc.province(),
+                kyc.organization() != null ? kyc.organization() : "Citizen",
+                kyc.country() != null ? kyc.country() : "VN");
     }
 }

@@ -1,28 +1,44 @@
 package com.gov.crypto.validationservice.service;
 
-import com.gov.crypto.validationservice.dto.VerifyRequest;
-import com.gov.crypto.validationservice.dto.VerifyResponse;
+import com.gov.crypto.common.pqc.PqcCryptoService;
+import com.gov.crypto.common.validation.DssCertificateVerifier;
 import com.gov.crypto.validationservice.service.impl.ValidationServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.gov.crypto.validationservice.dto.VerifyRequest;
+import com.gov.crypto.validationservice.dto.VerifyResponse;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for Validation Service - Signature verification operations.
  * Tests match the actual ValidationService API with record-based DTOs.
  */
-class ValidationServiceTest {
+@ExtendWith(MockitoExtension.class)
+public class ValidationServiceTest {
+
+    @Mock
+    private PqcCryptoService pqcService;
+
+    @Mock
+    private DssCertificateVerifier certificateVerifier;
 
     private ValidationServiceImpl validationService;
 
     @BeforeEach
     void setUp() {
-        validationService = new ValidationServiceImpl();
+        validationService = new ValidationServiceImpl(pqcService, certificateVerifier);
     }
 
     @Nested
@@ -127,8 +143,8 @@ class ValidationServiceTest {
     }
 
     @Nested
-    @DisplayName("Signature Verification Logic Tests")
-    class SignatureVerificationTests {
+    @DisplayName("verifySignature")
+    public class SignatureVerificationTests {
 
         @Test
         @DisplayName("Should reject invalid Base64 document hash")

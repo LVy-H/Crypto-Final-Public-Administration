@@ -65,9 +65,9 @@ spec:
         - name: ca-authority
           resources:
             requests:
-              memory: "256Mi"
+              memory: "768Mi"
             limits:
-              memory: "512Mi"
+              memory: "2Gi"
 
 ---
 apiVersion: apps/v1
@@ -82,9 +82,9 @@ spec:
         - name: cloud-sign
           resources:
             requests:
-              memory: "256Mi"
+              memory: "1Gi"
             limits:
-              memory: "512Mi"
+              memory: "2Gi"
 
 ---
 apiVersion: apps/v1

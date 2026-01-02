@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":libs:common-crypto"))
+    implementation(project(":libs:common-model"))
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
@@ -22,7 +23,10 @@ dependencies {
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    // Bouncy Castle - inherited from common-crypto (standard version 1.83)
+    // implementation("org.bouncycastle:bcprov-jdk18on:1.83") 
+    // implementation("org.bouncycastle:bcpkix-jdk18on:1.83")
+    // implementation("org.bouncycastle:bcutil-jdk18on:1.83")
+    
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 }

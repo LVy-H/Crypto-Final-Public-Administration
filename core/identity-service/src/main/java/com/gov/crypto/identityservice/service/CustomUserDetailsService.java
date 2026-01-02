@@ -1,5 +1,6 @@
 package com.gov.crypto.identityservice.service;
 
+import com.gov.crypto.common.security.UserPrincipal;
 import com.gov.crypto.model.User;
 import com.gov.crypto.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -31,9 +32,13 @@ public class CustomUserDetailsService implements UserDetailsService {
                     .add(new org.springframework.security.core.authority.SimpleGrantedAuthority(p.getName())));
         }
 
-        return new org.springframework.security.core.userdetails.User(
+        return new UserPrincipal(
+                user.getId(),
                 user.getUsername(),
                 user.getPasswordHash(),
-                authorities);
+                authorities,
+                user.getProvince(),
+                user.getAssignedCaId(),
+                user.getIdentityStatus() != null ? user.getIdentityStatus().name() : "UNVERIFIED");
     }
 }

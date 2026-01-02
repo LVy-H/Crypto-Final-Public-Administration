@@ -27,7 +27,7 @@ import java.util.Base64;
  * For production: This service with real HSM (Thales, Utimaco, etc.)
  */
 @Service("hsmKeyStorage")
-@Profile("prod")
+@Profile("hsm-only") // Disabled - using SoftwareKeyStorageService with ML-DSA for now
 public class HsmKeyStorageService implements KeyStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(HsmKeyStorageService.class);
@@ -56,24 +56,28 @@ public class HsmKeyStorageService implements KeyStorageService {
     }
 
     private void initializePkcs11(String library, int slot, String tokenLabel) throws Exception {
-        // Create PKCS#11 configuration
+        // Create PKCS#11 configuration using inline format for Java 9+
+        // The '--' prefix tells SunPKCS11.configure() to treat this as inline config,
+        // not a file path
+        // Use slotListIndex instead of slot - SoftHSM assigns dynamic slot IDs after
+        // token init
         String pkcs11Config = String.format("""
-                name = SoftHSM
+                --name = SoftHSM
                 library = %s
-                slot = %d
+                slotListIndex = %d
                 """, library, slot);
 
-        // Load PKCS#11 provider
-        pkcs11Provider = Security.getProvider("SunPKCS11");
-        if (pkcs11Provider == null) {
-            // Try to load dynamically
-            pkcs11Provider = (Provider) Class.forName("sun.security.pkcs11.SunPKCS11")
-                    .getConstructor(java.io.InputStream.class)
-                    .newInstance(new ByteArrayInputStream(pkcs11Config.getBytes()));
-            Security.addProvider(pkcs11Provider);
-        } else {
-            pkcs11Provider = pkcs11Provider.configure(pkcs11Config);
+        log.info("Initializing PKCS#11 with library: {}, slotListIndex: {}", library, slot);
+
+        // Load PKCS#11 provider using inline configuration
+        Provider prototype = Security.getProvider("SunPKCS11");
+        if (prototype == null) {
+            throw new IllegalStateException("SunPKCS11 provider not available");
         }
+
+        // configure() with '--' prefix interprets content as inline config
+        pkcs11Provider = prototype.configure(pkcs11Config);
+        Security.addProvider(pkcs11Provider);
 
         // Load HSM KeyStore
         hsmKeyStore = KeyStore.getInstance("PKCS11", pkcs11Provider);
@@ -132,8 +136,6 @@ public class HsmKeyStorageService implements KeyStorageService {
         log.info("Signature created in HSM for key: {}", alias);
         return Base64.getEncoder().encodeToString(sig);
     }
-
-
 
     @Override
     public String generateCsr(String alias, String subject) throws Exception {

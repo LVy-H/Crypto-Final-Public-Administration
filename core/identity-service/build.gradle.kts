@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":libs:common-model"))
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")

@@ -149,6 +149,6 @@ public class IssuedCertificate {
     }
 
     public enum CertStatus {
-        ACTIVE, REVOKED, EXPIRED, PENDING
+        ACTIVE, REVOKED, EXPIRED, PENDING, REJECTED
     }
 }

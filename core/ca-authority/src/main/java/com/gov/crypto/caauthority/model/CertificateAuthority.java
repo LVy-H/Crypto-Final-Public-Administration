@@ -49,9 +49,8 @@ public class CertificateAuthority {
 
     private String subjectDn;
 
-    // Link to Organization (for org-specific CAs)
-    @Column(name = "organization_id")
-    private UUID organizationId;
+    @Column(name = "province")
+    private String province;
 
     // Getters and Setters
     public UUID getId() {
@@ -166,12 +165,12 @@ public class CertificateAuthority {
         this.subjectDn = subjectDn;
     }
 
-    public UUID getOrganizationId() {
-        return organizationId;
+    public String getProvince() {
+        return province;
     }
 
-    public void setOrganizationId(UUID organizationId) {
-        this.organizationId = organizationId;
+    public void setProvince(String province) {
+        this.province = province;
     }
 
     public enum CaType {

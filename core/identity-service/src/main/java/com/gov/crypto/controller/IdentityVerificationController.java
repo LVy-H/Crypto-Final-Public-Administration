@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import com.gov.crypto.common.security.UserPrincipal;
+
 @RestController
 @RequestMapping("/api/v1/identity")
 public class IdentityVerificationController {
@@ -48,13 +50,34 @@ public class IdentityVerificationController {
 
     @PostMapping("/approve/{username}")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('VERIFY_IDENTITY')")
-    public ResponseEntity<?> approveVerification(@PathVariable String username) {
+    public ResponseEntity<?> approveVerification(@PathVariable String username, Authentication authentication) {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
         User user = userOpt.get();
+
+        // Jurisdiction Check
+        UserPrincipal officer = (UserPrincipal) authentication
+                .getPrincipal();
+        // Allow NATIONAL_ADMIN or system ADMIN to bypass jurisdiction
+        boolean canBypassJurisdiction = officer.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_NATIONAL_ADMIN")
+                        || a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!canBypassJurisdiction) {
+            String officerProvince = officer.getProvince();
+            String userProvince = user.getProvince();
+            // If officer has no province or user has no province, block or handle
+            // appropriately.
+            // Assuming strict check: both must match.
+            if (officerProvince == null || !officerProvince.equals(userProvince)) {
+                return ResponseEntity.status(403)
+                        .body("Jurisdiction mismatch: You can only verify users in " + officerProvince);
+            }
+        }
+
         user.setIdentityStatus(User.IdentityStatus.VERIFIED);
 
         // Identity assertion signed via session auth, no JWT needed
