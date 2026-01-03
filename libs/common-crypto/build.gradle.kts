@@ -29,9 +29,11 @@ dependencies {
     api("org.bouncycastle:bcprov-jdk18on:1.83")
     api("org.bouncycastle:bcpkix-jdk18on:1.83")
     api("org.bouncycastle:bcutil-jdk18on:1.83")
+    api("org.bouncycastle:bctls-jdk18on:1.83")
     
-    // Spring Context for @Service annotation
+    // Spring Context and Annotations
     compileOnly("org.springframework:spring-context:6.2.1")
+    compileOnly("jakarta.annotation:jakarta.annotation-api:2.1.1")
     
     // Logging
     implementation("org.slf4j:slf4j-api:2.0.9")
@@ -45,11 +47,21 @@ dependencies {
     api("eu.europa.ec.joinup.sd-dss:dss-validation:6.3")
     implementation("eu.europa.ec.joinup.sd-dss:dss-service:6.3")
     
+    // PQC Bootstrap CLI
+    implementation("info.picocli:picocli:4.7.5")
+    annotationProcessor("info.picocli:picocli-codegen:4.7.5")
+
     // Testing
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
 }
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// Task to copy all dependencies for the Docker image
+tasks.register<Copy>("copyDependencies") {
+    from(configurations.runtimeClasspath)
+    into("build/libs/dependencies")
 }
 

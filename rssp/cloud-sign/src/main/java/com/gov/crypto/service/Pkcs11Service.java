@@ -224,13 +224,23 @@ public class Pkcs11Service implements KeyStorageService {
     }
 
     private String getSignatureAlgorithm(String keyAlgorithm) {
-        if (keyAlgorithm.toUpperCase().contains("RSA"))
+        // Pure ML-DSA architecture - prioritize PQC
+        if (keyAlgorithm.toUpperCase().contains("ML-DSA") || keyAlgorithm.toUpperCase().contains("DILITHIUM")) {
+            return keyAlgorithm; // ML-DSA-44, ML-DSA-65, ML-DSA-87
+        }
+        // Legacy algorithms (deprecated, kept for verification only)
+        if (keyAlgorithm.toUpperCase().contains("RSA")) {
+            log.warn("RSA algorithm deprecated in pure PQC architecture");
             return "SHA256withRSA";
-        if (keyAlgorithm.toUpperCase().contains("EC"))
+        }
+        if (keyAlgorithm.toUpperCase().contains("EC")) {
+            log.warn("ECDSA algorithm deprecated in pure PQC architecture");
             return "SHA256withECDSA";
-        if (keyAlgorithm.toUpperCase().contains("DSA"))
+        }
+        if (keyAlgorithm.toUpperCase().contains("DSA")) {
+            log.warn("DSA algorithm deprecated in pure PQC architecture");
             return "SHA256withDSA";
-        // PQC Support?
-        return keyAlgorithm; // Hope it works as sig algo (e.g. Ed25519, Dilithium)
+        }
+        return keyAlgorithm; // Fallback
     }
 }

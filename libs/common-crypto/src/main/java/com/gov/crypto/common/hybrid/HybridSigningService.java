@@ -14,16 +14,13 @@ import java.util.Base64;
 /**
  * Hybrid Signing Service combining ECDSA (primary) + Dilithium (secondary).
  * 
- * Purpose:
- * - ECDSA P-384: Shows "green checkmark" in Adobe Reader, Foxit, browsers
- * - Dilithium (ML-DSA): Post-quantum safety for future-proofing
- * 
- * The Dilithium signature is embedded as an unsigned attribute in the PDF.
- * 
- * Per reviewer feedback:
- * "Dilithium signature không được bất kỳ software nào verify được"
- * Solution: Use ECDSA as primary, Dilithium as embedded secondary.
+ * @deprecated Use {@link com.gov.crypto.common.pqc.PqcCryptoService} for pure
+ *             ML-DSA operations.
+ *             Hybrid signatures are deprecated in pure PQC architecture. Use
+ *             ML-DSA directly.
  */
+@Deprecated(forRemoval = true)
+@SuppressWarnings("removal") // Uses StandardCryptoService which is also deprecated
 public class HybridSigningService {
 
     private static final Logger log = LoggerFactory.getLogger(HybridSigningService.class);

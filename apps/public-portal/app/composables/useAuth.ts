@@ -1,11 +1,11 @@
 /**
- * Authentication actions composable
- * Provides login, register, and logout functionality
+ * Authentication composable using nuxt-auth-utils
+ * Provides login, register, logout with session management
  */
-export interface User {
+export interface UserData {
     username: string
     email?: string
-    role: 'CITIZEN' | 'ADMIN' | 'OFFICER'
+    role?: 'CITIZEN' | 'ADMIN' | 'OFFICER'
     fullName?: string
 }
 
@@ -14,68 +14,46 @@ interface LoginResponse {
     token?: string
     username: string
     message: string
-    user?: User
-}
-
-interface RegisterForm {
-    username: string
-    email: string
-    password: string
-    role?: string
+    user?: UserData
 }
 
 export const useAuth = () => {
-    const { post } = useApi()
-    const authState = useAuthState()
+    const { loggedIn, user, session, fetch: refreshSession, clear } = useUserSession()
+
+    // Backward compatibility aliases
+    const isAuthenticated = loggedIn
+    const token = computed(() => session.value?.sessionId || null)
+
+    /**
+     * Check auth (no-op, session is restored automatically)
+     */
+    const checkAuth = () => {
+        return loggedIn.value
+    }
 
     /**
      * Login with username and password
      */
     const login = async (username: string, password: string) => {
-        const response = await post<LoginResponse>('/auth/login', { username, password })
+        const response = await $fetch<LoginResponse>('/api/v1/auth/login', {
+            method: 'POST',
+            body: { username, password },
+            credentials: 'include'
+        })
 
-        // Determine token (session-based or JWT)
-        const token = response.sessionId || response.token
-        if (!token) {
-            throw new Error('Invalid login response: no token received')
-        }
-
-        // Build user object
-        let user: User
-        if (response.token) {
-            // JWT-based auth - decode payload
-            try {
-                const payload = JSON.parse(atob(response.token.split('.')[1]))
-                user = {
-                    ...response.user,
-                    username: response.username,
-                    role: payload.role || 'CITIZEN'
-                } as User
-            } catch {
-                user = response.user || { username: response.username, role: 'CITIZEN' }
-            }
-        } else {
-            // Session-based auth
-            user = {
-                ...response.user,
-                username: response.username,
-                role: response.user?.role || 'CITIZEN'
-            } as User
-        }
-
-        authState.setAuth(token, user)
+        // Refresh session to sync state with cookies
+        await refreshSession()
         return response
     }
 
     /**
-     * Register a new user and auto-login
+     * Register a new user
      */
-    const register = async (form: RegisterForm) => {
-        await post('/auth/register', {
-            username: form.username,
-            email: form.email,
-            password: form.password,
-            role: form.role || 'USER'
+    const register = async (form: { username: string; email: string; password: string }) => {
+        await $fetch('/api/v1/auth/register', {
+            method: 'POST',
+            body: form,
+            credentials: 'include'
         })
 
         // Auto-login after registration
@@ -83,29 +61,45 @@ export const useAuth = () => {
     }
 
     /**
-     * Check if user is authenticated (for middleware compatibility)
+     * Logout and clear session
      */
-    const checkAuth = () => {
-        // On client, try to restore from storage if not already authenticated
-        if (import.meta.client && !authState.isAuthenticated.value) {
-            authState.restoreFromStorage()
+    const logout = async () => {
+        try {
+            await $fetch('/api/v1/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+        } catch {
+            // Ignore logout errors
         }
-        return authState.isAuthenticated.value
+        await clear()
+        await navigateTo('/login')
     }
 
+    // Role-based computed properties
+    const isAdmin = computed(() => (user.value as UserData | null)?.role === 'ADMIN')
+    const isOfficer = computed(() => (user.value as UserData | null)?.role === 'OFFICER')
+    const isCitizen = computed(() => (user.value as UserData | null)?.role === 'CITIZEN')
+    const hasAdminAccess = computed(() => isAdmin.value || isOfficer.value)
+
     return {
-        // Re-export state
-        user: authState.user,
-        token: authState.token,
-        isAuthenticated: authState.isAuthenticated,
-        isAdmin: authState.isAdmin,
-        isOfficer: authState.isOfficer,
-        isCitizen: authState.isCitizen,
-        hasAdminAccess: authState.hasAdminAccess,
+        // Session state from nuxt-auth-utils
+        user: user as Ref<UserData | null>,
+        loggedIn,
+        session,
+        refreshSession,
+        // Backward compatibility
+        isAuthenticated,
+        token,
+        checkAuth,
+        // Computed roles
+        isAdmin,
+        isOfficer,
+        isCitizen,
+        hasAdminAccess,
         // Actions
         login,
         register,
-        logout: authState.logout,
-        checkAuth
+        logout
     }
 }

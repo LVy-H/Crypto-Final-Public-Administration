@@ -114,15 +114,13 @@ public class SoftwareKeyStorageService implements KeyStorageService {
         KeyPair keyPair;
         String signatureAlgorithm;
 
-        if (normalizedAlgo.startsWith("ML-DSA")) {
-            // ML-DSA key generation
-            keyPair = generateMlDsaKeyPair(normalizedAlgo);
-            signatureAlgorithm = normalizedAlgo;
-        } else {
-            // EC fallback
-            keyPair = generateEcKeyPair();
-            signatureAlgorithm = "SHA384withECDSA";
+        // Pure ML-DSA architecture - no ECDSA fallback
+        if (!normalizedAlgo.startsWith("ML-DSA")) {
+            log.warn("Non-ML-DSA algorithm requested ({}), defaulting to ML-DSA-65", normalizedAlgo);
+            normalizedAlgo = "ML-DSA-65";
         }
+        keyPair = generateMlDsaKeyPair(normalizedAlgo);
+        signatureAlgorithm = normalizedAlgo;
 
         // Create self-signed certificate for PKCS#12 storage
         X509Certificate cert = generateSelfSignedCert(keyPair, alias, signatureAlgorithm);
@@ -226,10 +224,13 @@ public class SoftwareKeyStorageService implements KeyStorageService {
 
     private String determineSignatureAlgorithm(PrivateKey privateKey) {
         String keyAlgo = privateKey.getAlgorithm();
+        // Pure ML-DSA architecture - ML-DSA keys return their algorithm directly
         if (keyAlgo.contains("ML-DSA") || keyAlgo.contains("Dilithium")) {
-            // For ML-DSA, use the algorithm directly
             return keyAlgo;
-        } else if (keyAlgo.equals("EC") || keyAlgo.equals("ECDSA")) {
+        }
+        // Legacy ECDSA keys (for verification of old signatures)
+        if (keyAlgo.equals("EC") || keyAlgo.equals("ECDSA")) {
+            log.warn("ECDSA key detected - deprecated in pure PQC architecture: {}", keyAlgo);
             return "SHA384withECDSA";
         }
         return keyAlgo;

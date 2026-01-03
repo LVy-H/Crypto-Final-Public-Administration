@@ -9,12 +9,12 @@ spring:
       enabled: false
     gateway:
       routes:
-        # Identity Service - Authentication
+        # Identity Service - Authentication + Officers
         - id: identity-service
           uri: http://identity-service:8081
           order: -1
           predicates:
-            - Path=/api/v1/auth/**, /api/v1/identity/**, /api/v1/user/**, /api/v1/admin/users/**, /api/v1/admin/stats
+            - Path=/api/v1/auth/**, /api/v1/identity/**, /api/v1/user/**, /api/v1/admin/users/**, /api/v1/admin/stats, /api/v1/officers/**
           filters:
             - StripPrefix=0
         # Cloud Sign Service - Remote Signing (CSC API)
@@ -30,14 +30,6 @@ spring:
           uri: http://cloud-sign:8084
           predicates:
             - Path=/api/v1/credentials/**
-          filters:
-            - StripPrefix=0
-
-        # Organization Service - Hierarchy Management
-        - id: org-service
-          uri: http://org-service:8083
-          predicates:
-            - Path=/api/v1/org/**
           filters:
             - StripPrefix=0
 

@@ -15,9 +15,9 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.Callable;
 
-@Command(name = "offline-ca", mixinStandardHelpOptions = true, version = "1.0",
-        description = "Offline Root CA Management Tool for ML-DSA (Post-Quantum) PKI",
-        subcommands = { OfflineCaTool.InitRootCommand.class, OfflineCaTool.SignCsrCommand.class })
+@Command(name = "offline-ca", mixinStandardHelpOptions = true, version = "1.0", description = "Offline Root CA Management Tool for ML-DSA (Post-Quantum) PKI", subcommands = {
+        OfflineCaTool.InitRootCommand.class, OfflineCaTool.SignCsrCommand.class,
+        OfflineCaTool.GenerateCsrCommand.class })
 public class OfflineCaTool implements Callable<Integer> {
 
     public static void main(String[] args) {
@@ -34,16 +34,19 @@ public class OfflineCaTool implements Callable<Integer> {
     @Command(name = "init-root", description = "Initialize a new ML-DSA Root CA")
     static class InitRootCommand implements Callable<Integer> {
 
-        @Option(names = {"-n", "--name"}, description = "Subject DN (default: CN=National Root CA, O=Government)", defaultValue = "CN=National Root CA, O=Government")
+        @Option(names = { "-n",
+                "--name" }, description = "Subject DN (default: CN=National Root CA, O=Government)", defaultValue = "CN=National Root CA, O=Government")
         private String name;
 
-        @Option(names = {"-a", "--algo"}, description = "Algorithm: ML_DSA_44, ML_DSA_65, ML_DSA_87 (default: ML_DSA_87)", defaultValue = "ML_DSA_87")
+        @Option(names = { "-a",
+                "--algo" }, description = "Algorithm: ML_DSA_44, ML_DSA_65, ML_DSA_87 (default: ML_DSA_87)", defaultValue = "ML_DSA_87")
         private MlDsaLevel algo;
 
-        @Option(names = {"-d", "--days"}, description = "Validity days (default: 7300 - 20 years)", defaultValue = "7300")
+        @Option(names = { "-d",
+                "--days" }, description = "Validity days (default: 7300 - 20 years)", defaultValue = "7300")
         private int days;
 
-        @Option(names = {"-o", "--out-dir"}, description = "Output directory", required = true)
+        @Option(names = { "-o", "--out-dir" }, description = "Output directory", required = true)
         private File outDir;
 
         @Override
@@ -88,19 +91,20 @@ public class OfflineCaTool implements Callable<Integer> {
     @Command(name = "sign-csr", description = "Sign a Subordinate CA CSR")
     static class SignCsrCommand implements Callable<Integer> {
 
-        @Option(names = {"--csr"}, description = "Path to CSR file", required = true)
+        @Option(names = { "--csr" }, description = "Path to CSR file", required = true)
         private File csrFile;
 
-        @Option(names = {"--key"}, description = "Path to Root CA Private Key", required = true)
+        @Option(names = { "--key" }, description = "Path to Root CA Private Key", required = true)
         private File keyFile;
 
-        @Option(names = {"--cert"}, description = "Path to Root CA Certificate", required = true)
+        @Option(names = { "--cert" }, description = "Path to Root CA Certificate", required = true)
         private File certFile;
 
-        @Option(names = {"--out"}, description = "Output path for signed certificate", required = true)
+        @Option(names = { "--out" }, description = "Output path for signed certificate", required = true)
         private File outFile;
 
-        @Option(names = {"-d", "--days"}, description = "Validity days (default: 1825 - 5 years)", defaultValue = "1825")
+        @Option(names = { "-d",
+                "--days" }, description = "Validity days (default: 1825 - 5 years)", defaultValue = "1825")
         private int days;
 
         @Override
@@ -117,48 +121,101 @@ public class OfflineCaTool implements Callable<Integer> {
             // 2. Parse Root Material
             PrivateKey rootKey = pqc.parsePrivateKeyPem(keyPem);
             X509Certificate rootCert = pqc.parseCertificatePem(certPem);
-            
+
             // 3. Parse CSR to get details
             var csr = pqc.parseCsrPem(csrPem);
             var subjectDn = pqc.getSubjectDnFromCsr(csr);
             var pubKey = pqc.getPublicKeyFromCsr(csr);
-            
-            // NOTE: We assume the Root CA algo matches the Root Key (Dilithium levels matters!)
-            // Ideally we detect from key, but here we assume the PqcCryptoService handles signer builder correctly 
-            // if we use the correct OID. 
+
+            // NOTE: We assume the Root CA algo matches the Root Key (Dilithium levels
+            // matters!)
+            // Ideally we detect from key, but here we assume the PqcCryptoService handles
+            // signer builder correctly
+            // if we use the correct OID.
             // Actually PqcCryptoService requires 'level' param for signer.
             // We need to determine the level from the Root Key or Cert.
-            
-            // Heuristic: Check Root Cert Sig Algo OID? Or just ask user? 
+
+            // Heuristic: Check Root Cert Sig Algo OID? Or just ask user?
             // For now, let's look at the Root Cert Sig Algo.
             String sigAlgName = rootCert.getSigAlgName(); // e.g. "Dilithium5" or OID
             MlDsaLevel signingLevel = MlDsaLevel.ML_DSA_87; // Default
-            
-            if (sigAlgName.toUpperCase().contains("DILITHIUM2")) signingLevel = MlDsaLevel.ML_DSA_44;
-            else if (sigAlgName.toUpperCase().contains("DILITHIUM3")) signingLevel = MlDsaLevel.ML_DSA_65;
-            else if (sigAlgName.toUpperCase().contains("DILITHIUM5")) signingLevel = MlDsaLevel.ML_DSA_87;
-            
+
+            if (sigAlgName.toUpperCase().contains("DILITHIUM2"))
+                signingLevel = MlDsaLevel.ML_DSA_44;
+            else if (sigAlgName.toUpperCase().contains("DILITHIUM3"))
+                signingLevel = MlDsaLevel.ML_DSA_65;
+            else if (sigAlgName.toUpperCase().contains("DILITHIUM5"))
+                signingLevel = MlDsaLevel.ML_DSA_87;
+
             System.out.println("  Subject: " + subjectDn);
             System.out.println("  Signing Level: " + signingLevel);
 
             // 4. Generate Sub Cert
             X509Certificate subCert = pqc.generateSubordinateCertificate(
-                    pubKey, 
-                    subjectDn, 
-                    keyPem, 
-                    certPem, 
-                    days, 
-                    signingLevel, 
+                    pubKey,
+                    subjectDn,
+                    keyPem,
+                    certPem,
+                    days,
+                    signingLevel,
                     true // isCA = true for Sub CA
             );
-            
+
             // 5. Write Output
             String subCertPem = pqc.certificateToPem(subCert);
             Files.writeString(outFile.toPath(), subCertPem);
-            
+
             System.out.println("SUCCESS: Subordinate CA Certificate signed.");
             System.out.println("  - " + outFile.getAbsolutePath());
-            
+
+            return 0;
+        }
+    }
+
+    @Command(name = "gen-infra-csr", description = "Generate Infrastructure Intermediate CA Key & CSR")
+    static class GenerateCsrCommand implements Callable<Integer> {
+
+        @Option(names = { "-n",
+                "--name" }, description = "Subject DN (default: CN=Infrastructure CA, O=Government)", defaultValue = "CN=Infrastructure CA, O=Government")
+        private String name;
+
+        @Option(names = { "-a",
+                "--algo" }, description = "Algorithm: ML_DSA_44, ML_DSA_65, ML_DSA_87 (default: ML_DSA_65)", defaultValue = "ML_DSA_65")
+        private MlDsaLevel algo;
+
+        @Option(names = { "-o", "--out-dir" }, description = "Output directory", required = true)
+        private File outDir;
+
+        @Override
+        public Integer call() throws Exception {
+            System.out.println("Generating Infrastructure CA CSR...");
+            System.out.println("  DN: " + name);
+            System.out.println("  Algo: " + algo);
+
+            if (!outDir.exists() && !outDir.mkdirs()) {
+                System.err.println("Failed to create output directory");
+                return 1;
+            }
+
+            PqcCryptoService pqc = new PqcCryptoService();
+
+            // 1. Generate Key Pair
+            KeyPair keyPair = pqc.generateMlDsaKeyPair(algo);
+
+            // 2. Generate CSR
+            var csr = pqc.generateCsr(keyPair, name, algo);
+
+            // 3. Save Private Key
+            String privKeyPem = pqc.privateKeyToPem(keyPair.getPrivate());
+            Files.writeString(Path.of(outDir.getAbsolutePath(), "infra.key"), privKeyPem);
+
+            // 4. Save CSR
+            String csrPem = pqc.csrToPem(csr);
+            Files.writeString(Path.of(outDir.getAbsolutePath(), "infra.csr"), csrPem);
+
+            System.out.println("SUCCESS: Infra CA Key & CSR generated.");
+            System.out.println("  - infra.key (PRIVATE! Upload to K8s Secret)");
+            System.out.println("  - infra.csr (Sign this with Root CA)");
             return 0;
         }
     }

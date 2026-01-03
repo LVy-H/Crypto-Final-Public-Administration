@@ -1,140 +1,72 @@
-<template>
-  <div class="dashboard">
-      <h2 class="page-title">Tổng quan</h2>
-
-      <div v-if="loading" class="loading">Đang tải...</div>
-
-      <template v-else>
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-value">{{ stats.totalSigned }}</div>
-            <div class="stat-label">Văn bản đã ký</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ stats.verified }}</div>
-            <div class="stat-label">Đã xác thực</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value">{{ stats.pending }}</div>
-            <div class="stat-label">Chờ xử lý</div>
-          </div>
-        </div>
-
-        <div class="section">
-          <h3>Chức năng</h3>
-          <div class="action-grid">
-            <NuxtLink to="/sign/upload" class="action-btn">
-              <span class="icon">📝</span>
-              <span>Ký văn bản</span>
-            </NuxtLink>
-            <NuxtLink to="/verify" class="action-btn">
-              <span class="icon">🔍</span>
-              <span>Xác thực</span>
-            </NuxtLink>
-            <NuxtLink to="/certificates" class="action-btn">
-              <span class="icon">📜</span>
-              <span>Chứng chỉ</span>
-            </NuxtLink>
-            <NuxtLink to="/history" class="action-btn">
-              <span class="icon">📋</span>
-              <span>Lịch sử</span>
-            </NuxtLink>
-            <NuxtLink to="/settings/security" class="action-btn">
-              <span class="icon">🔐</span>
-              <span>Bảo mật</span>
-            </NuxtLink>
-          </div>
-        </div>
-
-        <div v-if="certInfo" class="section">
-          <h3>Chứng chỉ</h3>
-          <table class="info-table">
-            <tbody>
-              <tr>
-                <th>Thuật toán</th>
-                <td>{{ certInfo.algorithm || 'ML-DSA-44' }}</td>
-              </tr>
-              <tr>
-                <th>Trạng thái</th>
-                <td><span class="badge badge-active">{{ certInfo.status || 'Hoạt động' }}</span></td>
-              </tr>
-              <tr>
-                <th>Hết hạn</th>
-                <td>{{ certInfo.expiresAt || 'N/A' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="section">
-          <h3>Hoạt động gần đây</h3>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Thời gian</th>
-                <th>Hoạt động</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="recentActivity.length === 0">
-                <td colspan="3" class="text-center">Chưa có hoạt động</td>
-              </tr>
-              <tr v-for="item in recentActivity" :key="item.id">
-                <td>{{ formatDate(item.createdAt) }}</td>
-                <td>{{ item.action }}</td>
-                <td><span :class="['badge', 'badge-' + item.status?.toLowerCase()]">{{ item.status }}</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-  </div>
-</template>
-
-<script setup>
+<script setup lang="ts">
 definePageMeta({
   middleware: 'auth'
 })
 
-const config = useRuntimeConfig()
-const router = useRouter()
-const { checkAuth, user, token } = useAuth()
-
-const loading = ref(true)
-const stats = ref({ totalSigned: 0, verified: 0, pending: 0 })
-const certInfo = ref(null)
-const recentActivity = ref([])
-
-const apiBase = computed(() => config.public.apiBase || '/api/v1')
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('vi-VN')
-}
-
+const { user, loggedIn } = useUserSession()
 const { get } = useApi()
 
+const loading = ref(true)
+const stats = ref({ signedDocuments: 0, certificates: 0, pendingRequests: 0 })
+const certInfo = ref<any>(null)
+const recentActivity = ref<any[]>([])
+
+// Quick action items
+const quickActions = [
+  { to: '/sign', icon: 'i-lucide-pen-tool', label: 'Ký văn bản', color: 'primary' },
+  { to: '/verify', icon: 'i-lucide-shield-check', label: 'Xác thực', color: 'success' },
+  { to: '/certificates', icon: 'i-lucide-award', label: 'Chứng chỉ', color: 'info' },
+  { to: '/history', icon: 'i-lucide-history', label: 'Lịch sử', color: 'warning' }
+]
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return isNaN(date.getTime()) ? dateStr : date.toLocaleString('vi-VN')
+}
+
+const formatAction = (action: string) => {
+  const labels: Record<string, string> = {
+    'LOGIN': 'Đăng nhập',
+    'LOGOUT': 'Đăng xuất',
+    'SIGN_DOCUMENT': 'Ký tài liệu',
+    'VERIFY_DOCUMENT': 'Xác thực tài liệu',
+    'REQUEST_CERTIFICATE': 'Yêu cầu chứng chỉ',
+    'GENERATE_KEY': 'Tạo khóa'
+  }
+  return labels[action] || action
+}
+
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    'active': 'success',
+    'success': 'success',
+    'completed': 'success',
+    'pending': 'warning',
+    'revoked': 'error',
+    'failed': 'error'
+  }
+  return colors[status?.toLowerCase()] || 'neutral'
+}
+
 const loadDashboard = async () => {
+  loading.value = true
   try {
-    loading.value = true
-    
     // Load stats
     try {
       stats.value = await get('/user/stats')
-    } catch (e) { console.warn('Stats not available') }
-    
+    } catch { /* Stats not available */ }
+
     // Load certificate info
     try {
-      const certs = await get('/certificates/my')
-      certInfo.value = certs[0] || null
-    } catch (e) { console.warn('Certs not available') }
-    
+      const certs = await get<any[]>('/certificates/my')
+      certInfo.value = certs?.[0] || null
+    } catch { /* Certs not available */ }
+
     // Load recent activity
     try {
-      recentActivity.value = await get('/user/activity?limit=5')
-    } catch (e) { console.warn('Activity not available') }
-    
+      recentActivity.value = await get<any[]>('/user/activity?limit=5') || []
+    } catch { /* Activity not available */ }
   } catch (e) {
     console.error('Dashboard load error:', e)
   } finally {
@@ -143,122 +75,128 @@ const loadDashboard = async () => {
 }
 
 onMounted(() => {
-  if (!checkAuth()) {
-    router.push('/login')
-    return
-  }
   loadDashboard()
 })
 </script>
 
-<style scoped>
-.dashboard { max-width: 1000px; margin: 0 auto; }
-.page-title { font-size: 1.5rem; color: #1a4d8c; margin-bottom: 2rem; font-weight: 600; }
+<template>
+  <div class="max-w-5xl mx-auto p-6">
+    <!-- Page Header -->
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        Xin chào, {{ user?.username || 'User' }}
+      </h1>
+      <p class="mt-1 text-gray-500 dark:text-gray-400">
+        Tổng quan hoạt động của bạn
+      </p>
+    </div>
 
-.loading { padding: 3rem; text-align: center; color: #666; font-size: 1.1rem; }
+    <!-- Loading State -->
+    <div v-if="loading" class="text-center py-12">
+      <UIcon name="i-lucide-loader-2" class="text-4xl text-primary animate-spin" />
+      <p class="mt-2 text-gray-500">Đang tải...</p>
+    </div>
 
-/* Stats Row - Making it cleaner */
-.stats-row { 
-  display: grid; 
-  grid-template-columns: repeat(3, 1fr); 
-  gap: 1.5rem; 
-  margin-bottom: 2.5rem; 
-}
-.stat-card { 
-  background: white; 
-  border: 1px solid #e1e4e8; 
-  border-radius: 8px;
-  padding: 1.5rem; 
-  text-align: center; 
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  border-color: #1a4d8c;
-}
-.stat-value { font-size: 2.5rem; font-weight: 700; color: #1a4d8c; line-height: 1.2; }
-.stat-label { font-size: 0.9rem; color: #666; margin-top: 0.5rem; font-weight: 500; }
+    <template v-else>
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <UCard>
+          <div class="text-center">
+            <div class="text-4xl font-bold text-primary">{{ stats.signedDocuments || 0 }}</div>
+            <div class="text-sm text-gray-500 mt-1">Văn bản đã ký</div>
+          </div>
+        </UCard>
+        <UCard>
+          <div class="text-center">
+            <div class="text-4xl font-bold text-primary">{{ stats.certificates || 0 }}</div>
+            <div class="text-sm text-gray-500 mt-1">Chứng chỉ</div>
+          </div>
+        </UCard>
+        <UCard>
+          <div class="text-center">
+            <div class="text-4xl font-bold text-primary">{{ stats.pendingRequests || 0 }}</div>
+            <div class="text-sm text-gray-500 mt-1">Chờ xử lý</div>
+          </div>
+        </UCard>
+      </div>
 
-/* Sections */
-.section { 
-  background: white; 
-  border: 1px solid #e1e4e8; 
-  border-radius: 8px;
-  padding: 1.5rem; 
-  margin-bottom: 2rem; 
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-}
-.section h3 { 
-  font-size: 1.1rem; 
-  margin-bottom: 1.25rem; 
-  padding-bottom: 0.75rem; 
-  border-bottom: 1px solid #eee; 
-  color: #2c3e50;
-  font-weight: 600;
-}
+      <!-- Quick Actions -->
+      <UCard class="mb-8">
+        <template #header>
+          <h3 class="font-semibold text-gray-900 dark:text-white">Chức năng</h3>
+        </template>
 
-/* Action Grid - Making buttons look more clickable/premium */
-.action-grid { 
-  display: grid; 
-  grid-template-columns: repeat(4, 1fr); 
-  gap: 1rem; 
-}
-.action-btn { 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  gap: 0.75rem; 
-  padding: 1.5rem; 
-  background: #f8f9fa; 
-  border: 1px solid #eee; 
-  border-radius: 8px;
-  text-decoration: none; 
-  color: #495057; 
-  font-size: 0.95rem; 
-  font-weight: 500;
-  transition: all 0.2s;
-}
-.action-btn:hover { 
-  background: white; 
-  border-color: #1a4d8c; 
-  color: #1a4d8c; 
-  box-shadow: 0 4px 12px rgba(26, 77, 140, 0.1);
-}
-.action-btn .icon { font-size: 2rem; }
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <NuxtLink
+            v-for="action in quickActions"
+            :key="action.to"
+            :to="action.to"
+            class="flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all"
+          >
+            <UIcon :name="action.icon" class="text-3xl text-primary" />
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ action.label }}</span>
+          </NuxtLink>
+        </div>
+      </UCard>
 
-/* Tables - Cleaner look */
-.info-table, .data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-.info-table th, .info-table td, .data-table th, .data-table td { 
-  padding: 1rem; 
-  text-align: left; 
-  border-bottom: 1px solid #eee; 
-}
-.info-table th { width: 140px; color: #666; font-weight: 500; white-space: nowrap; }
-.info-table td { color: #333; font-weight: 500; }
+      <!-- Certificate Info -->
+      <UCard v-if="certInfo" class="mb-8">
+        <template #header>
+          <h3 class="font-semibold text-gray-900 dark:text-white">Chứng chỉ của bạn</h3>
+        </template>
 
-.data-table th { 
-  background: #f8f9fa; 
-  font-weight: 600; 
-  color: #495057; 
-  border-bottom: 2px solid #e9ecef;
-}
-.data-table tr:last-child td { border-bottom: none; }
+        <div class="grid grid-cols-3 gap-4 text-sm">
+          <div>
+            <span class="text-gray-500">Thuật toán</span>
+            <p class="font-medium text-gray-900 dark:text-white">{{ certInfo.algorithm || 'ML-DSA-65' }}</p>
+          </div>
+          <div>
+            <span class="text-gray-500">Trạng thái</span>
+            <p>
+              <UBadge :color="getStatusColor(certInfo.status)">
+                {{ certInfo.status || 'Hoạt động' }}
+              </UBadge>
+            </p>
+          </div>
+          <div>
+            <span class="text-gray-500">Hết hạn</span>
+            <p class="font-medium text-gray-900 dark:text-white">{{ formatDate(certInfo.expiresAt) }}</p>
+          </div>
+        </div>
+      </UCard>
 
-/* Badges - Modern style */
-.badge { 
-  display: inline-flex; 
-  align-items: center;
-  padding: 0.25rem 0.6rem; 
-  font-size: 0.75rem; 
-  border-radius: 20px; 
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
-.badge-active, .badge-success, .badge-completed { background: #d4edda; color: #155724; }
-.badge-pending { background: #fff3cd; color: #856404; }
-.badge-revoked, .badge-failed { background: #f8d7da; color: #721c24; }
+      <!-- Recent Activity -->
+      <UCard>
+        <template #header>
+          <h3 class="font-semibold text-gray-900 dark:text-white">Hoạt động gần đây</h3>
+        </template>
 
-.text-center { text-align: center; color: #999; padding: 2rem; }
-</style>
+        <UTable
+          v-if="recentActivity.length > 0"
+          :data="recentActivity"
+          :columns="[
+            { key: 'timestamp', label: 'Thời gian' },
+            { key: 'action', label: 'Hoạt động' },
+            { key: 'status', label: 'Trạng thái' }
+          ]"
+        >
+          <template #timestamp-cell="{ row }">
+            {{ formatDate(row.timestamp || row.createdAt) }}
+          </template>
+          <template #action-cell="{ row }">
+            {{ formatAction(row.action) }}
+          </template>
+          <template #status-cell="{ row }">
+            <UBadge :color="getStatusColor(row.status)">
+              {{ row.status }}
+            </UBadge>
+          </template>
+        </UTable>
+
+        <div v-else class="text-center py-8 text-gray-500">
+          Chưa có hoạt động nào
+        </div>
+      </UCard>
+    </template>
+  </div>
+</template>

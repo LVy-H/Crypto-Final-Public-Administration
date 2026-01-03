@@ -26,17 +26,14 @@ flowchart TB
     subgraph Internal["Zone B - Internal"]
         API["api-gateway<br/>:8080"]
         Identity["identity-service<br/>:8081"]
-        Org["org-service<br/>:8083"]
         Doc["doc-service<br/>:8086"]
         Validation["validation-service<br/>:8085"]
     end
 
     subgraph Secure["Zone C - Secure"]
         CA["ca-authority<br/>:8082"]
-        Sign["signature-core<br/>:8087"]
         Cloud["cloud-sign<br/>:8084"]
         HSM["softhsm<br/>:5657"]
-        TSA["tsa-mock<br/>:8318"]
     end
 
     subgraph Data["Zone D - Data"]
@@ -49,7 +46,6 @@ flowchart TB
     Portal --> API
 
     API --> Identity
-    API --> Org
     API --> Doc
     API --> Validation
     API --> Cloud
@@ -57,13 +53,11 @@ flowchart TB
 
     Identity --> PG
     Identity --> Redis
-    Org --> PG
+    Doc --> PG
     CA --> PG
     
-    Cloud --> Sign
     Cloud --> CA
-    Sign --> HSM
-    Sign --> TSA
+    Cloud --> HSM
 ```
 
 ---
@@ -76,16 +70,15 @@ flowchart TB
 |---------|------|------------|---------|
 | public-portal | 3000 | Nuxt.js 3 | Unified citizen/admin portal |
 | nginx-pqc-ingress | 80/443 | NGINX | TLS termination, routing |
-| wg-proxy | 51820 | WireGuard | Public tunnel |
+| wg-proxy | 51820 | WireGuard | Secure tunnel |
 
 ### Zone B - Internal Services
 
 | Service | Port | Purpose |
 |---------|------|---------|
 | api-gateway | 8080 | Request routing, rate limiting |
-| identity-service | 8081 | Authentication, registration |
-| org-service | 8083 | Organization management |
-| doc-service | 8086 | Document storage |
+| identity-service | 8081 | Authentication, registration, KYC |
+| doc-service | 8086 | Document storage with encryption |
 | validation-service | 8085 | Signature verification |
 
 ### Zone C - Secure Services
@@ -93,17 +86,55 @@ flowchart TB
 | Service | Port | Purpose |
 |---------|------|---------|
 | ca-authority | 8082 | PKI, certificate issuance, CRL |
-| signature-core | 8087 | ML-DSA signing operations |
-| cloud-sign | 8084 | Cloud signing workflow |
+| cloud-sign | 8084 | Remote signing (CSC API v2.0) |
 | softhsm | 5657 | HSM emulation (PKCS#11) |
-| tsa-mock | 8318 | Timestamp authority (RFC 3161) |
 
 ### Zone D - Data Layer
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| postgres | 5432 | Persistent storage (users, certs, CAs) |
+| postgres | 5432 | Persistent storage (users, certs, docs) |
 | redis | 6379 | Session storage, caching |
+
+---
+
+## Cryptographic Architecture
+
+### Pure ML-DSA (FIPS 204)
+
+> **100% Post-Quantum** - No ECDSA/RSA for new signing operations.
+
+| Component | Algorithm | Standard | Security Level |
+|-----------|-----------|----------|----------------|
+| Root CA | ML-DSA-87 | FIPS 204 | NIST Level 5 (256-bit) |
+| Sub CA | ML-DSA-87 | FIPS 204 | NIST Level 5 |
+| Provincial CA | ML-DSA-65 | FIPS 204 | NIST Level 3 (192-bit) |
+| User Certificates | ML-DSA-44 | FIPS 204 | NIST Level 2 (128-bit) |
+| mTLS Service Certs | ML-DSA-65 | FIPS 204 | NIST Level 3 |
+
+### Encryption at Rest (FIPS 203)
+
+Documents are encrypted server-side using:
+
+```
+Document → AES-256-GCM(DEK) → Encrypted File
+               DEK → Kyber768(User Key) → Encapsulation
+```
+
+| Component | Algorithm | Standard |
+|-----------|-----------|----------|
+| Key Encapsulation | Kyber768 | FIPS 203 (ML-KEM) |
+| Symmetric Encryption | AES-256-GCM | FIPS 197 |
+| Authentication Tag | 128-bit | NIST SP 800-38D |
+
+### Security Standards
+
+| Standard | Purpose |
+|----------|---------|
+| RFC 5280 | X.509 certificate profile |
+| RFC 3161 | Timestamping (external TSA) |
+| RFC 2986 | PKCS#10 CSR format |
+| CSC API v2.0 | Remote signing protocol |
 
 ---
 
@@ -129,7 +160,7 @@ flowchart LR
 
     Internet --> Z1
     Z1 -->|"HTTPS"| Z2
-    Z2 -->|"mTLS"| Z3
+    Z2 -->|"mTLS (ML-DSA)"| Z3
     Z2 -->|"TCP"| Z4
     Z3 -->|"TCP"| Z4
 ```
@@ -139,19 +170,6 @@ flowchart LR
 - Zone B → Zone C for signing operations
 - Zone C → Zone D for persistence
 - Zone A ↛ Zone C (blocked)
-
----
-
-## Cryptographic Standards
-
-| Component | Algorithm | Standard | Security Level |
-|-----------|-----------|----------|----------------|
-| Root CA | ML-DSA-87 | FIPS 204 | NIST Level 5 (256-bit) |
-| Provincial CA | ML-DSA-65 | FIPS 204 | NIST Level 3 (192-bit) |
-| User Certificates | ML-DSA-44 | FIPS 204 | NIST Level 2 (128-bit) |
-| Key Encryption | AES-256-GCM | FIPS 197 | 256-bit |
-| CRL Generation | X.509v2 CRL | RFC 5280 | Bouncy Castle |
-| Timestamps | RFC 3161 TSA | RFC 3161 | SHA3-256 |
 
 ---
 

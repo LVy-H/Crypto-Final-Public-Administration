@@ -76,9 +76,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: crypto-config
-          volumeMounts:
-            - name: ca-storage
-              mountPath: /secure/ca
           resources:
             requests:
               memory: "768Mi"
@@ -97,14 +94,35 @@ spec:
               path: /actuator/health/readiness
               port: 8082
             initialDelaySeconds: 45
-            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8082
             initialDelaySeconds: 90
             periodSeconds: 30
+          volumeMounts:
+            - name: cert-volume
+              mountPath: /app/certs
+            - name: ca-storage
+              mountPath: /secure/ca
+      initContainers:
+        - name: pqc-init
+          image: crypto-pqc/pqc-init:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_DNS_NAME
+              value: "ca-authority"
+          volumeMounts:
+            - name: cert-volume
+              mountPath: /app/certs
+            - name: infra-ca-secret
+              mountPath: /var/run/secrets/infra-ca
       volumes:
+        - name: cert-volume
+          emptyDir: {}
+        - name: infra-ca-secret
+          secret:
+            secretName: crypto-infra-ca-key
         - name: ca-storage
           persistentVolumeClaim:
             claimName: ca-storage-pvc

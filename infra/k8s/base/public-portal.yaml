@@ -29,6 +29,8 @@ spec:
             # Proxy target for Nitro routeRules (server-side only)
             - name: NUXT_UPSTREAM_API_URL
               value: "http://api-gateway:8080"
+            - name: NUXT_SESSION_PASSWORD
+              value: "fed48721c43715dfc3746a5061922c0919420076a591e1d87e0b5220c3886470"
           resources:
             requests:
               memory: "256Mi"

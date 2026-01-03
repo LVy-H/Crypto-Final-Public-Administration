@@ -4,30 +4,28 @@
 server:
   port: ${SERVER_PORT:8080}
   ssl:
-    enabled: ${SSL_ENABLED:false}
-    # TLS 1.3 only - no legacy protocols
+    enabled: ${SSL_ENABLED:true}
     protocol: TLSv1.3
     enabled-protocols: TLSv1.3
-    # Require client certificate for mTLS
-    client-auth: ${SSL_CLIENT_AUTH:need}
-    # Certificate chain
-    certificate: ${SSL_CERTIFICATE:/app/certs/service.pem}
-    certificate-private-key: ${SSL_PRIVATE_KEY:/app/certs/service-key.pem}
-    # Trust store for verifying client certificates
-    trust-certificate: ${SSL_TRUST_CERT:/app/certs/internal-ca.pem}
-    # Cipher suites - AES-256-GCM with SHA384
-    ciphers:
-      - TLS_AES_256_GCM_SHA384
-      - TLS_CHACHA20_POLY1305_SHA256
+    client-auth: need
+    bundle:
+      pem:
+        mtls:
+          keystore:
+            certificate: /app/certs/service.pem
+            private-key: /app/certs/service-key.pem
+          truststore:
+            certificate: /app/certs/internal-ca.pem
+          # Allow Bouncy Castle Provider (if needed for type)
+          # type: PKCS12 (Spring converts PEM to KeyStore in memory)
 
-# Spring WebClient/RestTemplate configuration for outgoing mTLS calls
 spring:
   ssl:
     bundle:
       pem:
         mtls:
           keystore:
-            certificate: ${SSL_CERTIFICATE:/app/certs/service.pem}
-            private-key: ${SSL_PRIVATE_KEY:/app/certs/service-key.pem}
+            certificate: /app/certs/service.pem
+            private-key: /app/certs/service-key.pem
           truststore:
-            certificate: ${SSL_TRUST_CERT:/app/certs/internal-ca.pem}
+            certificate: /app/certs/internal-ca.pem

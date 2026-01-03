@@ -83,11 +83,7 @@ spec:
           envFrom:
             - configMapRef:
                 name: crypto-config
-          volumeMounts:
-            - name: key-storage
-              mountPath: /secure/keys
-            - name: softhsm-tokens
-              mountPath: /var/lib/softhsm/tokens
+
           resources:
             requests:
               memory: "256Mi"
@@ -112,7 +108,31 @@ spec:
               port: 8084
             initialDelaySeconds: 90
             periodSeconds: 30
+          volumeMounts:
+            - name: key-storage
+              mountPath: /secure/keys
+            - name: softhsm-tokens
+              mountPath: /var/lib/softhsm/tokens
+            - name: cert-volume
+              mountPath: /app/certs
+      initContainers:
+        - name: pqc-init
+          image: crypto-pqc/pqc-init:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_DNS_NAME
+              value: "cloud-sign"
+          volumeMounts:
+            - name: cert-volume
+              mountPath: /app/certs
+            - name: infra-ca-secret
+              mountPath: /var/run/secrets/infra-ca
       volumes:
+        - name: cert-volume
+          emptyDir: {}
+        - name: infra-ca-secret
+          secret:
+            secretName: crypto-infra-ca-key
         - name: key-storage
           persistentVolumeClaim:
             claimName: cloud-sign-keys-pvc

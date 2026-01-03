@@ -25,12 +25,14 @@ import java.util.Date;
 /**
  * Standard Cryptography Service using ECDSA P-384.
  * 
- * Provides browser/PDF-reader compatible signatures that show "green checkmark"
- * in Adobe Reader, Foxit, and other standard viewers.
- * 
- * Used as the PRIMARY signature in hybrid signing mode.
- * Dilithium (PQC) is embedded as secondary for future-proofing.
+ * @deprecated Use {@link com.gov.crypto.common.pqc.PqcCryptoService} for ML-DSA
+ *             operations.
+ *             ECDSA is deprecated in pure PQC architecture. This class remains
+ *             for backward
+ *             compatibility with existing ECDSA signatures but should not be
+ *             used for new signing.
  */
+@Deprecated(forRemoval = true)
 public class StandardCryptoService {
 
     private static final Logger log = LoggerFactory.getLogger(StandardCryptoService.class);

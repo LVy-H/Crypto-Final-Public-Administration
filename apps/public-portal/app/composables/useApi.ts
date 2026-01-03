@@ -1,75 +1,77 @@
 /**
- * Centralized API composable for all backend requests
- * Automatically includes auth headers and handles errors
+ * Centralized API composable
+ * Uses credentials: 'include' for session cookie forwarding
  */
+export interface ApiResponse<T> {
+    data: T
+    status: number
+    ok: boolean
+}
+
 export const useApi = () => {
     const config = useRuntimeConfig()
-    const { token, logout } = useAuthState()
-
-    const baseURL = computed(() => config.public.apiBase || '/api/v1')
+    const baseURL = config.public.apiBase || '/api/v1'
 
     /**
-     * Make an authenticated API request using $fetch
+     * Base fetch with authentication and error handling
      */
-    const request = async <T>(
+    const apiFetch = async <T>(
         endpoint: string,
-        options: {
-            method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-            body?: Record<string, unknown>
-            headers?: Record<string, string>
-        } = {}
+        options: RequestInit & { body?: unknown } = {}
     ): Promise<T> => {
-        const { method = 'GET', body, headers = {} } = options
+        const { body, headers: customHeaders, ...rest } = options
 
-        // Build auth header - fallback to localStorage if reactive token not available
-        const authToken = token.value || (import.meta.client ? localStorage.getItem('sessionId') : null)
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`
-        } else {
-            console.warn(`[useApi] No token found for ${endpoint}`)
-        }
-
-        console.log(`[useApi] Requesting ${endpoint} with token: ${authToken ? 'YES' : 'NO'}`)
-
-        try {
-            return await $fetch<T>(`${baseURL.value}${endpoint}`, {
-                method,
-                body,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...headers
-                },
-                credentials: 'include'
-            })
-        } catch (error: unknown) {
-            // Handle auth errors globally - only logout on 401 (unauthorized)
-            // 403 (forbidden) should be handled by the caller (may be permission issue, not auth)
-            if (error && typeof error === 'object' && 'statusCode' in error) {
-                const statusCode = (error as { statusCode: number }).statusCode
-                if (statusCode === 401) {
-                    logout()
+        return await $fetch<T>(`${baseURL}${endpoint}`, {
+            ...rest,
+            body: body as BodyInit,
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                ...customHeaders
+            },
+            onResponseError({ response }) {
+                if (response.status === 401) {
                     navigateTo('/login')
                 }
             }
-            throw error
-        }
+        })
+    }
+
+    /**
+     * Reactive data fetching with useFetch
+     */
+    const useApiData = <T>(
+        endpoint: string | (() => string),
+        options: Parameters<typeof useFetch>[1] = {}
+    ) => {
+        return useFetch<T>(endpoint, {
+            baseURL,
+            credentials: 'include',
+            ...options,
+            onResponseError({ response }) {
+                if (response.status === 401) {
+                    navigateTo('/login')
+                }
+            }
+        })
     }
 
     // Convenience methods
-    const get = <T>(endpoint: string, headers?: Record<string, string>) =>
-        request<T>(endpoint, { method: 'GET', headers })
+    const get = <T>(endpoint: string) =>
+        apiFetch<T>(endpoint, { method: 'GET' })
 
-    const post = <T>(endpoint: string, body?: Record<string, unknown>, headers?: Record<string, string>) =>
-        request<T>(endpoint, { method: 'POST', body, headers })
+    const post = <T>(endpoint: string, body?: unknown) =>
+        apiFetch<T>(endpoint, { method: 'POST', body })
 
-    const put = <T>(endpoint: string, body?: Record<string, unknown>, headers?: Record<string, string>) =>
-        request<T>(endpoint, { method: 'PUT', body, headers })
+    const put = <T>(endpoint: string, body?: unknown) =>
+        apiFetch<T>(endpoint, { method: 'PUT', body })
 
-    const del = <T>(endpoint: string, headers?: Record<string, string>) =>
-        request<T>(endpoint, { method: 'DELETE', headers })
+    const del = <T>(endpoint: string) =>
+        apiFetch<T>(endpoint, { method: 'DELETE' })
 
     return {
-        request,
+        apiFetch,
+        useApiData,
         get,
         post,
         put,

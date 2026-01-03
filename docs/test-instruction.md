@@ -42,6 +42,9 @@ npx playwright test                                      # Full suite
 | `full-journey.spec.ts` | End-to-end scenarios |
 | `real-api-tests.spec.ts` | Real API integration |
 
+## UI Testing Guide
+See [UI_GUIDE.md](../docs/UI_GUIDE.md) for details on Nuxt UI components and selectors used in tests.
+
 ## Running Specific Tests
 
 ```bash

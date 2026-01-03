@@ -1,0 +1,7 @@
+# API Test Dependencies
+pytest>=8.0.0
+pytest-html>=4.0.0
+pytest-xdist>=3.5.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+pydantic>=2.5.0

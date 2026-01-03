@@ -277,6 +277,169 @@ sequenceDiagram
 | ML-DSA-44 | 2.16.840.1.101.3.4.3.17 | 1312 B | 2420 B | User certs |
 | ML-DSA-65 | 2.16.840.1.101.3.4.3.18 | 1952 B | 3293 B | Intermediate |
 | ML-DSA-87 | 2.16.840.1.101.3.4.3.19 | 2592 B | 4595 B | Root CA |
+---
+
+## doc-service Endpoints
+
+### Document Schema
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Document identifier |
+| name | string | Filename |
+| ownerId | UUID | Owner's user ID |
+| classification | enum | `PUBLIC`, `INTERNAL`, `CONFIDENTIAL` |
+| visibility | enum | `PRIVATE`, `PUBLIC` |
+| contentHash | string | SHA3-256 hash |
+| fileSize | long | Size in bytes |
+| contentType | string | MIME type |
+| signed | boolean | Has signature |
+| encrypted | boolean | Encrypted at rest |
+| encryptionAlgorithm | string | `ML-KEM-768+AES-256-GCM` |
+| signatureAlgorithm | string | `ML-DSA-44`, `ML-DSA-65` |
+| assignedCountersignerId | UUID | Officer assigned to approve |
+| countersignatureId | UUID | Link to countersignature |
+| approvalStatus | enum | `DRAFT`, `PENDING_COUNTERSIGN`, `APPROVED`, `REJECTED` |
+| approvedAt | timestamp | When approved |
+
+### ABAC Rules
+
+| Visibility | Who Can Read | Who Can Write |
+|------------|--------------|---------------|
+| `PRIVATE` | Owner + Assigned Officer | Owner only |
+| `PUBLIC` | All authenticated users | Owner only |
+
+---
+
+### POST /api/v1/doc
+
+**Purpose:** Create new document record
+
+| Parameter | Location | Type | Required |
+|-----------|----------|------|----------|
+| filename | body | string | yes |
+| contentHash | body | string | yes |
+| contentType | body | string | yes |
+| fileSize | body | long | yes |
+| classification | body | enum | yes |
+| visibility | body | enum | yes |
+| encrypt | body | boolean | no |
+| X-User-Id | header | UUID | yes |
+
+**Returns:** DocumentDto with new ID
+
+---
+
+### POST /api/v1/doc/{id}/signature
+
+**Purpose:** Save signature after signing
+
+| Parameter | Location | Type | Required |
+|-----------|----------|------|----------|
+| id | path | UUID | yes |
+| signatureBase64 | body | string | yes |
+| timestampBase64 | body | string | no |
+| keyAlias | body | string | yes |
+| algorithm | body | string | yes |
+| certificateSerial | body | string | no |
+
+**Returns:** Updated DocumentDto
+
+---
+
+### GET /api/v1/doc/{id}/download
+
+**Purpose:** Download document content (ABAC enforced)
+
+| Parameter | Location | Type | Required |
+|-----------|----------|------|----------|
+| id | path | UUID | yes |
+| X-User-Id | header | UUID | yes |
+
+**Returns:** Binary content with headers:
+- `Content-Type`: document MIME type
+- `Content-Disposition`: attachment filename
+- `X-Encrypted`: true/false
+
+**ABAC:** PRIVATE documents only accessible by owner or assigned officer.
+
+---
+
+### POST /api/v1/doc/{id}/submit-approval
+
+**Purpose:** Submit document for officer approval (auto-assigns countersigner)
+
+| Parameter | Location | Type | Required |
+|-----------|----------|------|----------|
+| id | path | UUID | yes |
+| X-User-Id | header | UUID | yes |
+| X-User-Assigned-Ca | header | UUID | no |
+
+**Returns:** DocumentDto with `assignedCountersignerId` and `approvalStatus: PENDING_COUNTERSIGN`
+
+---
+
+### GET /api/v1/doc/pending-approval
+
+**Purpose:** Get pending documents for officer
+
+| Parameter | Location | Type | Required |
+|-----------|----------|------|----------|
+| X-User-Id | header | UUID | yes |
+
+**Returns:** List of DocumentDto where `assignedCountersignerId == userId`
+
+---
+
+### POST /api/v1/doc/{id}/countersign
+
+**Purpose:** Officer approves/rejects document
+
+| Parameter | Location | Type | Required |
+|-----------|----------|------|----------|
+| id | path | UUID | yes |
+| X-User-Id | header | UUID | yes |
+| countersignatureId | body | UUID | if approved |
+| approved | body | boolean | yes |
+| rejectionReason | body | string | if rejected |
+
+**ABAC:** Only `assignedCountersignerId` can countersign.
+
+**Returns:** DocumentDto with `approvalStatus: APPROVED` or `REJECTED`
+
+---
+
+### POST /api/v1/doc/{id}/make-public
+
+**Purpose:** Make approved document public
+
+| Parameter | Location | Type | Required |
+|-----------|----------|------|----------|
+| id | path | UUID | yes |
+| X-User-Id | header | UUID | yes |
+
+**ABAC:** Only owner can make public, must be `APPROVED`.
+
+**Returns:** DocumentDto with `visibility: PUBLIC`
+
+---
+
+## identity-service Officer Endpoints
+
+### GET /api/v1/officers/by-ca/{caId}
+
+**Purpose:** Get officers assigned to a CA/RA (used by doc-service)
+
+| Parameter | Location | Type | Required |
+|-----------|----------|------|----------|
+| caId | path | UUID | yes |
+
+**Returns:** List of OfficerDto
+```json
+[
+  { "id": "uuid", "username": "officer1", "caType": "REGISTRATION_AUTHORITY" }
+]
+```
 
 ---
 
@@ -288,8 +451,9 @@ sequenceDiagram
 | 201 | Created | Resource created |
 | 400 | Bad Request | Invalid input |
 | 401 | Unauthorized | No/invalid session |
-| 403 | Forbidden | Insufficient permissions |
+| 403 | Forbidden | ABAC violation |
 | 404 | Not Found | Resource doesn't exist |
 | 409 | Conflict | Duplicate resource |
 | 423 | Locked | Account locked |
 | 500 | Server Error | Internal failure |
+

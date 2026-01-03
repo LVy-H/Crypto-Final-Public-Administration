@@ -1,28 +1,11 @@
 /**
- * Auth middleware that protects routes requiring authentication
- * Uses the new useAuthState composable for SSR-safe auth checking
+ * Authentication middleware
+ * Redirects unauthenticated users to login
  */
-export default defineNuxtRouteMiddleware((to) => {
-  const { isAuthenticated, hasAdminAccess, restoreFromStorage } = useAuthState()
+export default defineNuxtRouteMiddleware(() => {
+  const { loggedIn } = useUserSession()
 
-  // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/register']
-  if (publicRoutes.includes(to.path)) {
-    return
-  }
-
-  // On client, restore from storage if not authenticated
-  if (import.meta.client && !isAuthenticated.value) {
-    restoreFromStorage()
-  }
-
-  // Require authentication for all other routes  
-  if (!isAuthenticated.value) {
+  if (!loggedIn.value) {
     return navigateTo('/login')
-  }
-
-  // Admin routes require admin/officer access
-  if (to.path.startsWith('/admin') && !hasAdminAccess.value) {
-    return navigateTo('/dashboard')
   }
 })

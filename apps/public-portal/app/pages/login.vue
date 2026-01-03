@@ -1,160 +1,102 @@
-<template>
+<script setup lang="ts">
+import { z } from 'zod'
+import type { FormSubmitEvent, FormErrorEvent } from '@nuxt/ui'
 
-    <div class="login-container">
-      <div class="login-card">
-        <h2>Đăng nhập</h2>
-        
-        <form @submit.prevent="handleLogin">
-          <div class="form-group">
-            <label for="username">Tên đăng nhập</label>
-            <input 
-              id="username"
-              v-model="form.username" 
-              type="text" 
-              required
-            />
-          </div>
+// Redirect if already logged in
+const { loggedIn } = useUserSession()
+if (loggedIn.value) {
+  navigateTo('/dashboard')
+}
 
-          <div class="form-group">
-            <label for="password">Mật khẩu</label>
-            <input 
-              id="password"
-              v-model="form.password" 
-              type="password" 
-              required
-            />
-          </div>
+const { login } = useAuth()
+const toast = useToast()
 
-          <div v-if="error" class="error-msg">{{ error }}</div>
-
-          <button type="submit" class="btn-submit" :disabled="loading">
-            {{ loading ? 'Đang xử lý...' : 'Đăng nhập' }}
-          </button>
-        </form>
-
-        <p class="register-link">
-          Chưa có tài khoản? <NuxtLink to="/register">Đăng ký</NuxtLink>
-        </p>
-      </div>
-    </div>
-
-</template>
-
-<script setup>
-const router = useRouter()
-const { login, checkAuth, hasAdminAccess } = useAuth()
-
-const form = ref({ username: '', password: '' })
-const loading = ref(false)
-const error = ref('')
-
-onMounted(() => {
-  if (checkAuth()) {
-    router.push('/dashboard')
-  }
+// Zod schema for validation
+const schema = z.object({
+  username: z.string().min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự'),
+  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
 })
 
-const handleLogin = async () => {
+type Schema = z.infer<typeof schema>
+
+const state = reactive({
+  username: '',
+  password: ''
+})
+const loading = ref(false)
+
+
+
+async function onSubmit(event: FormSubmitEvent<Schema>) {
   loading.value = true
-  error.value = ''
-  
   try {
-    await login(form.value.username, form.value.password)
-    
-    // Redirect based on role
-    if (hasAdminAccess.value) {
-      router.push('/admin')
-    } else {
-      router.push('/dashboard')
-    }
-  } catch (e) {
-    error.value = 'Đăng nhập thất bại. Vui lòng kiểm tra thông tin.'
+    await login(event.data.username, event.data.password)
+    toast.add({ title: 'Đăng nhập thành công', color: 'success' })
+    await navigateTo('/dashboard')
+  } catch (e: any) {
+    toast.add({
+      title: 'Lỗi đăng nhập',
+      description: e.data?.message || 'Tên đăng nhập hoặc mật khẩu không đúng',
+      color: 'error'
+    })
   } finally {
     loading.value = false
   }
 }
+
+function onError(event: FormErrorEvent) {
+  console.error('Validation errors:', event.errors)
+}
 </script>
 
-<style scoped>
-.login-container {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-}
+<template>
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+    <UCard class="w-full max-w-md">
+      <template #header>
+        <div class="text-center">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Đăng nhập</h1>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Hệ thống Chữ ký số Hậu lượng tử
+          </p>
+        </div>
+      </template>
 
-.login-card {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 2rem;
-}
+      <UForm :schema="schema" :state="state" class="space-y-4" @submit="onSubmit" @error="onError">
+        <UFormField label="Tên đăng nhập" name="username" required>
+          <UInput
 
-.login-card h2 {
-  font-size: 1.25rem;
-  margin-bottom: 1.5rem;
-  color: #1a4d8c;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid #1a4d8c;
-}
+            v-model="state.username"
+            name="username"
+            placeholder="Nhập tên đăng nhập"
+            icon="i-lucide-user"
+            size="lg"
+          />
+        </UFormField>
 
-.form-group {
-  margin-bottom: 1rem;
-}
+        <UFormField label="Mật khẩu" name="password" required>
+          <UInput
+            v-model="state.password"
+            type="password"
+            name="password"
+            placeholder="Nhập mật khẩu"
+            icon="i-lucide-lock"
+            size="lg"
+          />
+        </UFormField>
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.35rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
+        <UButton type="submit" block size="lg" :loading="loading">
+          Đăng nhập
+        </UButton>
+        </UForm>
 
-.form-group input {
-  width: 100%;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid #ccc;
-  font-size: 0.9rem;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: #1a4d8c;
-}
-
-.error-msg {
-  background: #fee;
-  border: 1px solid #c41e3a;
-  color: #c41e3a;
-  padding: 0.6rem;
-  margin-bottom: 1rem;
-  font-size: 0.85rem;
-}
-
-.btn-submit {
-  width: 100%;
-  padding: 0.75rem;
-  background: #1a4d8c;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.btn-submit:hover {
-  background: #153d6e;
-}
-
-.btn-submit:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
-
-.register-link {
-  margin-top: 1rem;
-  text-align: center;
-  font-size: 0.85rem;
-  color: #666;
-}
-
-.register-link a {
-  color: #1a4d8c;
-}
-</style>
+      <template #footer>
+        <p class="text-center text-sm text-gray-500 dark:text-gray-400">
+          Chưa có tài khoản?
+          <NuxtLink to="/register" class="text-primary font-medium">
+            Đăng ký ngay
+          </NuxtLink>
+        </p>
+      </template>
+    </UCard>
+  </div>
+</template>

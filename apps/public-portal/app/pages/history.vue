@@ -28,10 +28,10 @@
               <td colspan="4" class="text-center">Không có hoạt động</td>
             </tr>
             <tr v-for="item in filteredActivities" :key="item.id">
-              <td>{{ formatDate(item.createdAt) }}</td>
-              <td>{{ item.type === 'SIGN' ? 'Ký văn bản' : 'Xác thực' }}</td>
-              <td>{{ item.documentName || item.filename }}</td>
-              <td><span class="status-badge" :class="item.status?.toLowerCase()">{{ item.statusText }}</span></td>
+              <td>{{ formatDate(item.timestamp || item.createdAt) }}</td>
+              <td>{{ formatAction(item.action || item.type) }}</td>
+              <td>{{ item.documentName || item.filename || '-' }}</td>
+              <td><span class="status-badge" :class="(item.status || '').toLowerCase()">{{ item.statusText }}</span></td>
             </tr>
           </tbody>
         </table>
@@ -58,8 +58,23 @@ const filteredActivities = computed(() => {
 })
 
 const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('vi-VN')
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return isNaN(date.getTime()) ? dateStr : date.toLocaleString('vi-VN')
+}
+
+const formatAction = (action) => {
+  const labels = {
+    'LOGIN': 'Đăng nhập',
+    'LOGOUT': 'Đăng xuất', 
+    'SIGN': 'Ký văn bản',
+    'SIGN_DOCUMENT': 'Ký tài liệu',
+    'VERIFY': 'Xác thực',
+    'VERIFY_DOCUMENT': 'Xác thực tài liệu',
+    'REQUEST_CERTIFICATE': 'Yêu cầu chứng chỉ',
+    'GENERATE_KEY': 'Tạo khóa'
+  }
+  return labels[action] || action || '-'
 }
 
 onMounted(async () => {

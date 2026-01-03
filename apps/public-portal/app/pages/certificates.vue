@@ -1,153 +1,223 @@
 <template>
-
-    <div class="page-content">
-      <h2 class="page-title">Chứng chỉ của tôi</h2>
-
-      <div v-if="loading" class="loading">Đang tải...</div>
-
-      <template v-else>
-        <div v-for="cert in certificates" :key="cert.id" class="section">
-          <div class="cert-header">
-            <h3>{{ cert.subject }}</h3>
-            <span class="status-badge" :class="cert.status?.toLowerCase()">{{ cert.statusText }}</span>
-          </div>
-          <table class="info-table">
-            <tbody>
-              <tr><th>Thuật toán</th><td>{{ cert.algorithm }}</td></tr>
-              <tr><th>Ngày cấp</th><td>{{ cert.issuedAt }}</td></tr>
-              <tr><th>Ngày hết hạn</th><td>{{ cert.expiresAt }}</td></tr>
-              <tr><th>Số serial</th><td class="mono">{{ cert.serialNumber }}</td></tr>
-            </tbody>
-          </table>
-          <div class="cert-actions">
-            <button @click="downloadCert(cert)" class="btn">📥 Tải xuống</button>
-          </div>
-        </div>
-
-        <div v-if="certificates.length === 0" class="empty-state">
-          <p>Bạn chưa có chứng chỉ nào.</p>
-        </div>
-
-        <div class="section">
-          <h3>Yêu cầu chứng chỉ mới</h3>
-          <div class="request-form">
-            <select v-model="newCertAlgorithm" class="select">
-              <option value="ML-DSA-44">ML-DSA-44 (Tiêu chuẩn)</option>
-              <option value="ML-DSA-65">ML-DSA-65 (Bảo mật cao)</option>
-              <option value="ML-DSA-87">ML-DSA-87 (Bảo mật tối đa)</option>
-            </select>
-            <button @click="requestCertificate" class="btn btn-primary" :disabled="requesting">
-              {{ requesting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
-            </button>
-          </div>
-        </div>
-      </template>
+  <div class="certificates-page">
+    <div class="page-header">
+      <h1>Chứng chỉ số của tôi</h1>
+      <NuxtLink to="/certificates/request" class="btn btn-primary">+ Yêu cầu chứng chỉ mới</NuxtLink>
     </div>
 
+    <div v-if="loading" class="loading">Đang tải...</div>
+
+    <div v-else-if="certificates.length === 0" class="empty-state">
+      <div class="empty-icon">📜</div>
+      <h3>Chưa có chứng chỉ</h3>
+      <p>Bạn chưa có chứng chỉ số nào. Hãy yêu cầu chứng chỉ để bắt đầu ký tài liệu.</p>
+      <NuxtLink to="/certificates/request" class="btn btn-primary">Yêu cầu chứng chỉ</NuxtLink>
+    </div>
+
+    <div v-else class="certificates-list">
+      <div v-for="cert in certificates" :key="cert.id" class="certificate-card">
+        <div class="cert-header">
+          <span class="cert-status" :class="cert.status.toLowerCase()">{{ statusLabel(cert.status) }}</span>
+          <span class="cert-algorithm">{{ cert.algorithm }}</span>
+        </div>
+        <div class="cert-body">
+          <h3>{{ cert.subjectName || 'Chứng chỉ ' + cert.id.substring(0, 8) }}</h3>
+          <div class="cert-details">
+            <p><strong>Serial:</strong> {{ cert.serialNumber }}</p>
+            <p><strong>Issuer:</strong> {{ cert.issuerName }}</p>
+            <p><strong>Hiệu lực:</strong> {{ formatDate(cert.validFrom) }} - {{ formatDate(cert.validTo) }}</p>
+          </div>
+        </div>
+        <div class="cert-actions">
+          <button @click="downloadCert(cert.id)" class="btn btn-secondary">Tải xuống</button>
+          <NuxtLink :to="`/certificates/${cert.id}`" class="btn btn-outline">Chi tiết</NuxtLink>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="error" class="error-message">{{ error }}</div>
+  </div>
 </template>
 
 <script setup>
-definePageMeta({ middleware: 'auth' })
+definePageMeta({
+  middleware: 'auth'
+})
 
-const config = useRuntimeConfig()
-const { token } = useAuth()
+const { getMyCertificates, downloadCertificate } = useCertificates()
 
 const loading = ref(true)
 const certificates = ref([])
-const newCertAlgorithm = ref('ML-DSA-44')
-const requesting = ref(false)
+const error = ref('')
 
-const apiBase = computed(() => config.public.apiBase || '/api/v1')
+const statusLabel = (status) => {
+  const labels = {
+    'PENDING': 'Đang chờ',
+    'ACTIVE': 'Hoạt động',
+    'REVOKED': 'Đã thu hồi',
+    'EXPIRED': 'Hết hạn'
+  }
+  return labels[status] || status
+}
 
-async function loadCertificates() {
-  loading.value = true
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A'
+  return new Date(dateStr).toLocaleDateString('vi-VN')
+}
+
+const fetchCertificates = async () => {
   try {
-    const authToken = token.value || localStorage.getItem('token')
-    const res = await fetch(`${apiBase.value}/certificates/my`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
-    })
-    if (res.ok) {
-      const data = await res.json()
-      certificates.value = data.map(c => ({
-        ...c,
-        statusText: c.revoked ? 'Thu hồi' : (c.status === 'PENDING' ? 'Đang chờ' : 'Hoạt động'),
-        status: c.status?.toLowerCase() || (c.revoked ? 'revoked' : 'active'),
-        issuedAt: new Date(c.validFrom || c.notBefore).toLocaleDateString('vi-VN'),
-        expiresAt: new Date(c.validUntil || c.notAfter).toLocaleDateString('vi-VN')
-      }))
-    }
+    loading.value = true
+    certificates.value = await getMyCertificates()
   } catch (e) {
-    console.error('Error loading certificates:', e)
+    error.value = 'Không thể tải danh sách chứng chỉ'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
-  loadCertificates()
-})
-
-function downloadCert(cert) {
-  alert('Tải xuống chứng chỉ: ' + cert.serialNumber)
-}
-
-async function requestCertificate() {
-  requesting.value = true
+const downloadCert = async (id) => {
   try {
-    const authToken = token.value || localStorage.getItem('token')
-    const res = await fetch(`${apiBase.value}/certificates/request`, {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ algorithm: newCertAlgorithm.value })
-    })
-    if (res.ok) {
-      alert('Yêu cầu đã được gửi!')
-      await loadCertificates()
-    } else {
-      alert('Có lỗi xảy ra')
-    }
+    const result = await downloadCertificate(id)
+    // Create download
+    const blob = new Blob([result.certificatePem], { type: 'application/x-pem-file' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `certificate-${id}.pem`
+    a.click()
+    URL.revokeObjectURL(url)
   } catch (e) {
-    alert('Lỗi kết nối')
-  } finally {
-    requesting.value = false
+    error.value = 'Không thể tải chứng chỉ'
   }
 }
+
+onMounted(fetchCertificates)
 </script>
 
 <style scoped>
-.page-content { max-width: 800px; }
-.page-title { font-size: 1.25rem; color: #1a4d8c; margin-bottom: 1.5rem; }
-.loading { padding: 2rem; text-align: center; color: #666; }
+.certificates-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
 
-.section { background: white; border: 1px solid #ddd; padding: 1.25rem; margin-bottom: 1rem; }
-.section h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.75rem; }
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
 
-.cert-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-.cert-header h3 { margin: 0; font-size: 0.9rem; }
+.page-header h1 {
+  font-size: 1.5rem;
+  color: #1a4d8c;
+}
 
-.status-badge { padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 3px; }
-.status-badge.active { background: #d4edda; color: #155724; }
-.status-badge.revoked { background: #f8d7da; color: #721c24; }
-.status-badge.pending { background: #fff3cd; color: #856404; }
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
 
-.info-table { width: 100%; margin-bottom: 1rem; }
-.info-table th, .info-table td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #eee; font-size: 0.85rem; }
-.info-table th { width: 120px; color: #666; font-weight: 500; }
-.info-table .mono { font-family: monospace; font-size: 0.8rem; }
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
 
-.cert-actions { display: flex; gap: 0.5rem; }
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
 
-.btn { padding: 0.5rem 0.75rem; border: 1px solid #ddd; background: white; font-size: 0.8rem; cursor: pointer; }
-.btn:hover { background: #f5f5f5; }
-.btn-primary { background: #1a4d8c; color: white; border-color: #1a4d8c; }
-.btn-primary:hover { background: #153d6e; }
-.btn-primary:disabled { background: #999; cursor: not-allowed; }
+.empty-state h3 {
+  color: #333;
+  margin-bottom: 0.5rem;
+}
 
-.empty-state { background: white; border: 1px solid #ddd; padding: 2rem; text-align: center; color: #666; margin-bottom: 1rem; }
+.empty-state p {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
 
-.request-form { display: flex; gap: 0.75rem; }
-.select { flex: 1; padding: 0.5rem; border: 1px solid #ddd; font-size: 0.85rem; }
+.certificates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.certificate-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.cert-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.cert-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.cert-status.active { background: #e6f4ea; color: #137333; }
+.cert-status.pending { background: #fef7e0; color: #b06000; }
+.cert-status.revoked { background: #fce8e6; color: #c5221f; }
+.cert-status.expired { background: #f1f3f4; color: #5f6368; }
+
+.cert-algorithm {
+  font-size: 0.8rem;
+  color: #1a4d8c;
+  font-weight: 500;
+}
+
+.cert-body h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.cert-details {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.cert-details p {
+  margin: 0.25rem 0;
+}
+
+.cert-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-primary { background: #1a4d8c; color: white; border: none; }
+.btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
+.btn-outline { background: transparent; color: #1a4d8c; border: 1px solid #1a4d8c; }
+
+.error-message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #fce8e6;
+  color: #c5221f;
+  border-radius: 4px;
+}
 </style>

@@ -30,7 +30,7 @@ export default defineConfig({
         },
         {
             name: 'portal',
-            testMatch: ['**/public-portal.spec.ts', '**/admin-portal.spec.ts', '**/ui-user-journey.spec.ts', '**/full-journey.spec.ts', '**/sign-verify-ui.spec.ts', '**/auth-features.spec.ts', '**/real-api-tests.spec.ts', '**/totp-signing.spec.ts', '**/totp-real-flow.spec.ts', '**/production-readiness.spec.ts', '**/kyc-totp-flows.spec.ts'],
+            testMatch: ['**/form-debug.spec.ts', '**/nuxt-ui-portal.spec.ts', '**/public-portal.spec.ts', '**/admin-portal.spec.ts', '**/ui-user-journey.spec.ts', '**/full-journey.spec.ts', '**/sign-verify-ui.spec.ts', '**/auth-features.spec.ts', '**/real-api-tests.spec.ts', '**/totp-signing.spec.ts', '**/totp-real-flow.spec.ts', '**/production-readiness.spec.ts', '**/kyc-totp-flows.spec.ts'],
             use: {
                 ...devices['Desktop Chrome'],
                 baseURL: PORTAL_BASE,
