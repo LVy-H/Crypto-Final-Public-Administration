@@ -1,5 +1,6 @@
 /**
  * Proxy login request to api-gateway and set user session
+ * Backend returns sessionId as a token for subsequent API calls
  */
 export default defineEventHandler(async (event) => {
     const body = await readBody(event)
@@ -7,11 +8,12 @@ export default defineEventHandler(async (event) => {
 
     try {
         const response = await $fetch<{
+            user?: { username: string; email?: string; role?: string }
             username: string
             email?: string
             role?: string
-            token?: string
             sessionId?: string
+            message?: string
         }>(`${apiBase}/api/v1/auth/login`, {
             method: 'POST',
             body,
@@ -20,13 +22,19 @@ export default defineEventHandler(async (event) => {
             }
         })
 
-        // Set user session using nuxt-auth-utils
+        // Get username from response (may be nested or at top level)
+        const username = response.user?.username || response.username
+        const email = response.user?.email || response.email
+        const role = response.user?.role || response.role || 'CITIZEN'
+
+        // Set user session - store sessionId for backend API calls
         await setUserSession(event, {
             user: {
-                username: response.username,
-                email: response.email,
-                role: response.role || 'CITIZEN'
+                username,
+                email,
+                role
             },
+            sessionId: response.sessionId, // Store session token for backend API calls
             loggedInAt: Date.now()
         })
 
