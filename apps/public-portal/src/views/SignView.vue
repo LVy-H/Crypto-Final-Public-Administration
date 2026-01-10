@@ -12,7 +12,7 @@ async function handleSign() {
   loading.value = true
 
   // 1. Client-side hashing (Mocked)
-  const hash = 'dGVzdCBoYXNo' // 'test hash' in base64
+  // Hash would be calculated from file.value in real implementation
   
   // 2. CSC Sign Call
   // POST /csc/v1/sign
@@ -71,7 +71,7 @@ function onFileChange(e: Event) {
 h2 { color: #1a4d8c; margin-bottom: 1.5rem; text-align: center; }
 .form-group { margin-bottom: 1.5rem; }
 .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
-select { width: 100%; pading: 0.5rem; height: 40px; }
+select { width: 100%; padding: 0.5rem; height: 40px; }
 .upload-box { border: 2px dashed #ccc; padding: 1.5rem; text-align: center; background: #fafafa; position: relative; }
 .upload-box input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .btn-sign { width: 100%; background: #28a745; color: white; padding: 1rem; border: none; border-radius: 4px; font-size: 1.1rem; cursor: pointer; font-weight: bold; }

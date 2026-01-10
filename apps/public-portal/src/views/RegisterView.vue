@@ -52,9 +52,9 @@ async function handleRegister() {
     success.value = true
     setTimeout(() => router.push('/dashboard'), 1500)
 
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(e)
-    error.value = e.message || 'Registration failed'
+    error.value = e instanceof Error ? e.message : 'Registration failed'
   } finally {
     loading.value = false
   }
