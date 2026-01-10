@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: document-service
+  namespace: crypto-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: document-service
+  template:
+    metadata:
+      labels:
+        app: document-service
+    spec:
+      containers:
+        - name: document-service
+          image: document-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8084
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres.infra:5432/crypto_db"
+            - name: MINIO_ENDPOINT
+              value: "http://minio.infra:9000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: document-service
+  namespace: crypto-backend
+spec:
+  selector:
+    app: document-service
+  ports:
+    - protocol: TCP
+      port: 8084
+      targetPort: 8084

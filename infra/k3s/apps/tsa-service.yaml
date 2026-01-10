@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tsa-service
+  namespace: crypto-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tsa-service
+  template:
+    metadata:
+      labels:
+        app: tsa-service
+    spec:
+      containers:
+        - name: tsa-service
+          image: tsa-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres.infra:5432/crypto_db"
+          volumeMounts:
+            - name: tsa-secrets
+              mountPath: "/etc/secrets/tsa"
+              readOnly: true
+      volumes:
+        - name: tsa-secrets
+          secret:
+            secretName: tsa-keypair
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tsa-service
+  namespace: crypto-backend
+spec:
+  selector:
+    app: tsa-service
+  ports:
+    - protocol: TCP
+      port: 8083
+      targetPort: 8083

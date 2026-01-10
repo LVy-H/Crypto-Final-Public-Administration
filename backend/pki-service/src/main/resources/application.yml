@@ -1,0 +1,40 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: pki-service
+  datasource:
+    url: jdbc:postgresql://postgres.infra:5432/crypto_db
+    username: admin
+    password: changeme
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+management:
+  endpoints:
+    web:
+      base-path: /pki/actuator
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Offline CA Configuration
+# The CA private key is NOT on the server - it stays offline with CA Operators
+pki:
+  ca:
+    subject: "CN=National Root CA 2026,O=Government,C=VN"
+    issuer: "CN=National Root CA 2026,O=Government,C=VN"
+    certificate: "PLACEHOLDER_CA_CERTIFICATE_BASE64"  # Load actual cert from secrets
+

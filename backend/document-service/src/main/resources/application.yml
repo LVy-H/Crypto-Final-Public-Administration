@@ -1,0 +1,31 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: document-service
+  datasource:
+    url: jdbc:postgresql://postgres.infra:5432/crypto_db
+    username: admin
+    password: changeme
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+management:
+  endpoints:
+    web:
+      base-path: /documents/actuator
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

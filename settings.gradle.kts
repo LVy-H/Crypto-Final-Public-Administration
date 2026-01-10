@@ -1,18 +1,32 @@
-rootProject.name = "crypto-pki"
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url = uri("https://repo.spring.io/milestone") }
+        maven { url = uri("https://repo.spring.io/snapshot") }
+    }
+}
 
-// Core PKI Services
-include(":core:api-gateway")
-include(":core:ca-authority")
-include(":core:identity-service")
-include(":core:doc-service")
-include(":core:validation-service")
+rootProject.name = "crypto-final-public-administration"
 
-// Shared Libraries
-include(":libs:common-crypto")
-include(":libs:common-model")
+include("common-crypto")
+project(":common-crypto").projectDir = file("backend/libs/common-crypto")
 
-// RSSP Services
-include(":rssp:cloud-sign")
+include("identity-service")
+project(":identity-service").projectDir = file("backend/identity-service")
 
-// Tools
-include(":tools:offline-ca")
+include("pki-service")
+project(":pki-service").projectDir = file("backend/pki-service")
+
+include("tsa-service")
+project(":tsa-service").projectDir = file("backend/tsa-service")
+
+include("document-service")
+project(":document-service").projectDir = file("backend/document-service")
+
+include("api-gateway")
+project(":api-gateway").projectDir = file("backend/api-gateway")
+
+include("offline-ca-cli")
+project(":offline-ca-cli").projectDir = file("backend/offline-ca-cli")
+// project(":libs:common-crypto").projectDir = file("backend/libs/common-crypto")

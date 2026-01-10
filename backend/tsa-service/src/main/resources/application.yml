@@ -1,0 +1,26 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: tsa-service
+  datasource:
+    # TSA might verify user permissions, but strictly doesn't need DB for signing if stateless
+    url: jdbc:postgresql://postgres.infra:5432/crypto_db
+    username: admin
+    password: changeme
+    driver-class-name: org.postgresql.Driver
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+management:
+  endpoints:
+    web:
+      base-path: /tsa/actuator
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

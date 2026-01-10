@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pki-service
+  namespace: crypto-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pki-service
+  template:
+    metadata:
+      labels:
+        app: pki-service
+    spec:
+      containers:
+        - name: pki-service
+          image: pki-service:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres.infra:5432/crypto_db"
+          volumeMounts:
+            - name: pki-secrets
+              mountPath: "/etc/secrets/pki"
+              readOnly: true
+      volumes:
+        - name: pki-secrets
+          secret:
+            secretName: pki-ca-keypair
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pki-service
+  namespace: crypto-backend
+spec:
+  selector:
+    app: pki-service
+  ports:
+    - protocol: TCP
+      port: 8082
+      targetPort: 8082

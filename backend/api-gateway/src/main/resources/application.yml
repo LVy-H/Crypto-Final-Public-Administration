@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  data:
+    redis:
+      host: redis.infra
+      port: 6379
+  cloud:
+    gateway:
+      routes:
+        - id: identity-service
+          uri: http://identity-service:8081
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - StripPrefix=2
+
+        - id: pki-service
+          uri: http://pki-service:8082
+          predicates:
+            - Path=/api/v1/pki/**
+          filters:
+            - StripPrefix=2
+
+        - id: tsa-service
+          uri: http://tsa-service:8083
+          predicates:
+            - Path=/api/v1/tsa/**
+          filters:
+            - StripPrefix=2
+
+        - id: document-service
+          uri: http://document-service:8084
+          predicates:
+            - Path=/api/v1/documents/**
+          filters:
+            - StripPrefix=2
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.security: DEBUG
+    reactor.netty: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true

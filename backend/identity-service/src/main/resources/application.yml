@@ -1,0 +1,35 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: identity-service
+  datasource:
+    url: jdbc:postgresql://postgres.infra:5432/crypto_db
+    username: admin
+    password: changeme
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  data:
+    redis:
+      host: redis.infra
+      port: 6379
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+
+management:
+  endpoints:
+    web:
+      base-path: /auth/actuator
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

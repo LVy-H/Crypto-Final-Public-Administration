@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  namespace: crypto-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity-service
+  template:
+    metadata:
+      labels:
+        app: identity-service
+    spec:
+      containers:
+        - name: identity-service
+          image: identity-service:latest
+          imagePullPolicy: Never # Use local k3s image
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres.infra:5432/crypto_db"
+            - name: SPRING_DATA_REDIS_HOST
+              value: "redis.infra"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-service
+  namespace: crypto-backend
+spec:
+  selector:
+    app: identity-service
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
