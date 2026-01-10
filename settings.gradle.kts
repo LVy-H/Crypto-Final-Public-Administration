@@ -28,5 +28,5 @@ include("api-gateway")
 project(":api-gateway").projectDir = file("backend/api-gateway")
 
 include("offline-ca-cli")
-project(":offline-ca-cli").projectDir = file("tools/offline-ca")
+project(":offline-ca-cli").projectDir = file("backend/offline-ca-cli")
 // project(":libs:common-crypto").projectDir = file("backend/libs/common-crypto")
