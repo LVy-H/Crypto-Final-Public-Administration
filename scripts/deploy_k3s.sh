@@ -11,17 +11,27 @@ echo "🧹 Removing plain JARs to avoid copy ambiguity..."
 find backend -name "*-plain.jar" -delete
 
 echo "🐳 Building Container Images (Podman)..."
-# Use podman compose
-podman compose build
 
-echo "📦 Importing Images to K3s..."
-# Ensure we export the images we just built
-services=("identity-service" "pki-service" "tsa-service" "document-service" "api-gateway")
+# Define services with their paths
+declare -A service_paths=(
+    ["api-gateway"]="backend/api-gateway"
+    ["identity-service"]="backend/identity-service"
+    ["pki-service"]="backend/pki-service"
+    ["document-service"]="backend/document-service"
+    ["tsa-service"]="backend/tsa-service"
+    ["public-portal"]="apps/public-portal"
+)
 
-for service in "${services[@]}"; do
+# Build and Import loop
+for service in "${!service_paths[@]}"; do
+    path="${service_paths[$service]}"
+    echo "  - Building $service from $path..."
+    
+    # Build image
+    podman build -t "$service:latest" "$path"
+    
     echo "  - Importing $service:latest..."
-    # Use podman save. 
-    # Note: K3s usually requires root to import to its containerd.
+    # Import to K3s
     podman save "$service:latest" | sudo k3s ctr images import -
     echo "    Imported."
 done
