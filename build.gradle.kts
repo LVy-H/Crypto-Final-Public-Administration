@@ -29,17 +29,16 @@ subprojects {
     apply(plugin = "org.springframework.boot")
     apply(plugin = "io.spring.dependency-management")
 
-    // Configure Java Toolchain
     configure<JavaPluginExtension> {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(25))
-        }
-    }
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }    // Configure Java Toolchain
+
 
     // Configure Kotlin Compiler Options (Modern DSL)
     tasks.withType<KotlinCompile>().configureEach {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_25)
+            jvmTarget.set(JvmTarget.JVM_21)
             // -Xjsr305=strict is often default in Spring, but good to keep
             freeCompilerArgs.add("-Xjsr305=strict") 
         }

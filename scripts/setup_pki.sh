@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 CLI_JAR="backend/offline-ca-cli/build/libs/offline-ca-cli-0.0.1-SNAPSHOT.jar"

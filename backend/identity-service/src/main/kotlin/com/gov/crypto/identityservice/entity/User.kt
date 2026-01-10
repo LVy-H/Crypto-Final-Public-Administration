@@ -33,8 +33,18 @@ data class User(
     val roles: Set<String> = setOf("USER"),
 
     @Column(nullable = false)
-    val createdAt: Instant = Instant.now()
+    val createdAt: Instant = Instant.now(),
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    var kycStatus: KycStatus = KycStatus.PENDING
 )
+
+enum class KycStatus {
+    PENDING,
+    APPROVED,
+    REJECTED
+}
 
 /**
  * Available roles in the system.
@@ -43,4 +53,5 @@ object Roles {
     const val USER = "USER"
     const val CA_OPERATOR = "CA_OPERATOR"
     const val ADMIN = "ADMIN"
+    const val OFFICER = "OFFICER"
 }

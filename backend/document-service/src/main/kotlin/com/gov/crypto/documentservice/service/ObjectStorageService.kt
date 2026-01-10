@@ -18,8 +18,14 @@ class ObjectStorageService {
         .build()
 
     fun upload(bucket: String, objectKey: String, stream: InputStream, size: Long, contentType: String) {
-        // Ensure bucket exists
-        // if (!minioClient.bucketExists(...)) ... for prototype we assume it exists
+        System.out.println("DEBUG: Upload start for bucket: $bucket")
+        // Force create bucket
+        try {
+            minioClient.makeBucket(io.minio.MakeBucketArgs.builder().bucket(bucket).build())
+        } catch (e: Exception) {
+            // Ignore if exists or other errors (log them)
+            System.out.println("DEBUG: MakeBucket ignored: " + e.message)
+        }
         
         minioClient.putObject(
             PutObjectArgs.builder()

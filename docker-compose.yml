@@ -1,0 +1,135 @@
+version: "3.8"
+
+services:
+  # --- Infrastructure ---
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: crypto_db
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d crypto_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: changeme123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  # --- Backend Services ---
+
+  # 1. Identity Service (Auth)
+  identity-service:
+    build:
+      context: .
+      dockerfile: backend/identity-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/crypto_db
+      SPRING_DATA_REDIS_HOST: redis
+      # Add other necessary env vars
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8081:8081"
+
+  # 2. PKI Service (CA)
+  pki-service:
+    build:
+      context: .
+      dockerfile: backend/pki-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/crypto_db
+    volumes:
+      # Mount generated keys
+      - ./infra/k3s/secrets/pki-ca.crt:/app/secrets/ca.crt
+      - ./infra/k3s/secrets/pki-ca.key:/app/secrets/ca.key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+
+  # 3. TSA Service (Timestamping)
+  tsa-service:
+    build:
+      context: .
+      dockerfile: backend/tsa-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/crypto_db
+    volumes:
+      - ./infra/k3s/secrets/tsa-service.crt:/app/secrets/tsa.crt
+      - ./infra/k3s/secrets/tsa-service.key:/app/secrets/tsa.key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+
+  # 4. Document Service (ASiC/Storage)
+  document-service:
+    build:
+      context: .
+      dockerfile: backend/document-service/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/crypto_db
+      MINIO_ENDPOINT: http://minio:9000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    ports:
+      - "8084:8084"
+
+  # 5. API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: backend/api-gateway/Dockerfile
+    environment:
+      # Point Gateway to other services by Docker DNS
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      PKI_SERVICE_URL: http://pki-service:8082
+      TSA_SERVICE_URL: http://tsa-service:8083
+      DOCUMENT_SERVICE_URL: http://document-service:8084
+    depends_on:
+      - identity-service
+      - pki-service
+      - tsa-service
+      - document-service
+    ports:
+      - "8080:8080" # Exposed to host
+
+  # --- Frontend ---
+  public-portal:
+    build:
+      context: apps/public-portal
+    environment:
+      NUXT_PUBLIC_API_BASE: http://api-gateway:8080/api/v1 # Internal Docker network
+      # For browser access, it needs to reach localhost:8080
+      # BUT, Server-Side Rendering (SSR) happens inside container.
+    ports:
+      - "3000:3000"
+
+volumes:
+  minio_data:

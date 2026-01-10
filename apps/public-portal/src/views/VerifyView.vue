@@ -1,187 +1,85 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { api, type VerificationResult } from '@/services/api'
 
 const file = ref<File | null>(null)
-const signature = ref('')
 const loading = ref(false)
 const verificationResult = ref<any>(null)
-const showChain = ref(true) // Default true for screenshot visibility
+const showChain = ref(true)
+const errorMessage = ref('')
 
 async function handleVerify() {
+  if (!file.value) return
+  
   loading.value = true
   verificationResult.value = null
+  errorMessage.value = ''
   
-  // Mock POST /api/v1/validation/verify
-  setTimeout(() => {
-    loading.value = false
-    const rand = Math.random()
-    if (rand > 0.1) { // 90% success for demo
+  try {
+    const result = await api.verifyAsic(file.value)
+    
+    if (result.success && result.data) {
+      const data = result.data
+      
+      // Transform API response to match existing UI structure
       verificationResult.value = {
-        isValid: true,
+        isValid: data.valid,
         verifiedAt: new Date().toLocaleString('vi-VN'),
+        message: data.errorMessage,
         details: {
-          hash: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2', // Placeholder hash
-          chainStatus: 'Verified (Root CA: VN-GOV-CA-L1)',
-          tsa: {
-            show: true,
-            subject: 'CN=VN-GOV-TSA-TimeStamping, OU=National-PQC-TSA, O=Gov, C=VN',
-            timestamp: '2025-12-29T02:02:49.123Z',
-            value: `-----BEGIN CERTIFICATE-----
-MIIFwDCCA6igAwIBAgIULq1Nla298NduwkLVNAbFD6ve4sIwDQYJKoZIhvcNAQEL
-BQAwbzELMAkGA1UEBhMCVk4xDjAMBgNVBAgMBUhhbm9pMQ8wDQYDVQQHDAZCYURp
-bmgxDDAKBgNVBAoMA0dvdjEPMA0GA1UECwwGUFFDLUNBMSAwHgYDVQQDDBdNb2Nr
-IFBRQyBTaWduYXR1cmUgRGF0YTAeFw0yNTEyMjkwMTQ5MzlaFw0yNjEyMjkwMTQ5
-MzlaMGcxCzAJBgNVBAYTAlZOMQ4wDAYDVQQIDAVIYW5vaTEPMA0GA1UEBwwGQmFE
-aW5oMQwwCgYDVQQKDANHb3YxGTAXBgNVBAsMLE5hdGlvbmFsLVBRQy1UU0ExGTAX
-BgNVBAMMLEZOEdOVjhUU0EtVGltZVN0YW1waW5nMIIBIjANBgkqhkiG9w0BAQEF
-AAOCAQ8AMIIBCgKCAQEAst4fKK5bb7AyWBlhNiAsDRlMq2QDRrky9keupjTZQprY
-4ELsMJrV8lvp9P5cHv3+oHB6fPxoc3Th3/v2C2Q2CX+JTa5QnIbyJsZzY3qS3nTR
-19Dx9so/l+0mb0r9s77m4NrliEBqdtPN20YU+9246+je5mSRK6tV8t6y+f8no/DW
-e/DJ56ivZbcDa2UxGjFkVtqIITpGWFOYW/tP1ojN3OD7UbHWgEbZJrvIf+00B+kt
-giF3ThFCvkRUy1MnkwHLImoGlt0wMq5n6cN+Vh0KATD8Jhy9z6Ce6GNurZ7gZlrm
-XX9e+ILAB4W8Va95wskAbtlg3bvn6T+Jd7D2n7UCAwEAAaNTMFEwHQYDVR0OBBYE
-FFgfME2iAm2sqAhCz2vVCZXhFNmHMB8GA1UdIwQYMBaAFFgfME2iAm2sqAhCz2vV
-CZXhFNmHMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBACNJCUXC
-PwHPP83Wtn5z35fD7DngX+39mFXKIdsI2RE+9JDZTBiFVIqis996z7iNH9EajPdg
-+7mZY+0YIAfY+EnZDImq+OwFNrpMDoYIntn7xqtuWRN5sO/VbXxpskulpSnnzBqM
-0FnCmFteHsub8FwAQERJNjPU+vTamjOq02Q+KlJZ1fyMFJ1Tivb9d20D3xXWXYIV
-R9qGZdOobwF4wV2dQV8PubUYxRxohdbwwB2s1W4tAuKdZ8+ldvCV9rPTS4UbH/Oi
-Frl59skCp6tJeweUiwpJ0PTfaMEGXKkAOEGiQ8NmNdCLPpl96jbt73e0tZ1eAG6F
-JNeZyg361SXaNzk=
------END CERTIFICATE-----`
-          },
-          trustChain: [
-            {
-              subject: 'CN=VN-GOV-Root-CA, OU=National-PQC-Root-CA, O=Gov, C=VN',
-              issuer: 'CN=VN-GOV-Root-CA, OU=National-PQC-Root-CA, O=Gov, C=VN',
-              validity: '2025-2045',
-              fingerprint: 'A1:B2:C3:D4:E5:F6:A7:B8:C9:D0:E1:F2:A3:B4:C5:D6:E7:F8:A9:B0',
-              value: `-----BEGIN CERTIFICATE-----
-MIIFyTCCA7GgAwIBAgIULqxNla298NduwkLVNAbFD6ve4sIwDQYJKoZIhvcNAQEL
-BQAwdDELMAkGA1UEBhMCVk4xDjAMBgNVBAgMBUhhbm9pMQ8wDQYDVQQHDAZCYURp
-bmgxDDAKBgNVBAoMA0dvdjEdMBsGA1UECwwUTmF0aW9uYWwtUFFDLVJvb3QtQ0Ex
-FzAVBgNVBAMMDlZOLUdPVi1Sb290LUNBMB4XDTI1MTIyOTAyMDAyOFoXDTI2MTIy
-OTAyMDAyOFowdDELMAkGA1UEBhMCVk4xDjAMBgNVBAgMBUhhbm9pMQ8wDQYDVQQH
-DAZCYURpbmgxDDAKBgNVBAoMA0dvdjEdMBsGA1UECwwUTmF0aW9uYWwtUFFDLVJv
-b3QtQ0ExFzAVBgNVBAMMDlZOLUdPVi1Sb290LUNBMIICIjANBgkqhkiG9w0BAQEF
-AAOCAg8AMIICCgKCAgEA2k8o6PbggJ2kvvJxgQvKDDMiI8yAN+aqgB8enL1JdcFA
-TOtYtnN4sMLLYDEp6LTcNNS5TAllOmh1OH6safFk8evNQZlZ82Oj5ttCy3plLUQv
-hUwa1/VCJkHSCjtopsUiHxnszyVvhNjiyyKDdaHDIw/cGPOBa4W06rtCvRicxcrA
-//FJHb8UsU4UBtmZGuBLGExHGpryWQilyf5ADfJ4SNVHIhr1l5gVT5LlFF6eDjqq
-1f4Ufv0NBvXsaF09BzhwyKZPjwdjBayZL6Vgmf5T2uJ9677svxdO86p5O+NMH+00
-NeJwZfcc0oRhe0N7C/HVNnX1HTR8AbttXqXt/52u0oxhR4KteghTO8kPJ74Vkdjq
-NtamvppoQoq8TwfH4yRmcFCVIfmQ6gFcl6ITbodpevLail4muOmzrepWuSkD9g8K
-93j2plSKp0HQhEEgOV2yEgTqf1AjcX3fsClBP2Jh24eiSG8rf8HPhDFpbzfjeB4e
-XC7iHu9HzAQ6fVq1LQ9pS1H/pJBKCpWSThqtaHC+6sIGS3ixp1u6sfudBchuvKjo
-UvWQVqc42Tl79kInmPgYuaZ/eFdruhwPJoGEXI/biUDCkUeAUVCfnfJxGxlo4GoA
-78LSDQieQwFlIfKhKS1P3zm5y+Ql2CGke8wFnBTT7PYbGz5pb6SfC2tQVrld/bkC
-AwEAAaNTMFEwHQYDVR0OBBYEFEnhyRmv8PvYXJ231YLINSqfQz03MB8GA1UdIwQY
-MBaAFEnhyRmv8PvYXJ231YLINSqfQz03MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZI
-hvcNAQELBQADggIBAHVXPi3xOOc8dAEZQDY97YibXKGaMqNcijGCsYCVoGrgGCTL
-02MYFyiWCvOy9pTYU4bAYefe2seFBtOF97yDAafySIRxFRGlMvYV3gj7ZBQUJbE2
-g8ykH5z8KzGVLaag7EfWI/7UUSxTcbiRdo4xU0F9NQEv2bfUOVocZvtrQp/gOlEs
-WNMsg31DMjqOMd7SfuciJLMft6ujUPV09u5CgZL3rmEvE6UYroQR9NnICuL5ymJO
-DHVzwSLgLxLzvD3AEyez0kLCKJqEw0ftySi4+6pK6bqgeDPuv252AYsFpW4NakkR
-09FavwI/l2BOpzJOet1Yfsr/7fYbHd5Q2h8ZsbZM1bqlTmYzuWvkMf5juxjyrqYi
-HgifD1xgsO9IJyvd2H+HNJMMbrj/Lf9zbdyUTlN5BSgdliBBmmcEhsUJRMn/9blZ
-NoIxBDoedqUWGGB3wg50dDLl0fJVxHOjinB8QKoqFOzIu7cja/gEacALP6Y+2dY0
-hfjqDXDYbUZG+3v82ai2n54o3GYEJtkjyh/9xyUlgEeM/xwB1wEfDGM+DdarIdk7
-2+kcPQkaONRgPCpiKoCWpnY3waPyIELYMUhr6V4iD3taQF5qn+nE26/XguEg5LEP
-RZjHtR3cB3LkVPpqXuAIitmWZwWWu7c12IWetEQYdarL3wG7ON2xVzXZdfXF
------END CERTIFICATE-----`
-            },
-            {
-              subject: 'CN=VN-GOV-Intermediate-CA, OU=National-PQC-Intermediate-CA, O=Gov, C=VN',
-              issuer: 'CN=VN-GOV-Root-CA, OU=National-PQC-Root-CA, O=Gov, C=VN',
-              validity: '2025-2035',
-              fingerprint: 'B2:C3:D4:E5:F6:A7:B8:C9:D0:E1:F2:A3:B4:C5:D6:E7:F8:A9:B0:C1',
-              value: `-----BEGIN CERTIFICATE-----
-MIIFyTCCA7GgAwIBAgIUJ+z4C5y5x5y5x5y5x5y5x5y5x5y5x5y5x5y5x5y5x5y5
-BQAwdDELMAkGA1UEBhMCVk4xDjAMBgNVBAgMBUhhbm9pMQ8wDQYDVQQHDAZCYURp
-bmgxDDAKBgNVBAoMA0dvdjEdMBsGA1UECwwUTmF0aW9uYWwtUFFDLVJvb3QtQ0Ex
-FzAVBgNVBAMMDlZOLUdPVi1Sb290LUNBMB4XDTI1MTIyOTAyMDAyOFoXDTI2MTIy
-OTAyMDAyOFowdDELMAkGA1UEBhMCVk4xDjAMBgNVBAgMBUhhbm9pMQ8wDQYDVQQH
-DAZCYURpbmgxDDAKBgNVBAoMA0dvdjElMCMGA1UECwwcTmF0aW9uYWwtUFFDLU
-luLXRlcm1lZGlhdGUtQ0ExHzAdBgNVBAMMFlZOLUdPVi1JbnRlcm1lZGlhdGUt
-Q0BMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2k8o6PbggJ2kvvJx
-gQvKDDMiI8yAN+aqgB8enL1JdcFATOtYtnN4sMLLYDEp6LTcNNS5TAllOmh1OH6s
-afFk8evNQZlZ82Oj5ttCy3plLUQvhUwa1/VCJkHSCjtopsUiHxnszyVvhNjiyyKD
-daHDIw/cGPOBa4W06rtCvRicxcrA//FJHb8UsU4UBtmZGuBLGExHGpryWQilyf5A
-DfJ4SNVHIhr1l5gVT5LlFF6eDjqq1f4Ufv0NBvXsaF09BzhwyKZPjwdjBayZL6Vg
-mf5T2uJ9677svxdO86p5O+NMH+00NeJwZfcc0oRhe0N7C/HVNnX1HTR8AbttXqXt
-/52u0oxhR4KteghTO8kPJ74VkdjqNtamvppoQoq8TwfH4yRmcFCVIfmQ6gFcl6IT
-bodpevLail4muOmzrepWuSkD9g8K93j2plSKp0HQhEEgOV2yEgTqf1AjcX3fsClB
-P2Jh24eiSG8rf8HPhDFpbzfjeB4eXC7iHu9HzAQ6fVq1LQ9pS1H/pJBKCpWSThqt
-aHC+6sIGS3ixp1u6sfudBchuvKjoUvWQVqc42Tl79kInmPgYuaZ/eFdruhwPJoGE
-XI/biUDCkUeAUVCfnfJxGxlo4GoA78LSDQieQwFlIfKhKS1P3zm5y+Ql2CGke8wF
-nBTT7PYbGz5pb6SfC2tQVrld/bkCAwEAAaNTMFEwHQYDVR0OBBYEFEnhyRmv8PvY
-XJ231YLINSqfQz03MB8GA1UdIwQYMBaAFEnhyRmv8PvYXJ231YLINSqfQz03MA8G
-A1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggIBAHVXPi3xOOc8dAEZQDY9
-7YibXKGaMqNcijGCsYCVoGrgGCTL02MYFyiWCvOy9pTYU4bAYefe2seFBtOF97y
-DAafySIRxFRGlMvYV3gj7ZBQUJbE2g8ykH5z8KzGVLaag7EfWI/7UUSxTcbiRdo4
-xU0F9NQEv2bfUOVocZvtrQp/gOlEsWNMsg31DMjqOMd7SfuciJLMft6ujUPV09u5
-CgZL3rmEvE6UYroQR9NnICuL5ymJODHVzwSLgLxLzvD3AEyez0kLCKJqEw0ftyS
-i4+6pK6bqgeDPuv252AYsFpW4NakkR09FavwI/l2BOpzJOet1Yfsr/7fYbHd5Q2h
-8ZsbZM1bqlTmYzuWvkMf5juxjyrqYiHgifD1xgsO9IJyvd2H+HNJMMbrj/Lf9zb
-dyUTlN5BSgdliBBmmcEhsUJRMn/9blZNoIxBDoedqUWGGB3wg50dDLl0fJVxHOji
-nB8QKoqFOzIu7cja/gEacALP6Y+2dY0hfjqDXDYbUZG+3v82ai2n54o3GYEJtkjy
-h/9xyUlgEeM/xwB1wEfDGM+DdarIdk72+kcPQkaONRgPCpiKoCWpnY3waPyIELYM
-Uhr6V4iD3taQF5qn+nE26/XguEg5LEPRZjHtR3cB3LkVPpqXuAIitmWZwWWu7c1
-2IWetEQYdarL3wG7ON2xVzXZdfXF
------END CERTIFICATE-----`
-            }
-          ],
-          signatures: [
-            {
-              signer: 'Nguyen Van A (Citizen)',
-              algorithm: 'ML-DSA-65',
-              timestamp: new Date().toISOString(),
-              value: `-----BEGIN ML-DSA-65 SIGNATURE-----
-MIIFvzCCA6egAwIBAgIUM/WpHYxjDkX/xYrw0+hC7LUjfdswDQYJKoZIhvcNAQELBQAwbzELMAkGA1UEBhMCVk4xDjAMBgNVBAgMBUhhbm9pMQ8wDQYDVQQHDAZCYURpbmgxDDAKBgNVBAoMA0dvdjEPMA0GA1UECwwGUFFDLUNBMSAwHgYDVQQDDBdNb2NrIFBRQyBTaWduYXR1cmUgRGF0YTAeFw0yNTEyMjkwMTQ5MzlaFw0yNjEyMjkwMTQ5MzlaMG8xCzAJBgNVBAYTAlZOMQ4wDAYDVQQIDAVIYW5vaTEPMA0GA1UEBwwGQmFEaW5oMQwwCgYDVQQKDANHb3YxDzANBgNVBAsMBlBRQy1DQTEgMB4GA1UEAwwXTW9jayBQUUMgU2lnbmF0dXJlIERhdGEwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCbQvIznFp0G0ymvQpwGP3V2oCmR3q+XU3fcLWHx3nJJqQ5lT4niv1/psVBn5dEwphFuNfW6BcxULvbLoNLQ6IK/6qf86SaySbYiZeIFtF6aBekPONKsTWRU5zBkQNSrrL1h03agwwaVFmBxgJ9mDlmZ54t1S7LVXt0c/HZ3oWbrjP15DmK24HB/33dCzVt+Gmbo+u4qtaocHvcDTxpqRnKOl9rDNphcS9SK/u6C1/qW8KYG2jvl0aMuyLHKRuoALkYcLrXlxoA+MDxl0dq2gMPimy1vKltoTIpjhxNsV+0+oJxlVab24Yyuv+NA3tL9LVTglxuk6vUbLBGMZiPL4KODp+QqosUWSeJ5zcaztnyJ4Yw6s1WEgKuhBjzPYLsJ0ffSsT1rzrdivBcAWfBRcuTNQ7fZOxIbpeQqBpEi9S1k6ypdb31CgCdeWhH6BdjsWsTlAynAIqpqwFMLUljdJr5S4nsc4yZewhk1Lcz3fMkX3UESQFy1jW7Uxg1M2bRoHHGehH2z7KDcV6fJrL4LBg6A2W7vdYocCVmAqmbo43HbXvwVRG6IkK+AG7hkosPZLbP81fXBlGzMECVYO2atu4FmvPxzmAhfyEzEoH7svO3Wy31711Tb4Xl4SLlqVYUtDIjT7jOssvgxA50y4ABNO4QnWhNRniw3m8hpaVGMRzOxwIDAQABo1MwUTAdBgNVHQ4EFgQU+6WgqjJHs0UOCYotQ2QMXPz8AiswHwYDVR0jBBgwFoAU+6WgqjJHs0UOCYotQ2QMXPz8AiswDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAgEAhDwo0tlNFWo8qWKarAabwq6soklyS6rOYVbfSjZiGC2qQobBb9xi5rbvu7XCxxXo9jmm3Bg7YsDCRFiN6uuCdCPq3mn0wvLWIhsPIJ5mp4KSQCSzaK6do/jDzn4V5bSi5FRxw5gcD2gZNmRvhZX1xs8mF4g76T15R2aP75gMZnoLv2b+oKPSXkubR6iCm3p2FSY7W7kVEC+/oE/KkbFxtuhehtuBqd++nnqb4IhAxLKJw/5myeqGV9u4M0TZ7J/4nsuuKmm38/UFYfjrCNOWzVUDHG9szv/gddTKf6rMY8wrF5FSSPBO3TMfZxub7s5J7/2/d3RESRe36+lI8DasPONgswz7rfr9DvHBgNfpByFN2WQ1twbGEI2UhkUZccKh45kDm2arQCWVADw7Spxi2W+vwXplyfuhdJA5uZao+Yb02FcJm0+4f9I5bdMbxRfMttSrq5CUaByIoy7Sk7SuxTu2SKavgNYk2uEjyCUgsAm4RqcNGG6WDHa6CJp10J/4lvkiD9Ohlhd/pR/m3Epw61UYYVgO5utS8iNP8xhlw8piwesCO2HZT/k/Qz5dNtg9iLgr+W1ozOcMxESacppC+utpQkosctOocxhd81Mraiul5sTt3m79eHDVzKZr/eAGonxDqwQbv4wob69nOwMNZ7DMZWYAAZniY9/d1rJbl94=
------END ML-DSA-65 SIGNATURE-----`
-            },
-            {
-              signer: 'Officer B (Administration)',
-              algorithm: 'ML-DSA-65',
-              timestamp: new Date(Date.now() + 3600000).toISOString(),
-              value: `-----BEGIN ML-DSA-65 SIGNATURE-----
-MIIFvzCCA6egAwIBAgIUM/WpHYxjDkX/xYrw0+hC7LUjfdswDQYJKoZIhvcNAQELBQAwbzELMAkGA1UEBhMCVk4xDjAMBgNVBAgMBUhhbm9pMQ8wDQYDVQQHDAZCYURpbmgxDDAKBgNVBAoMA0dvdjEPMA0GA1UECwwGUFFDLUNBMSAwHgYDVQQDDBdNb2NrIFBRQyBTaWduYXR1cmUgRGF0YTAeFw0yNTEyMjkwMTQ5MzlaFw0yNjEyMjkwMTQ5MzlaMG8xCzAJBgNVBAYTAlZOMQ4wDAYDVQQIDAVIYW5vaTEPMA0GA1UEBwwGQmFEaW5oMQwwCgYDVQQKDANHb3YxDzANBgNVBAsMBlBRQy1DQTEgMB4GA1UEAwwXTW9jayBQUUMgU2lnbmF0dXJlIERhdGEwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCbQvIznFp0G0ymvQpwGP3V2oCmR3q+XU3fcLWHx3nJJqQ5lT4niv1/psVBn5dEwphFuNfW6BcxULvbLoNLQ6IK/6qf86SaySbYiZeIFtF6aBekPONKsTWRU5zBkQNSrrL1h03agwwaVFmBxgJ9mDlmZ54t1S7LVXt0c/HZ3oWbrjP15DmK24HB/33dCzVt+Gmbo+u4qtaocHvcDTxpqRnKOl9rDNphcS9SK/u6C1/qW8KYG2jvl0aMuyLHKRuoALkYcLrXlxoA+MDxl0dq2gMPimy1vKltoTIpjhxNsV+0+oJxlVab24Yyuv+NA3tL9LVTglxuk6vUbLBGMZiPL4KODp+QqosUWSeJ5zcaztnyJ4Yw6s1WEgKuhBjzPYLsJ0ffSsT1rzrdivBcAWfBRcuTNQ7fZOxIbpeQqBpEi9S1k6ypdb31CgCdeWhH6BdjsWsTlAynAIqpqwFMLUljdJr5S4nsc4yZewhk1Lcz3fMkX3UESQFy1jW7Uxg1M2bRoHHGehH2z7KDcV6fJrL4LBg6A2W7vdYocCVmAqmbo43HbXvwVRG6IkK+AG7hkosPZLbP81fXBlGzMECVYO2atu4FmvPxzmAhfyEzEoH7svO3Wy31711Tb4Xl4SLlqVYUtDIjT7jOssvgxA50y4ABNO4QnWhNRniw3m8hpaVGMRzOxwIDAQABo1MwUTAdBgNVHQ4EFgQU+6WgqjJHs0UOCYotQ2QMXPz8AiswHwYDVR0jBBgwFoAU+6WgqjJHs0UOCYotQ2QMXPz8AiswDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAgEAhDwo0tlNFWo8qWKarAabwq6soklyS6rOYVbfSjZiGC2qQobBb9xi5rbvu7XCxxXo9jmm3Bg7YsDCRFiN6uuCdCPq3mn0wvLWIhsPIJ5mp4KSQCSzaK6do/jDzn4V5bSi5FRxw5gcD2gZNmRvhZX1xs8mF4g76T15R2aP75gMZnoLv2b+oKPSXkubR6iCm3p2FSY7W7kVEC+/oE/KkbFxtuhehtuBqd++nnqb4IhAxLKJw/5myeqGV9u4M0TZ7J/4nsuuKmm38/UFYfjrCNOWzVUDHG9szv/gddTKf6rMY8wrF5FSSPBO3TMfZxub7s5J7/2/d3RESRe36+lI8DasPONgswz7rfr9DvHBgNfpByFN2WQ1twbGEI2UhkUZccKh45kDm2arQCWVADw7Spxi2W+vwXplyfuhdJA5uZao+Yb02FcJm0+4f9I5bdMbxRfMttSrq5CUaByIoy7Sk7SuxTu2SKavgNYk2uEjyCUgsAm4RqcNGG6WDHa6CJp10J/4lvkiD9Ohlhd/pR/m3Epw61UYYVgO5utS8iNP8xhlw8piwesCO2HZT/k/Qz5dNtg9iLgr+W1ozOcMxESacppC+utpQkosctOocxhd81Mraiul5sTt3m79eHDVzKZr/eAGonxDqwQbv4wob69nOwMNZ7DMZWYAAZniY9/d1rJbl94=
------END ML-DSA-65 SIGNATURE-----`
-            }
-          ]
+          hash: 'SHA-256 verified',
+          documentName: data.documentName,
+          documentSize: data.documentSize,
+          chainStatus: data.valid ? `Verified (${data.signatureCount} signatures)` : 'Verification Failed',
+          signatures: data.signatures.map((sig, index) => ({
+            signer: sig.signerName || 'Unknown',
+            algorithm: 'ML-DSA (PQC)',
+            timestamp: sig.timestamp || new Date().toISOString(),
+            valid: sig.valid,
+            message: sig.message,
+            certificateSubject: sig.certificateSubject,
+            certificateIssuer: sig.certificateIssuer,
+            validFrom: sig.certificateNotBefore,
+            validTo: sig.certificateNotAfter
+          }))
         }
       }
     } else {
+      errorMessage.value = result.error || 'Verification failed'
       verificationResult.value = {
         isValid: false,
-        message: 'Invalid signature (Public key mismatch)'
+        message: result.error || 'Verification request failed'
       }
     }
-  }, 1200)
+  } catch (e) {
+    errorMessage.value = String(e)
+    verificationResult.value = {
+      isValid: false,
+      message: String(e)
+    }
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <template>
   <div class="page-container">
     <div class="panel">
-      <h2>Kiểm tra Chữ ký (Validation Service)</h2>
+      <h2>Kiểm tra Chữ ký (Verification Service)</h2>
 
-      <div class="grid">
-        <div class="col">
-           <label>1. Tài liệu gốc (Original)</label>
-           <input type="file" @change="e => file = (e.target as HTMLInputElement).files?.[0] || null" />
-        </div>
-        <div class="col">
-           <label>2. Chữ ký (Base64) - Để trống nếu có trong file</label>
-           <textarea v-model="signature" placeholder="Dán base64 nếu file rời..."></textarea>
-        </div>
+      <div class="upload-section">
+        <label>Chọn file ASiC để xác thực:</label>
+        <input type="file" accept=".asic,.zip" @change="e => file = (e.target as HTMLInputElement).files?.[0] || null" />
       </div>
-
-
 
       <button @click="handleVerify" :disabled="loading || !file" class="btn-verify">
         {{ loading ? 'Đang kiểm tra...' : 'Xác thực ngay' }}
       </button>
+
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
 
       <div v-if="verificationResult" class="result-box" :class="{ valid: verificationResult.isValid, invalid: !verificationResult.isValid }">
         <div class="result-header">
@@ -190,66 +88,29 @@ MIIFvzCCA6egAwIBAgIUM/WpHYxjDkX/xYrw0+hC7LUjfdswDQYJKoZIhvcNAQELBQAwbzELMAkGA1UE
            <p v-if="verificationResult.isValid" class="verify-time">Được xác thực lúc: {{ verificationResult.verifiedAt }}</p>
         </div>
 
-        <div class="result-details" v-if="verificationResult.isValid">
-          <p><strong>Hash (SHA-256):</strong> {{ verificationResult.details.hash }}</p>
-          <p v-if="verificationResult.details.chainStatus"><strong>Chain Status:</strong> <span class="badge success">{{ verificationResult.details.chainStatus }}</span></p>
-          
-          <!-- TSA Section -->
-          <div class="section-block" v-if="verificationResult.details.tsa">
-            <div class="section-title" @click="verificationResult.details.tsa.show = !verificationResult.details.tsa.show" style="cursor: pointer; display: flex; justify-content: space-between;">
-                <h4>⏱ Chứng nhận Thời gian (TSA)</h4>
-                <span>{{ verificationResult.details.tsa.show ? '▼' : '▶' }}</span>
-            </div>
-            
-            <div v-if="verificationResult.details.tsa.show" class="chain-list">
-                <div class="chain-item">
-                    <div class="cert-icon">⏱</div>
-                    <div class="cert-info">
-                        <strong>{{ verificationResult.details.tsa.subject.split(',')[0] }}</strong>
-                        <div class="cert-meta">Timestamp: {{ verificationResult.details.tsa.timestamp }}</div>
-                        <textarea readonly class="cert-pem">{{ verificationResult.details.tsa.value }}</textarea>
-                    </div>
-                </div>
-            </div>
-          </div>
-          
-          <!-- Trust Chain Section -->
-          <div class="section-block">
-            <div class="section-title" @click="showChain = !showChain" style="cursor: pointer; display: flex; justify-content: space-between;">
-                <h4>🔗 Chuỗi Tin Cậy (Trust Chain)</h4>
-                <span>{{ showChain ? '▼' : '▶' }}</span>
-            </div>
-            
-            <div v-if="showChain" class="chain-list">
-                <div v-for="(cert, cIdx) in verificationResult.details.trustChain" :key="cIdx" class="chain-item">
-                    <div class="cert-icon">📜</div>
-                    <div class="cert-info">
-                        <strong>{{ cert.subject.split(',')[0] }}</strong>
-                        <div class="cert-meta">Issuer: {{ cert.issuer.split(',')[0] }}</div>
-                        <div class="cert-meta">Fingerprint: {{ cert.fingerprint }}</div>
-                        <textarea readonly class="cert-pem">{{ cert.value }}</textarea>
-                    </div>
-                </div>
-            </div>
-          </div>
+        <div class="result-details" v-if="verificationResult.isValid && verificationResult.details">
+          <p><strong>Document:</strong> {{ verificationResult.details.documentName }} ({{ verificationResult.details.documentSize }} bytes)</p>
+          <p v-if="verificationResult.details.chainStatus"><strong>Status:</strong> <span class="badge success">{{ verificationResult.details.chainStatus }}</span></p>
 
           <div class="signatures-list">
-            <h4>Danh sách Chữ ký (Signatures Found):</h4>
+            <h4>Danh sách Chữ ký ({{ verificationResult.details.signatures?.length || 0 }} signatures):</h4>
             <div v-for="(sig, index) in verificationResult.details.signatures" :key="index" class="sig-item">
               <div class="sig-header">
-                <span class="sig-index">#{{ index + 1 }}</span>
+                <span class="sig-index">#{{ Number(index) + 1 }}</span>
                 <span class="sig-time">{{ sig.timestamp }}</span>
-                <span class="sig-algo badge">{{ sig.algorithm }}</span>
+                <span class="sig-algo badge" :class="{ success: sig.valid, error: !sig.valid }">{{ sig.valid ? '✓ Valid' : '✗ Invalid' }}</span>
               </div>
               <div class="sig-body">
-                <label>Signer:</label> {{ sig.signer }} <br/>
-                <label>Signature:</label>
-                <textarea readonly>{{ sig.value }}</textarea>
+                <p><strong>Signer:</strong> {{ sig.signer }}</p>
+                <p><strong>Algorithm:</strong> {{ sig.algorithm }}</p>
+                <p><strong>Message:</strong> {{ sig.message }}</p>
+                <p v-if="sig.certificateSubject"><strong>Certificate:</strong> {{ sig.certificateSubject }}</p>
+                <p v-if="sig.validFrom"><strong>Valid:</strong> {{ sig.validFrom }} → {{ sig.validTo }}</p>
               </div>
             </div>
           </div>
         </div>
-        <p v-else>Chi tiết: {{ verificationResult.message }}</p>
+        <p v-else-if="verificationResult.message">Chi tiết: {{ verificationResult.message }}</p>
       </div>
     </div>
   </div>

@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25-jre
+FROM docker.io/library/eclipse-temurin:21-jre
 WORKDIR /app
 COPY build/libs/*.jar app.jar
 EXPOSE 8081

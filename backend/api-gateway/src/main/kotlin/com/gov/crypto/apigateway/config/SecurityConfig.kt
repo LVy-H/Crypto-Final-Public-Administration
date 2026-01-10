@@ -19,10 +19,14 @@ class SecurityConfig {
                 exchanges
                     // Public endpoints - Auth (registration, login)
                     .pathMatchers("/api/v1/auth/**").permitAll()
+                    .pathMatchers("/api/v1/admin/**").permitAll()
                     // Public endpoints - PKI CA info (certificate download)
                     .pathMatchers("/api/v1/pki/ca/**").permitAll()
                     // Public endpoints - TSA (RFC 3161 timestamping)
                     .pathMatchers("/api/v1/tsa/**").permitAll()
+                    .pathMatchers("/actuator/**").permitAll()
+                    // Public endpoints - Documents
+                    .pathMatchers("/api/v1/documents/**").permitAll()
                     // Require authentication for everything else
                     .anyExchange().authenticated()
             }

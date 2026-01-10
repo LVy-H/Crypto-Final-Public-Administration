@@ -4,7 +4,7 @@
  * Uses @openforge-sh/liboqs (WASM) for ML-DSA key generation.
  * Private keys NEVER leave the browser.
  */
-import { createMLDSA44, createMLDSA65, createMLDSA87 } from '@openforge-sh/liboqs/sig';
+import { createMLDSA44, createMLDSA65, createMLDSA87, createSlhDsaShake128f } from '@openforge-sh/liboqs/sig';
 /**
  * Generate ML-DSA key pair in browser.
  * Private key stays client-side only.
@@ -20,6 +20,9 @@ export async function generateKeyPair(algorithm = 'ML-DSA-65') {
             break;
         case 'ML-DSA-87':
             sig = await createMLDSA87();
+            break;
+        case 'SLH-DSA-SHAKE-128F':
+            sig = await createSlhDsaShake128f();
             break;
     }
     const keyPair = sig.generateKeyPair();
@@ -45,6 +48,9 @@ export async function signData(secretKey, message, algorithm = 'ML-DSA-65') {
         case 'ML-DSA-87':
             sig = await createMLDSA87();
             break;
+        case 'SLH-DSA-SHAKE-128F':
+            sig = await createSlhDsaShake128f();
+            break;
     }
     const signature = sig.sign(message, secretKey);
     sig.destroy();
@@ -64,6 +70,9 @@ export async function verifySignature(publicKey, message, signature, algorithm =
             break;
         case 'ML-DSA-87':
             sig = await createMLDSA87();
+            break;
+        case 'SLH-DSA-SHAKE-128F':
+            sig = await createSlhDsaShake128f();
             break;
     }
     const isValid = sig.verify(message, signature, publicKey);

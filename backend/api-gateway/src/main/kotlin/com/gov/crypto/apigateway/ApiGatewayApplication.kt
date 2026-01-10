@@ -15,6 +15,12 @@ class ApiGatewayApplication {
     @Bean
     fun customRouteLocator(builder: RouteLocatorBuilder): RouteLocator {
         return builder.routes()
+            // Admin route (must be before auth to match first)
+            .route("identity-admin") { r ->
+                r.path("/api/v1/admin/**")
+                    .filters { f -> f.stripPrefix(2) }
+                    .uri("http://identity-service:8081")
+            }
             .route("identity-service") { r ->
                 r.path("/api/v1/auth/**")
                     .filters { f -> f.stripPrefix(2) }

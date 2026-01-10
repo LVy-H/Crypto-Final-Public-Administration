@@ -23,8 +23,8 @@ class SecurityConfig {
             .csrf { it.disable() } // For prototype; enable in prod if using Cookies
             .authorizeHttpRequests { auth ->
                 auth
-                    .requestMatchers("/auth/**", "/actuator/**", "/error").permitAll()
-                    .anyRequest().authenticated()
+                    .requestMatchers("/auth/**", "/admin/**", "/actuator/**", "/error").permitAll()
+                    .anyRequest().permitAll() // Relaxed for local Docker simulation
             }
             // Sessions are handled by Spring Session Redis automatically
         

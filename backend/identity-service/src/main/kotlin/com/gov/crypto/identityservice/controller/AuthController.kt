@@ -13,15 +13,15 @@ import org.springframework.web.bind.annotation.RestController
 class AuthController(private val authService: AuthService) {
 
     @PostMapping("/register")
-    fun register(@RequestBody request: LoginRequest): ResponseEntity<String> {
-        // Using LoginRequest for simplicity as it has username/password (implied) in prototype.
-        // In real app, separate DTO.
-        // Assuming request.username is actually "username" and we need a password field.
-        // Let's assume LoginRequest is actually: data class LoginRequest(val username: String, val password: String)
-        // I will update the DTO below.
-        authService.register(request.username, request.password)
-        return ResponseEntity.ok("User registered successfully")
+    fun register(@RequestBody request: RegisterRequest): ResponseEntity<String> {
+        // Allow requesting a role (e.g. OFFICER), default to USER
+        val role = request.role ?: "USER"
+        authService.register(request.username, request.password, role)
+        return ResponseEntity.ok("User registered successfully with role $role")
     }
+
+    // New DTO for registration
+    data class RegisterRequest(val username: String, val password: String, val role: String? = null)
 
     @PostMapping("/login")
     fun login(@RequestBody request: LoginRequest, session: HttpSession): ResponseEntity<LoginResponse> {

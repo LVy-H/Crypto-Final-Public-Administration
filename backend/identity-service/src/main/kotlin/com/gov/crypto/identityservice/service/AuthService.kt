@@ -13,8 +13,8 @@ class AuthService(
 ) {
 
     @Transactional
-    fun register(username: String, passwordRaw: String): User {
-        if (userRepository.findByUsername(username) != null) {
+    fun register(username: String, passwordRaw: String, role: String): User {
+        if (userRepository.findByUsername(username).isPresent) {
             throw IllegalArgumentException("Username already exists")
         }
         
@@ -22,13 +22,16 @@ class AuthService(
         val user = User(
             username = username, 
             passwordHash = hash!!,
-            checkSum = "SHA3-256-placeholder"
+            checkSum = "SHA3-256-placeholder",
+            roles = setOf(role)
         )
         return userRepository.save(user)
     }
 
     fun authenticate(username: String, passwordRaw: String): Boolean {
-        val user = userRepository.findByUsername(username) ?: return false
+        val userOpt = userRepository.findByUsername(username)
+        if (userOpt.isEmpty) return false
+        val user = userOpt.get()
         return passwordEncoder.matches(passwordRaw, user.passwordHash)
     }
 }
