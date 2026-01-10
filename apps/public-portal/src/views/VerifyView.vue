@@ -1,11 +1,31 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { api, type VerificationResult } from '@/services/api'
+import { api } from '@/services/api'
 
 const file = ref<File | null>(null)
 const loading = ref(false)
-const verificationResult = ref<any>(null)
-const showChain = ref(true)
+const verificationResult = ref<{
+  isValid: boolean;
+  verifiedAt?: string;
+  message?: string;
+  details?: {
+    hash: string;
+    documentName: string;
+    documentSize: number;
+    chainStatus: string;
+    signatures: Array<{
+      signer: string;
+      algorithm: string;
+      timestamp: string;
+      valid: boolean;
+      message: string;
+      certificateSubject?: string;
+      certificateIssuer?: string;
+      validFrom?: string;
+      validTo?: string;
+    }>;
+  };
+} | null>(null)
 const errorMessage = ref('')
 
 async function handleVerify() {
@@ -31,7 +51,7 @@ async function handleVerify() {
           documentName: data.documentName,
           documentSize: data.documentSize,
           chainStatus: data.valid ? `Verified (${data.signatureCount} signatures)` : 'Verification Failed',
-          signatures: data.signatures.map((sig, index) => ({
+          signatures: data.signatures.map((sig) => ({
             signer: sig.signerName || 'Unknown',
             algorithm: 'ML-DSA (PQC)',
             timestamp: sig.timestamp || new Date().toISOString(),
