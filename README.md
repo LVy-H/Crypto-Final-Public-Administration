@@ -35,11 +35,7 @@ See **[docs/PKI_ARCHITECTURE.md](docs/PKI_ARCHITECTURE.md)** for detailed CA des
 ```
 ┌──────────────┐       ┌────────────────────┐       ┌──────────────┐
 │   Root CA    │──────▶│  Intermediate CA   │──────▶│  End User    │
-<<<<<<< HEAD
-│  (Offline)   │       │      (Online)      │       │ (Browser/DB) │
-=======
 │  (Offline)   │       │   (pki-service)    │       │ (Browser/DB) │
->>>>>>> d111077 (readme update)
 └──────────────┘       └────────────────────┘       └──────────────┘
 ```
 
@@ -69,13 +65,8 @@ See **[docs/PKI_ARCHITECTURE.md](docs/PKI_ARCHITECTURE.md)** for detailed CA des
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     ZONE C: SECURE (Air-Gapped)                     │
 │   ┌──────────────┐    ┌──────────────┐                              │
-<<<<<<< HEAD
-│   │ CA Authority │────│   SoftHSM    │                              │
-│   │  (Sub-CA)    │    │  (PKCS#11)   │                              │
-=======
 │   │ Offline CA   │────│   SoftHSM    │                              │
 │   │    Tool      │    │  (PKCS#11)   │                              │
->>>>>>> d111077 (readme update)
 │   └──────────────┘    └──────────────┘                              │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -112,8 +103,9 @@ The system is built natively for the post-quantum era, using NIST-standardized a
 
 ### Deploy to Kind
 ```bash
-cd infra/k8s
-./deploy.sh dev apply
+cd infra/k3s
+# Ensure deployment scripts point to correct locations
+../../scripts/deploy_k3s.sh
 ```
 
 ### Run Tests
@@ -126,47 +118,26 @@ python tests/scripts/test_api.py            # API integration tests
 ## 📁 Project Structure
 
 ```
-├── apps/
-│   └── public-portal/            # Citizen-facing Nuxt.js app (Client PQC)
-<<<<<<< HEAD
-├── core/
-│   ├── ca-authority/             # Certificate Authority (Sub-CA)
-│   ├── identity-service/         # Authentication & JWT
-│   ├── signature-core/           # Core signing service
-│   └── validation-service/       # Signature verification
 ├── backend/
-│   └── offline-ca-cli/           # Offline Root CA Tool
+│   ├── api-gateway/              # API and Routing
+│   ├── identity-service/         # Auth & User Mgmt
+│   ├── pki-service/              # Intermediate CA Service
+│   ├── document-service/         # Document Storage & Signing
+│   ├── tsa-service/              # Time Stamping Authority
+│   ├── offline-ca-cli/           # Offline Root CA Tool
+│   └── libs/
+│       └── common-crypto/        # Backend PQC Crypto Lib
+├── docs/
+│   ├── reference/mock-ui/        # Client-Side Frontend (Vue/PQC)
+│   └── architecture.md           # System Design Docs
 ├── libs/
-│   └── common-crypto/            # Shared crypto services
-│       ├── PqcCryptoService      # ML-DSA / SLH-DSA
-│       └── TsaClient             # RFC 3161 timestamping
-=======
-├── backend/
-│   ├── api-gateway/              # API routing (Spring Boot)
-│   ├── identity-service/         # Authentication & JWT
-│   ├── pki-service/              # CA Service (Intermediate CA)
-│   ├── document-service/         # Document verification & storage
-│   ├── tsa-service/              # Timestamp Authority Service
-│   └── offline-ca-cli/           # Offline Root CA Tool (CLI)
-├── libs/
-│   └── common-crypto/            # Shared crypto services (ML-DSA)
->>>>>>> d111077 (readme update)
+│   └── common-model/             # Shared Data Models
+├── infra/
+│   └── k3s/                      # Kubernetes Manifests
 ├── tests/
 │   ├── e2e/                      # Playwright E2E tests
 │   └── scripts/                  # Python test scripts
-├── docs/
-│   ├── architecture.md           # System architecture
-│   └── reference/mock-ui/        # UI design reference
-└── infra/
-<<<<<<< HEAD
-    ├── certs/                    # Certificates (gitignored)
-    ├── k8s/                      # Kubernetes manifests
-=======
-    ├── k3s/                      # Kubernetes manifests
->>>>>>> d111077 (readme update)
-    └── docker/
-        ├── softhsm/              # HSM mock
-        └── tsa-mock/             # TSA mock
+└── scripts/                      # Deployment & Utility scripts
 ```
 
 ## 📜 Key Components
@@ -175,19 +146,11 @@ python tests/scripts/test_api.py            # API integration tests
 |-----------|---------|------|
 | `api-gateway` | API routing, TLS termination | 8080 |
 | `identity-service` | JWT auth, token blacklist | 8081 |
-<<<<<<< HEAD
-| `ca-authority` | Certificate issuance, CRL | 8082 |
-| `validation-service` | Signature verification | 8085 |
-| `offline-ca-cli` | Offline Root CA operations | CLI |
-| `softhsm` | PKCS#11 key storage (CA) | 2345 |
-| `tsa-mock` | RFC 3161 timestamps | 8318 |
-=======
 | `pki-service` | Certificate issuance (Intermediate CA) | 8082 |
 | `document-service` | Document management & verification | 8083 |
 | `tsa-service` | RFC 3161 Timestamp Authority | 8084 |
 | `offline-ca-cli` | Offline Root CA operations | CLI |
 | `softhsm` | PKCS#11 key storage (CA) | 2345 |
->>>>>>> d111077 (readme update)
 
 ## 📋 Regulatory Compliance
 
@@ -202,11 +165,7 @@ This system is designed to comply with:
 
 | Version | Date | Changes |
 |---------|------|---------|
-<<<<<<< HEAD
-| 1.1.0 | 2026-01-10 | Pure PQC System (ML-DSA), Client-Side Signing |
-=======
 | 1.1.0 | 2026-01-10 | Pure PQC System (ML-DSA), Client-Side Signing, Kotlin Backend |
->>>>>>> d111077 (readme update)
 | 1.0.0 | 2025-12-28 | Phase 7: Architecture fixes (SAP, ECDSA, HSM, Sub-CA, LTV) |
 | 0.9.0 | 2025-12-27 | Phase 6: JWT blacklist, RBAC |
 | 0.8.0 | 2025-12-26 | Phase 5: E2E tests, security audit |
