@@ -4,6 +4,7 @@ import com.gov.crypto.identityservice.entity.KycStatus
 import com.gov.crypto.identityservice.entity.Roles
 import com.gov.crypto.identityservice.repository.UserRepository
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -13,9 +14,9 @@ class AdminController(private val userRepository: UserRepository) {
     data class KycApprovalRequest(val username: String, val action: String) // action: APPROVE or REJECT
 
     @PostMapping("/approve-kyc")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OFFICER')")
     fun approveKyc(@RequestBody request: KycApprovalRequest): ResponseEntity<String> {
-        // In a real app, we would check if the caller has ADMIN role here using SecurityContext.
-        // For simulation, we assume usage of the 'admin' account we created.
+        // Role check enforced by @PreAuthorize annotation
         
         val user = userRepository.findByUsername(request.username)
             .orElseThrow { RuntimeException("User not found") }

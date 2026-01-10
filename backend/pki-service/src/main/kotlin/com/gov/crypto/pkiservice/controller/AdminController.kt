@@ -4,6 +4,7 @@ import com.gov.crypto.pkiservice.entity.CsrRequest
 import com.gov.crypto.pkiservice.entity.CsrStatus
 import com.gov.crypto.pkiservice.service.CsrService
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -24,6 +25,7 @@ class AdminController(private val csrService: CsrService) {
      * CA Operators use this to download CSRs for offline signing.
      */
     @GetMapping("/csr/pending")
+    @PreAuthorize("hasAnyRole('CA_OPERATOR', 'ADMIN')")
     fun getPendingCsrs(): ResponseEntity<List<CsrRequestDto>> {
         val pending = csrService.getPendingCsrs()
         return ResponseEntity.ok(pending.map { it.toDto() })
@@ -33,6 +35,7 @@ class AdminController(private val csrService: CsrService) {
      * Get a specific CSR by ID.
      */
     @GetMapping("/csr/{id}")
+    @PreAuthorize("hasAnyRole('CA_OPERATOR', 'ADMIN')")
     fun getCsr(@PathVariable id: Long): ResponseEntity<CsrRequestDto> {
         val csr = csrService.getCsrById(id)
             ?: return ResponseEntity.notFound().build()
@@ -44,6 +47,7 @@ class AdminController(private val csrService: CsrService) {
      * CA Operator signs the CSR offline and uploads the result.
      */
     @PostMapping("/csr/{id}/certificate")
+    @PreAuthorize("hasAnyRole('CA_OPERATOR', 'ADMIN')")
     fun uploadCertificate(
         @PathVariable id: Long,
         @RequestBody request: UploadCertificateRequest,
@@ -62,6 +66,7 @@ class AdminController(private val csrService: CsrService) {
      * Reject a CSR.
      */
     @PostMapping("/csr/{id}/reject")
+    @PreAuthorize("hasAnyRole('CA_OPERATOR', 'ADMIN')")
     fun rejectCsr(
         @PathVariable id: Long,
         @RequestBody request: RejectCsrRequest,

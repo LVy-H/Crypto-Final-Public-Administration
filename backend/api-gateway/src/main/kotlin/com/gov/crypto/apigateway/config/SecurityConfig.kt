@@ -17,17 +17,37 @@ class SecurityConfig {
             .csrf { it.disable() }
             .authorizeExchange { exchanges ->
                 exchanges
-                    // Public endpoints - Auth (registration, login)
-                    .pathMatchers("/api/v1/auth/**").permitAll()
-                    .pathMatchers("/api/v1/admin/**").permitAll()
-                    // Public endpoints - PKI CA info (certificate download)
-                    .pathMatchers("/api/v1/pki/ca/**").permitAll()
-                    // Public endpoints - TSA (RFC 3161 timestamping)
+                    // Public endpoints - Auth (registration, login, logout)
+                    .pathMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
+                    
+                    // Admin endpoints - require ADMIN or OFFICER role
+                    .pathMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "OFFICER")
+                    
+                    // PKI Admin endpoints - require CA_OPERATOR or ADMIN role
+                    .pathMatchers("/api/v1/pki/admin/**").hasAnyRole("CA_OPERATOR", "ADMIN")
+                    
+                    // Public PKI endpoints - CA certificate download
+                    .pathMatchers("/api/v1/pki/ca/certificate").permitAll()
+                    
+                    // PKI enrollment - requires authentication
+                    .pathMatchers("/api/v1/pki/**").authenticated()
+                    
+                    // TSA endpoints - public for timestamping
                     .pathMatchers("/api/v1/tsa/**").permitAll()
-                    .pathMatchers("/actuator/**").permitAll()
-                    // Public endpoints - Documents
-                    .pathMatchers("/api/v1/documents/**").permitAll()
-                    // Require authentication for everything else
+                    
+                    // Document verification - public (anyone can verify)
+                    .pathMatchers("/api/v1/documents/verify-asic").permitAll()
+                    
+                    // Document operations - require authentication (ABAC enforced at service level)
+                    .pathMatchers("/api/v1/documents/**").authenticated()
+                    
+                    // Health check endpoints
+                    .pathMatchers("/actuator/health").permitAll()
+                    
+                    // Other actuator endpoints require ADMIN
+                    .pathMatchers("/actuator/**").hasRole("ADMIN")
+                    
+                    // All other requests require authentication
                     .anyExchange().authenticated()
             }
             .httpBasic(Customizer.withDefaults())
