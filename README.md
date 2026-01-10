@@ -6,9 +6,9 @@ A compliance-ready digital signature platform for Vietnam's government agencies,
 
 | Requirement | Status | Implementation |
 |------------|--------|----------------|
-| **Sole Control (Article 20)** | ✅ Compliant | OTP-based Signature Activation Protocol (SAP) |
-| **Standard Cryptography** | ✅ Compliant | ECDSA P-384 (primary) + ML-DSA (Dilithium) hybrid |
-| **Secure Key Storage** | ✅ Compliant | SoftHSM2/PKCS#11 - keys never leave HSM boundary |
+| **Sole Control (Article 20)** | ✅ Compliant | Client-Side Keys (Encrypted IndexedDB) |
+| **Standard Cryptography** | ✅ Compliant | Pure PQC (ML-DSA / SLH-DSA) |
+| **Secure Key Storage** | ✅ Compliant | Browser Encrypted Storage (Non-Exportable) |
 | **Subordinate CA Trust** | ✅ Compliant | CSR workflow for National Root CA integration |
 | **Long-Term Validation** | ✅ Compliant | RFC 3161 timestamping (TSA integration) |
 | **Network Segmentation** | ✅ Compliant | K8s NetworkPolicies with 3 security zones |
@@ -22,21 +22,34 @@ See **[docs/FEATURES.md](docs/FEATURES.md)** for a complete visual tour of all f
 | Dashboard | ![Dashboard](docs/screenshots/dashboard.png) |
 | Login | ![Login](docs/screenshots/login.png) |
 | Certificates | ![Certificates](docs/screenshots/certificates.png) |
-| Document Signing | ![Signing](docs/screenshots/sign.png) |
+| Client-Side Signing | ![Signing](docs/screenshots/sign.png) |
 | Signature Verification | ![Verify](docs/screenshots/verify.png) |
 | Admin Dashboard | ![Admin](docs/screenshots/admin_dashboard.png) |
 
 ## 🏗️ Architecture
 
+### PKI Hierarchy
+
+See **[docs/PKI_ARCHITECTURE.md](docs/PKI_ARCHITECTURE.md)** for detailed CA design.
+
+```
+┌──────────────┐       ┌────────────────────┐       ┌──────────────┐
+│   Root CA    │──────▶│  Intermediate CA   │──────▶│  End User    │
+│  (Offline)   │       │      (Online)      │       │ (Browser/DB) │
+└──────────────┘       └────────────────────┘       └──────────────┘
+```
+
+### System Design
+
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         ZONE A: PUBLIC (DMZ)                        │
-│   ┌──────────────┐                        ┌──────────────┐          │
-│   │Public Portal │                        │ RSSP Gateway │          │
-│   └──────┬───────┘                        └──────┬───────┘          │
-└──────────┼───────────────────┼───────────────────┼──────────────────┘
-           │                   │                   │
-           ▼                   ▼                   ▼
+│   ┌──────────────┐                                                  │
+│   │Public Portal │ ◀── Client Browser (PQC Lib)                     │
+│   └──────┬───────┘                                                  │
+└──────────┼──────────────────────────────────────────────────────────┘
+           │
+           ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                       ZONE B: INTERNAL (Trust)                      │
 │   ┌────────────┐  ┌─────────────┐  ┌────────────┐  ┌────────────┐   │
@@ -47,34 +60,32 @@ See **[docs/FEATURES.md](docs/FEATURES.md)** for a complete visual tour of all f
 │   │ PostgreSQL │  │  TSA Mock   │  │ Org Service│        │          │
 │   └────────────┘  └─────────────┘  └────────────┘        │          │
 └─────────────────────────────────────────────────────────────────────┘
-           │                                                 │
-           ▼                                                 ▼
+           │
+           ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     ZONE C: SECURE (Air-Gapped)                     │
-│   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐          │
-│   │ CA Authority │────│  Cloud Sign  │────│   SoftHSM    │          │
-│   │  (Sub-CA)    │    │   (RSSP)     │    │  (PKCS#11)   │          │
-│   └──────────────┘    └──────────────┘    └──────────────┘          │
+│   ┌──────────────┐    ┌──────────────┐                              │
+│   │ CA Authority │────│   SoftHSM    │                              │
+│   │  (Sub-CA)    │    │  (PKCS#11)   │                              │
+│   └──────────────┘    └──────────────┘                              │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 🔐 Security Features
 
-### Signature Activation Protocol (SAP)
-```java
-// Two-step signing enforces "Sole Control"
-POST /csc/v1/sign/init     → Returns challengeId + OTP
-POST /csc/v1/sign/confirm  → Verifies OTP, executes signature
-```
+### Client-Controlled Signing
+- **Private Keys**: Generated and stored securely in the user's browser (IndexedDB).
+- **Sole Control**: Keys are encrypted with a user passphrase and never leave the device.
+- **Signing**: Performed locally using WebAssembly PQC libraries.
 
-### Hybrid Cryptography
-- **Primary**: ECDSA P-384 (`secp384r1`) - Government standard, recognized by PDF readers
-- **Secondary**: ML-DSA-65 (Dilithium) - Post-quantum future-proofing
+### Post-Quantum Cryptography (Pure PQC)
+The system is built natively for the post-quantum era, using NIST-standardized algorithms:
+- **Primary**: **ML-DSA (Dilithium)** - Levels 44, 65, 87.
+- **Alternative**: **SLH-DSA-SHAKE-128F** (Stateless Hash-based).
 
-### HSM Integration
-- Private keys generated and stored within PKCS#11 boundary
-- Only `KeyHandle` references exposed to application layer
-- `C_Sign` operations happen inside HSM
+### Offline Root CA
+- **Trust Anchor**: The Root CA is completely offline and air-gapped.
+- **Tooling**: Dedicated `offline-ca-cli` for key ceremonies and CSR signing.
 
 ### Subordinate CA Workflow
 ```
@@ -107,20 +118,17 @@ python tests/scripts/test_api.py            # API integration tests
 
 ```
 ├── apps/
-│   └── public-portal/            # Citizen-facing Nuxt.js app
+│   └── public-portal/            # Citizen-facing Nuxt.js app (Client PQC)
 ├── core/
 │   ├── ca-authority/             # Certificate Authority (Sub-CA)
 │   ├── identity-service/         # Authentication & JWT
 │   ├── signature-core/           # Core signing service
 │   └── validation-service/       # Signature verification
-├── rssp/
-│   ├── cloud-sign/               # Remote Signing (CSC API)
-│   └── rssp-gateway/             # CSC API Gateway
+├── backend/
+│   └── offline-ca-cli/           # Offline Root CA Tool
 ├── libs/
 │   └── common-crypto/            # Shared crypto services
-│       ├── StandardCryptoService # ECDSA P-384
-│       ├── HybridSigningService  # ECDSA + Dilithium
-│       ├── PqcCryptoService      # ML-DSA (Dilithium)
+│       ├── PqcCryptoService      # ML-DSA / SLH-DSA
 │       └── TsaClient             # RFC 3161 timestamping
 ├── tests/
 │   ├── e2e/                      # Playwright E2E tests
@@ -131,8 +139,6 @@ python tests/scripts/test_api.py            # API integration tests
 └── infra/
     ├── certs/                    # Certificates (gitignored)
     ├── k8s/                      # Kubernetes manifests
-    │   └── base/
-    │       └── network-policies.yaml
     └── docker/
         ├── softhsm/              # HSM mock
         └── tsa-mock/             # TSA mock
@@ -146,9 +152,9 @@ python tests/scripts/test_api.py            # API integration tests
 | `api-gateway` | API routing, TLS termination | 8080 |
 | `identity-service` | JWT auth, token blacklist | 8081 |
 | `ca-authority` | Certificate issuance, CRL | 8082 |
-| `cloud-sign` | Remote signing (RSSP) | 8084 |
 | `validation-service` | Signature verification | 8085 |
-| `softhsm` | PKCS#11 key storage | 2345 |
+| `offline-ca-cli` | Offline Root CA operations | CLI |
+| `softhsm` | PKCS#11 key storage (CA) | 2345 |
 | `tsa-mock` | RFC 3161 timestamps | 8318 |
 
 ## 📋 Regulatory Compliance
@@ -159,12 +165,12 @@ This system is designed to comply with:
 - **Circular 15/2025/TT-BKHCN** - Technical standards for e-signatures
 - **FIPS 140-2** - Cryptographic module requirements (via PKCS#11)
 - **eIDAS** - EU electronic signatures (for interoperability)
-- **CSC API v2.0** - Cloud Signature Consortium standard
 
 ## 🔄 Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | 2026-01-10 | Pure PQC System (ML-DSA), Client-Side Signing |
 | 1.0.0 | 2025-12-28 | Phase 7: Architecture fixes (SAP, ECDSA, HSM, Sub-CA, LTV) |
 | 0.9.0 | 2025-12-27 | Phase 6: JWT blacklist, RBAC |
 | 0.8.0 | 2025-12-26 | Phase 5: E2E tests, security audit |

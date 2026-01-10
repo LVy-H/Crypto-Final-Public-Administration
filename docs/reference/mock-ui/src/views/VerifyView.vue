@@ -183,7 +183,7 @@ MIIFvzCCA6egAwIBAgIUM/WpHYxjDkX/xYrw0+hC7LUjfdswDQYJKoZIhvcNAQELBQAwbzELMAkGA1UE
         {{ loading ? 'Đang kiểm tra...' : 'Xác thực ngay' }}
       </button>
 
-      <div v-if="verificationResult" class="result-box" :class="{ valid: verificationResult.isValid }">
+      <div v-if="verificationResult" class="result-box" :class="{ valid: verificationResult.isValid, invalid: !verificationResult.isValid }">
         <div class="result-header">
            <h3 v-if="verificationResult.isValid">✓ Tài liệu Hợp lệ (Valid)</h3>
            <h3 v-else>✗ Tài liệu Không hợp lệ (Invalid)</h3>

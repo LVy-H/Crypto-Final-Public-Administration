@@ -73,7 +73,7 @@ EOF
 ./scripts/build-images.sh
 
 # Load into Kind
-for img in api-gateway identity-service ca-authority cloud-sign \
+for img in api-gateway identity-service ca-authority \
            signature-core validation-service public-portal; do
   nix run nixpkgs#kind -- load docker-image $img:latest --name crypto-pqc
 done

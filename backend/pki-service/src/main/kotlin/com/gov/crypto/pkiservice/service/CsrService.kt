@@ -63,6 +63,10 @@ class CsrService(
             throw IllegalArgumentException("Invalid CSR Signature (POP Failed)")
         }
 
+        // Log the algorithm used in the CSR
+        val algorithm = csr.signatureAlgorithm.algorithm.id
+        println("CSR submitted with algorithm OID: $algorithm, subject: ${csr.subject}")
+
         // 3. Queue CSR for offline signing
         val csrRequest = CsrRequest(
             userId = userId,

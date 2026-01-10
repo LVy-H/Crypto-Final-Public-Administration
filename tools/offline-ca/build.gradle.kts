@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":libs:common-crypto"))
+    implementation(project(":common-crypto"))
     implementation("info.picocli:picocli:4.7.5")
     annotationProcessor("info.picocli:picocli-codegen:4.7.5")
     

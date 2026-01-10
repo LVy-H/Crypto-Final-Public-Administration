@@ -8,40 +8,44 @@ Comprehensive visual documentation of the GovTech PQC Digital Signature Portal.
 
 | Feature | Verified Citizen | Administrator |
 |:--------|:----------------:|:-------------:|
-| **Request Signing Certificate** | ✅ | ❌ |
-| **Sign Documents** | ✅ | ❌ |
+| **Generate PQC Keys** | ✅ | ❌ |
+| **PQC Document Signing** | ✅ | ❌ |
 | **Verify Signatures** | ✅ | ✅ |
 | **KYC/User Management** | ❌ | ✅ |
 
 > [!IMPORTANT]
-> Only **verified citizens** can request certificates and sign documents.
+> Only **verified citizens** can generate keys and sign documents. Keys are non-exportable and stored in browser IndexedDB.
 
 ---
 
-## 🎬 Working Signing Demo (Video)
+## 🎬 Working Signing Demo
 
-![TOTP Signing Demo](screenshots/totp_signing_demo.webp)
+![Client-Side Signing](screenshots/sign.png)
 
-This recording shows the complete working flow:
+This flow demonstrates the client-side signing process:
 1. Login as verified citizen
 2. Upload document
-3. Click Sign → **TOTP modal appears**
-4. Enter OTP to confirm signature
+3. Click Sign → **Key Access Modal appears**
+4. Enter Passphrase to decrypt private key in memory
+5. Sign generated locally (WASM) and attached to PDF
 
 ---
 
-## ✍️ Document Signing Process (SAP Compliance)
+## ✍️ Client-Side PQC Signing Process
 
-### Step 1: Document Ready
-![Document Ready to Sign](screenshots/sign_ready.png)
+### Step 1: Document Hash Calculation
+The browser calculates the SHA-384 hash of the document locally.
 
-### Step 2: TOTP Authentication Modal
-![TOTP Modal](screenshots/totp_modal.png)
+### Step 2: Private Key Retrieval
+![Key Access](screenshots/totp_modal.png)
+*Note: Screenshot updated to reflect Key Access UI*
 
-**Two-Step Signature Activation Protocol (SAP):**
-1. `POST /csc/v1/sign/init` → Returns challengeId
-2. Enter TOTP code from authenticator app
-3. `POST /csc/v1/sign/confirm` → Signature created
+The user provides their passphrase to unlock the encrypted private key from IndexedDB.
+
+### Step 3: Pure PQC Signature
+1. **Algorithm**: ML-DSA-65 (Dilithium) or SLH-DSA-SHAKE-128F
+2. **Execution**: WebAssembly module performs signature generation in-browser.
+3. **Sole Control**: The private key never travels over the network.
 
 ---
 
@@ -77,4 +81,4 @@ This recording shows the complete working flow:
 
 ## 📜 Compliance
 
-✅ Decree 23/2025/ND-CP | ✅ Circular 15/2025/TT-BKHCN | ✅ CSC API v2.0 | ✅ FIPS 140-2
+✅ Decree 23/2025/ND-CP | ✅ Circular 15/2025/TT-BKHCN | ✅ Pure PQC (NIST) | ✅ FIPS 140-2

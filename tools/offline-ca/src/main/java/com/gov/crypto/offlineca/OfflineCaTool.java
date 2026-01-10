@@ -1,24 +1,34 @@
 package com.gov.crypto.offlineca;
 
-import com.gov.crypto.common.pqc.PqcCryptoService;
-import com.gov.crypto.common.pqc.PqcCryptoService.MlDsaLevel;
+import com.gov.crypto.common.service.PqcCryptoService;
+import com.gov.crypto.common.service.PqcAlgorithm;
+import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.KeyPair;
-import java.security.PrivateKey;
+import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.Callable;
 
-@Command(name = "offline-ca", mixinStandardHelpOptions = true, version = "1.0", description = "Offline Root CA Management Tool for ML-DSA (Post-Quantum) PKI", subcommands = {
+@Command(name = "offline-ca", mixinStandardHelpOptions = true, version = "1.1", description = "Offline Root CA Management Tool for PQC (ML-DSA, SLH-DSA)", subcommands = {
         OfflineCaTool.InitRootCommand.class, OfflineCaTool.SignCsrCommand.class,
         OfflineCaTool.GenerateCsrCommand.class })
 public class OfflineCaTool implements Callable<Integer> {
+
+    static {
+        if (Security.getProvider("BC") == null) {
+            Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        }
+        if (Security.getProvider("BCPQC") == null) {
+            Security.addProvider(new org.bouncycastle.pqc.jcajce.provider.BouncyCastlePQCProvider());
+        }
+    }
 
     public static void main(String[] args) {
         int exitCode = new CommandLine(new OfflineCaTool()).execute(args);
@@ -31,7 +41,7 @@ public class OfflineCaTool implements Callable<Integer> {
         return 0;
     }
 
-    @Command(name = "init-root", description = "Initialize a new ML-DSA Root CA")
+    @Command(name = "init-root", description = "Initialize a new PQC Root CA")
     static class InitRootCommand implements Callable<Integer> {
 
         @Option(names = { "-n",
@@ -39,8 +49,8 @@ public class OfflineCaTool implements Callable<Integer> {
         private String name;
 
         @Option(names = { "-a",
-                "--algo" }, description = "Algorithm: ML_DSA_44, ML_DSA_65, ML_DSA_87 (default: ML_DSA_87)", defaultValue = "ML_DSA_87")
-        private MlDsaLevel algo;
+                "--algo" }, description = "Algorithm: ML_DSA_44, ML_DSA_65, ML_DSA_87, SLH_DSA_SHAKE_128F (default: ML_DSA_87)", defaultValue = "ML_DSA_87")
+        private PqcAlgorithm algo;
 
         @Option(names = { "-d",
                 "--days" }, description = "Validity days (default: 7300 - 20 years)", defaultValue = "7300")
@@ -64,12 +74,12 @@ public class OfflineCaTool implements Callable<Integer> {
             PqcCryptoService pqc = new PqcCryptoService();
 
             // 1. Generate Keys
-            KeyPair keyPair = pqc.generateMlDsaKeyPair(algo);
+            AsymmetricCipherKeyPair keyPair = pqc.generateKeyPair(algo);
 
             // 2. Self-Sign Cert
             X509Certificate cert = pqc.generateSelfSignedCertificate(keyPair, name, days, algo);
 
-            // 3. Save Private Key (WARNING: Plaintext for now - encrypt in production!)
+            // 3. Save Private Key
             String privKeyPem = pqc.privateKeyToPem(keyPair.getPrivate());
             Files.writeString(Path.of(outDir.getAbsolutePath(), "root.key"), privKeyPem);
 
@@ -82,8 +92,6 @@ public class OfflineCaTool implements Callable<Integer> {
             Files.writeString(Path.of(outDir.getAbsolutePath(), "root.crt"), certPem);
 
             System.out.println("SUCCESS: Root CA initialized.");
-            System.out.println("  - root.key (PRIVATE! KEEP OFFLINE)");
-            System.out.println("  - root.crt (Public Trusted Root)");
             return 0;
         }
     }
@@ -119,46 +127,36 @@ public class OfflineCaTool implements Callable<Integer> {
             String certPem = Files.readString(certFile.toPath());
 
             // 2. Parse Root Material
-            PrivateKey rootKey = pqc.parsePrivateKeyPem(keyPem);
+            AsymmetricKeyParameter rootKey = pqc.parsePrivateKeyPem(keyPem);
             X509Certificate rootCert = pqc.parseCertificatePem(certPem);
 
-            // 3. Parse CSR to get details
-            var csr = pqc.parseCsrPem(csrPem);
-            var subjectDn = pqc.getSubjectDnFromCsr(csr);
-            var pubKey = pqc.getPublicKeyFromCsr(csr);
+            // 3. Parse CSR
+            PKCS10CertificationRequest csr = pqc.parseCsrPem(csrPem);
 
-            // NOTE: We assume the Root CA algo matches the Root Key (Dilithium levels
-            // matters!)
-            // Ideally we detect from key, but here we assume the PqcCryptoService handles
-            // signer builder correctly
-            // if we use the correct OID.
-            // Actually PqcCryptoService requires 'level' param for signer.
-            // We need to determine the level from the Root Key or Cert.
+            // Determine Algo from Root Cert Sig Algo or user input?
+            // Existing logic checked generic names. Let's do similar or better.
+            String sigAlgName = rootCert.getSigAlgName().toUpperCase();
+            PqcAlgorithm signingAlgo = PqcAlgorithm.ML_DSA_87; // fallback
 
-            // Heuristic: Check Root Cert Sig Algo OID? Or just ask user?
-            // For now, let's look at the Root Cert Sig Algo.
-            String sigAlgName = rootCert.getSigAlgName(); // e.g. "Dilithium5" or OID
-            MlDsaLevel signingLevel = MlDsaLevel.ML_DSA_87; // Default
+            if (sigAlgName.contains("DILITHIUM2") || sigAlgName.contains("ML-DSA-44"))
+                signingAlgo = PqcAlgorithm.ML_DSA_44;
+            else if (sigAlgName.contains("DILITHIUM3") || sigAlgName.contains("ML-DSA-65"))
+                signingAlgo = PqcAlgorithm.ML_DSA_65;
+            else if (sigAlgName.contains("DILITHIUM5") || sigAlgName.contains("ML-DSA-87"))
+                signingAlgo = PqcAlgorithm.ML_DSA_87;
+            else if (sigAlgName.contains("SPHINCS") || sigAlgName.contains("SLH"))
+                signingAlgo = PqcAlgorithm.SLH_DSA_SHAKE_128F;
 
-            if (sigAlgName.toUpperCase().contains("DILITHIUM2"))
-                signingLevel = MlDsaLevel.ML_DSA_44;
-            else if (sigAlgName.toUpperCase().contains("DILITHIUM3"))
-                signingLevel = MlDsaLevel.ML_DSA_65;
-            else if (sigAlgName.toUpperCase().contains("DILITHIUM5"))
-                signingLevel = MlDsaLevel.ML_DSA_87;
-
-            System.out.println("  Subject: " + subjectDn);
-            System.out.println("  Signing Level: " + signingLevel);
+            System.out.println("  Signing with Algo: " + signingAlgo);
 
             // 4. Generate Sub Cert
-            X509Certificate subCert = pqc.generateSubordinateCertificate(
-                    pubKey,
-                    subjectDn,
-                    keyPem,
-                    certPem,
+            X509Certificate subCert = pqc.signCsr(
+                    csr,
+                    rootKey,
+                    rootCert,
                     days,
-                    signingLevel,
-                    true // isCA = true for Sub CA
+                    signingAlgo,
+                    true // isCa = true
             );
 
             // 5. Write Output
@@ -166,8 +164,6 @@ public class OfflineCaTool implements Callable<Integer> {
             Files.writeString(outFile.toPath(), subCertPem);
 
             System.out.println("SUCCESS: Subordinate CA Certificate signed.");
-            System.out.println("  - " + outFile.getAbsolutePath());
-
             return 0;
         }
     }
@@ -180,8 +176,8 @@ public class OfflineCaTool implements Callable<Integer> {
         private String name;
 
         @Option(names = { "-a",
-                "--algo" }, description = "Algorithm: ML_DSA_44, ML_DSA_65, ML_DSA_87 (default: ML_DSA_65)", defaultValue = "ML_DSA_65")
-        private MlDsaLevel algo;
+                "--algo" }, description = "Algorithm: ML_DSA_44, ML_DSA_65, ML_DSA_87, SLH_DSA_SHAKE_128F (default: ML_DSA_65)", defaultValue = "ML_DSA_65")
+        private PqcAlgorithm algo;
 
         @Option(names = { "-o", "--out-dir" }, description = "Output directory", required = true)
         private File outDir;
@@ -189,8 +185,6 @@ public class OfflineCaTool implements Callable<Integer> {
         @Override
         public Integer call() throws Exception {
             System.out.println("Generating Infrastructure CA CSR...");
-            System.out.println("  DN: " + name);
-            System.out.println("  Algo: " + algo);
 
             if (!outDir.exists() && !outDir.mkdirs()) {
                 System.err.println("Failed to create output directory");
@@ -200,10 +194,10 @@ public class OfflineCaTool implements Callable<Integer> {
             PqcCryptoService pqc = new PqcCryptoService();
 
             // 1. Generate Key Pair
-            KeyPair keyPair = pqc.generateMlDsaKeyPair(algo);
+            AsymmetricCipherKeyPair keyPair = pqc.generateKeyPair(algo);
 
             // 2. Generate CSR
-            var csr = pqc.generateCsr(keyPair, name, algo);
+            PKCS10CertificationRequest csr = pqc.generateCsr(keyPair, name, algo);
 
             // 3. Save Private Key
             String privKeyPem = pqc.privateKeyToPem(keyPair.getPrivate());
@@ -214,8 +208,6 @@ public class OfflineCaTool implements Callable<Integer> {
             Files.writeString(Path.of(outDir.getAbsolutePath(), "infra.csr"), csrPem);
 
             System.out.println("SUCCESS: Infra CA Key & CSR generated.");
-            System.out.println("  - infra.key (PRIVATE! Upload to K8s Secret)");
-            System.out.println("  - infra.csr (Sign this with Root CA)");
             return 0;
         }
     }
