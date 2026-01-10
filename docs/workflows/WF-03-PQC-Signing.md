@@ -1,56 +1,55 @@
-# WF-03: Pure PQC Document Signing
+# WF-03: Pure PQC Document Signing (ASiC-E)
 
-**Goal**: Sign a PDF using a client-side PQC key, strictly ensuring "Sole Control" (Article 20).
+**Goal**: Sign a document using client-side PQC key, packaging it in an ASiC-E container (Zip) to support PQC algorithms not yet recognized by standard PDF readers.
 
 ## 1. Actors
-- **User**: Verified Citizen with Cert.
-- **Browser**: Client logic (`pqc.ts`).
-- **Document Service**: `backend/document-service`.
-- **TSA Service**: `backend/tsa-service`.
+- **User**: Verified Citizen.
+- **Browser**: Client logic (WASM PQC).
+- **Document Service**: ASiC Containerizer.
+- **TSA Service**: RFC 3161 Timestamping.
 
 ## 2. Process Flow
 
 ### Phase A: Preparation
-1.  **User** uploads PDF to Portal.
-2.  **Document Service** stores PDF and returns `docId`.
-    - *API*: `POST /api/v1/documents/upload`
-3.  **Browser** downloads PDF (or header bytes) for hashing.
-4.  **Browser** calculates `SHA-384` hash of the document.
+1.  **User** uploads File (PDF/XML/Doc) to Portal.
+2.  **Document Service** calculates `SHA-384` hash of the *original file*.
+3.  **Browser** receives the hash.
 
 ### Phase B: Sole Control Authorization
-1.  **UI** prompts user: "Enter Passphrase to Sign".
-2.  **User** enters Passphrase.
-3.  **Browser** retrieves encrypted Private Key from `IndexedDB`.
-4.  **Browser** decrypts Private Key in memory (AES-GCM).
-    - *Security*: If passphrase is wrong, signing fails locally. Server never sees key/passphrase.
+1.  **UI** prompts: "Enter Passphrase to Sign".
+2.  **Browser** decrypts Private Key (`ML-DSA-65`) from `IndexedDB`.
+3.  **Browser** generates **Detached PQC Signature** (Raw Bytes).
 
-### Phase C: Signature Generation (WASM)
-1.  **Browser** calls `liboqs.sign(hash, privateKey, algo)`.
-    - *Algorithm*: `ML-DSA-44` (or configured algo).
-2.  **Output**: Raw Signature bytes (~2.4KB).
+### Phase C: Containerization (ASiC-E)
+1.  **Browser** sends `{ docId, rawSignature, certificate }` to Backend.
+2.  **Document Service** constructs **CMS (Cryptographic Message Syntax)**:
+    - Wraps raw signature into a `SignedData` structure (OIDs for ML-DSA).
+    - Embeds User Certificate.
+3.  **TSA Timestamping**:
+    - Backend sends CMS hash to TSA.
+    - Receives Timestamp Token (TST).
+    - Embeds TST into CMS as an `unsignedAttribute`.
+4.  **Packaging**:
+    - Backend creates a ZIP file (`.asic` or `.zip`).
+    - Adds `mimetype` file (`application/vnd.etsi.asic-e+zip`).
+    - Adds `original_doc.pdf`.
+    - Adds `META-INF/signature.p7s` (The CMS object).
 
-### Phase D: Formatting & Timestamping (LTV)
-1.  **Browser** sends `{ docId, signature, certificate }` to Backend.
-    - *API*: `POST /api/v1/documents/finalize`
-2.  **Document Service** verifies:
-    - Signature matches Hash + Public Key.
-    - Certificate is valid (not revoked).
-3.  **Document Service** calls **TSA Service** to get a Timestamp Token (RFC 3161).
-    - *Purpose*: Prove signature existed at time T (Long Term Validation).
-4.  **Document Service** embeds:
-    - PQC Signature
-    - X.509 Certificate
-    - TSA Token
-    - Validation Chain
-    ...into the PDF (PAdES / CMS).
+### Phase D: Storage & Delivery
+1.  **System** stores the `.asic` file in MinIO.
+2.  **User** downloads the `.asic` package.
 
 ### Phase E: Verification
-1.  **Recipient** opens PDF in Portal or Adobe Reader (future).
-2.  **Verifier** checks:
-    - Hash integrity.
-    - Signature validity (using Public Key).
-    - Timestamp validity.
+*Since Adobe Reader cannot verify PQC signatures yet:*
+1.  **User** uploads `.asic` file to **Verification Portal**.
+2.  **Portal**:
+    - Unzips container.
+    - Extracts `signature.p7s` and `original_doc.pdf`.
+    - Validates CMS structure and PQC Math (using Bouncy Castle).
+    - Checks Chain of Trust (Root CA > Inter CA > User).
+    - Checks Timestamp validity.
+3.  **UI**: "✅ Valid PQC Signature from [Citizen Name] at [Time]".
 
 ## 3. Technical Constraints
-- **Signature Size**: ML-DSA sigs are large. We reserve ~10KB in the CMS container.
-- **Latency**: Validation involves multiple checks.
+- **Viewer**: Users rely on the Portal to verify (Vendor Lock-in until standards evolve).
+- **Size**: ASiC files are roughly `Size(Doc) + Size(Sig)`.
